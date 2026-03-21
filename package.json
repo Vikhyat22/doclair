@@ -16,6 +16,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@okathira/ghostpdl-wasm": "^1.1.0",
     "browser-image-compression": "^2.0.2",
+    "docx": "^9.6.1",
     "heic2any": "^0.0.4",
     "jszip": "^3.10.1",
     "lucide-react": "^0.577.0",
