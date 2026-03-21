@@ -13,6 +13,50 @@ interface DropZoneProps {
   currentCount?: number
 }
 
+// Extension-based validation — reliable across all browsers.
+// MIME type (file.type) is inconsistent: .docx is reported as
+// application/zip in Firefox, application/octet-stream on some
+// systems, and correctly as application/vnd.openxmlformats-... in Chrome.
+function isFileAccepted(file: File, accept: string): boolean {
+  if (!accept || accept === '*') return true
+
+  const acceptedTypes = accept
+    .split(',')
+    .map(t => t.trim().toLowerCase())
+
+  const fileName = file.name.toLowerCase()
+  const fileMime = file.type.toLowerCase()
+
+  for (const type of acceptedTypes) {
+    // Extension check — most reliable (e.g. ".docx", ".pdf")
+    if (type.startsWith('.')) {
+      if (fileName.endsWith(type)) return true
+      continue
+    }
+    // Wildcard MIME (e.g. "image/*")
+    if (type.includes('*')) {
+      const [category] = type.split('/')
+      if (fileMime.startsWith(category + '/')) return true
+      continue
+    }
+    // Exact MIME match
+    if (fileMime === type) return true
+  }
+
+  return false
+}
+
+// Build a human-readable list of accepted extensions for error messages
+// e.g. ".doc,.docx,application/..." → "DOC, DOCX"
+function acceptedExtensionLabel(accept: string): string {
+  const exts = accept
+    .split(',')
+    .map(t => t.trim())
+    .filter(t => t.startsWith('.'))
+    .map(t => t.replace('.', '').toUpperCase())
+  return exts.length > 0 ? exts.join(', ') : accept.toUpperCase()
+}
+
 export default function DropZone({
   onFilesAdded,
   accept = '.pdf',
@@ -26,12 +70,14 @@ export default function DropZone({
   const inputRef = useRef<HTMLInputElement>(null)
   const [isDragOver, setIsDragOver] = useState(false)
 
+  const extLabel = acceptedExtensionLabel(accept)
+
   function handleFiles(raw: FileList | File[]) {
     const arr = Array.from(raw)
-    const ext = accept.replace('.', '').toLowerCase()
-    const valid = arr.filter(f => f.name.toLowerCase().endsWith(`.${ext}`))
-    if (valid.length < arr.length) {
-      alert(`Only ${ext.toUpperCase()} files are accepted.`)
+    const valid   = arr.filter(f => isFileAccepted(f, accept))
+    const invalid = arr.filter(f => !isFileAccepted(f, accept))
+    if (invalid.length > 0) {
+      alert(`Only ${extLabel} files are accepted.`)
     }
     if (valid.length > 0) {
       onFilesAdded(valid)
@@ -106,7 +152,7 @@ export default function DropZone({
           onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.04)')}
           onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
         >
-          Choose {accept.toUpperCase().replace('.', '')} Files
+          Choose {extLabel} Files
         </button>
 
         <div style={{

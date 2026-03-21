@@ -196,7 +196,7 @@ export default function WordToPDFPage() {
       {toolState === 'idle' && (
         <DropZone
           onFilesAdded={addFile}
-          accept=".doc,.docx"
+          accept=".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-word"
           maxFiles={1}
           maxSizeMB={50}
           currentCount={0}
