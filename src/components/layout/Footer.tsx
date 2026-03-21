@@ -98,7 +98,7 @@ export default function Footer() {
           </span>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {['ZERO UPLOAD', 'NO WATERMARK', 'ALWAYS FREE'].map(label => (
-              <span key={label} style={{
+              <span key={label} className="footer-badge" style={{
                 padding: '4px 10px',
                 borderRadius: '100px',
                 background: 'rgba(255,255,255,0.05)',

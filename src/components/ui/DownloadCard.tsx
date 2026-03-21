@@ -44,10 +44,16 @@ export default function DownloadCard({ filename, description, onDownload, onRese
             display: 'inline-flex',
             alignItems: 'center',
             gap: '8px',
-            transition: 'background 0.15s',
+            transition: 'all 0.2s',
           }}
-          onMouseEnter={e => (e.currentTarget.style.background = '#15803D')}
-          onMouseLeave={e => (e.currentTarget.style.background = '#16A34A')}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = '#1B4332'
+            e.currentTarget.style.transform = 'translateY(-1px)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = '#16A34A'
+            e.currentTarget.style.transform = 'translateY(0)'
+          }}
         >⬇ Download {filename}</button>
         <button
           onClick={onReset}
@@ -55,16 +61,17 @@ export default function DownloadCard({ filename, description, onDownload, onRese
             display: 'block',
             fontFamily: 'var(--font-dm-mono), DM Mono, monospace',
             fontSize: '12px',
-            color: 'var(--amber)',
+            color: 'var(--muted)',
             margin: '16px auto 0',
             cursor: 'pointer',
             background: 'none',
             border: 'none',
             textAlign: 'center',
             width: '100%',
+            transition: 'color 0.15s',
           }}
-          onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
-          onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
+          onMouseEnter={e => (e.currentTarget.style.color = 'var(--amber)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted)')}
         >Merge more files →</button>
       </div>
     </div>

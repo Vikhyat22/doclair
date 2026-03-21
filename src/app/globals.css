@@ -70,8 +70,8 @@ body::before {
 
 /* Animations */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(18px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes float {
@@ -86,6 +86,88 @@ body::before {
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.6; transform: scale(0.85); }
+}
+
+/* Nav link hover */
+.nav-link {
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+/* Footer badge pills hover */
+.footer-badge {
+  transition: all 0.15s;
+}
+.footer-badge:hover {
+  background: rgba(255,255,255,0.1) !important;
+  color: rgba(255,255,255,0.6) !important;
+}
+
+/* Breadcrumb links */
+.breadcrumb-link {
+  transition: color 0.15s;
+}
+.breadcrumb-link:hover {
+  color: var(--amber) !important;
+  opacity: 1 !important;
+}
+
+/* Tool cards */
+.tool-card {
+  background: white;
+  transition: all 0.18s ease;
+}
+.tool-card:hover {
+  background: #FDF8F0 !important;
+  box-shadow: inset 0 0 0 2px var(--amber);
+}
+.tool-icon {
+  transition: transform 0.18s;
+}
+.tool-card:hover .tool-icon {
+  transform: scale(1.05);
+}
+.tool-arrow {
+  margin-top: 14px;
+  font-size: 16px;
+  color: var(--amber);
+  width: fit-content;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.18s, transform 0.18s;
+}
+.tool-card:hover .tool-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Category filter inactive hover */
+.cat-btn:hover:not(.cat-btn-active) {
+  background: rgba(26, 22, 18, 0.04) !important;
+  border-color: rgba(26, 22, 18, 0.3) !important;
+}
+
+/* Trust bar items */
+.trust-item {
+  transition: opacity 0.2s;
+}
+.trust-item:hover {
+  opacity: 1 !important;
+}
+
+/* Step icons */
+.step-icon {
+  transition: transform 0.2s;
+}
+.step-icon:hover {
+  transform: scale(1.08);
+}
+
+/* Privacy feature icons */
+.privacy-feat-icon {
+  transition: transform 0.2s;
+}
+.privacy-feat-icon:hover {
+  transform: scale(1.06);
 }
 
 /* Code block color classes */

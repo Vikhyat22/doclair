@@ -120,13 +120,27 @@ export default function HomePage() {
             <Link href="#tools" style={{
               background: 'var(--ink)', color: 'white', padding: '14px 28px', borderRadius: '100px',
               fontSize: '15px', fontWeight: 500, textDecoration: 'none', display: 'inline-flex',
-              alignItems: 'center', gap: '8px', transition: 'transform 0.15s',
-            }}>Explore All Tools <span>→</span></Link>
+              alignItems: 'center', gap: '8px', transition: 'background 0.2s, transform 0.15s',
+            }}
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.transform = 'scale(1.03)'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.transform = 'scale(1)'}
+            >Explore All Tools <span>→</span></Link>
             <Link href="#privacy" style={{
               background: 'transparent', color: 'var(--ink)', padding: '14px 28px', borderRadius: '100px',
               fontSize: '15px', fontWeight: 500, border: '2px solid rgba(26,22,18,0.15)',
-              textDecoration: 'none', transition: 'all 0.15s',
-            }}>How privacy works</Link>
+              textDecoration: 'none', transition: 'all 0.2s',
+            }}
+              onMouseEnter={e => {
+                const el = e.currentTarget as HTMLElement
+                el.style.background = 'rgba(26,22,18,0.04)'
+                el.style.borderColor = 'var(--ink)'
+              }}
+              onMouseLeave={e => {
+                const el = e.currentTarget as HTMLElement
+                el.style.background = 'transparent'
+                el.style.borderColor = 'rgba(26,22,18,0.15)'
+              }}
+            >How privacy works</Link>
           </div>
 
           {/* Stats */}
@@ -197,12 +211,23 @@ export default function HomePage() {
               <Link key={pill.slug} href={`/${pill.slug}`} style={{
                 padding: '9px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 500,
                 fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif', cursor: 'pointer',
-                textAlign: 'center', transition: 'transform 0.15s', textDecoration: 'none',
+                textAlign: 'center', transition: 'transform 0.15s, opacity 0.15s', textDecoration: 'none',
                 whiteSpace: 'nowrap',
                 border: pill.featured ? '1px solid var(--amber)' : '1px solid rgba(255,255,255,0.1)',
                 color: pill.featured ? 'var(--ink)' : 'var(--cream)',
                 background: pill.featured ? 'var(--amber)' : 'rgba(255,255,255,0.06)',
-              }}>{pill.icon} {pill.label}</Link>
+              }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLElement
+                  el.style.transform = 'translateY(-2px)'
+                  if (pill.featured) el.style.opacity = '0.9'
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLElement
+                  el.style.transform = 'translateY(0)'
+                  el.style.opacity = '1'
+                }}
+              >{pill.icon} {pill.label}</Link>
             ))}
           </div>
 
@@ -247,13 +272,13 @@ export default function HomePage() {
               { icon: '🚫', text: 'No sign-up required' },
               { icon: '∞', text: 'No file size cap' },
             ].map((item, i) => (
-              <div key={i} style={{
+              <div key={i} className="trust-item" style={{
                 display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center',
-                padding: '0 12px',
+                padding: '0 12px', opacity: 0.7,
                 borderRight: i < 4 ? '1px solid var(--border)' : 'none',
               }}>
                 <span style={{ fontSize: '15px' }}>{item.icon}</span>
-                <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--ink)', opacity: 0.8 }}>{item.text}</span>
+                <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--ink)' }}>{item.text}</span>
               </div>
             ))}
           </div>
@@ -275,14 +300,16 @@ export default function HomePage() {
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '40px' }}>
             {CATEGORIES.map(cat => (
-              <button key={cat} onClick={() => setActiveCat(cat)} style={{
-                padding: '9px 18px', borderRadius: '100px', fontSize: '13px', fontWeight: 500,
-                border: `1px solid ${activeCat === cat ? 'var(--ink)' : 'rgba(26,22,18,0.15)'}`,
-                background: activeCat === cat ? 'var(--ink)' : 'transparent',
-                color: activeCat === cat ? 'white' : 'var(--ink)',
-                cursor: 'pointer', transition: 'all 0.15s',
-                fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif',
-              }}>{cat}</button>
+              <button key={cat} onClick={() => setActiveCat(cat)}
+                className={`cat-btn${activeCat === cat ? ' cat-btn-active' : ''}`}
+                style={{
+                  padding: '9px 18px', borderRadius: '100px', fontSize: '13px', fontWeight: 500,
+                  border: `1px solid ${activeCat === cat ? 'var(--ink)' : 'rgba(26,22,18,0.15)'}`,
+                  background: activeCat === cat ? 'var(--ink)' : 'transparent',
+                  color: activeCat === cat ? 'white' : 'var(--ink)',
+                  cursor: 'pointer', transition: 'all 0.15s',
+                  fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif',
+                }}>{cat}</button>
             ))}
           </div>
 
@@ -295,17 +322,15 @@ export default function HomePage() {
             background: 'white',
           }} className="tools-grid">
             {filteredTools.map((tool) => (
-              <Link key={tool.id} href={`/${tool.slug}`} style={{
+              <Link key={tool.id} href={`/${tool.slug}`} className="tool-card" style={{
                 padding: '24px',
                 borderRight: '1px solid var(--border)',
                 borderBottom: '1px solid var(--border)',
                 cursor: 'pointer',
-                transition: 'all 0.18s',
                 position: 'relative',
                 textDecoration: 'none',
                 display: 'flex',
                 flexDirection: 'column',
-                background: 'white',
               }}>
                 <div style={{ position: 'absolute', top: '14px', right: '14px', display: 'flex', gap: '4px' }}>
                   {tool.ai && (
@@ -329,7 +354,7 @@ export default function HomePage() {
                     }}>New</span>
                   )}
                 </div>
-                <div style={{
+                <div className="tool-icon" style={{
                   width: '44px', height: '44px', borderRadius: '10px',
                   background: CATEGORY_ICON_BG[tool.category] || '#F3F4F6',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -337,7 +362,7 @@ export default function HomePage() {
                 }}>{tool.icon}</div>
                 <div style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '15px', color: 'var(--ink)', marginBottom: '5px', lineHeight: 1.2 }}>{tool.name}</div>
                 <div style={{ fontSize: '12px', color: 'var(--ink)', opacity: 0.55, lineHeight: 1.5, flex: 1 }}>{tool.desc}</div>
-                <div style={{ marginTop: '14px', fontSize: '16px', color: 'var(--amber)', width: 'fit-content' }}>→</div>
+                <div className="tool-arrow">→</div>
               </Link>
             ))}
           </div>
@@ -390,7 +415,7 @@ export default function HomePage() {
                     color: 'var(--ink)', zIndex: 2, fontWeight: 700,
                   }}>→</div>
                 )}
-                <div style={{
+                <div className="step-icon" style={{
                   width: '48px', height: '48px', borderRadius: '12px',
                   background: 'rgba(232,130,12,0.15)', display: 'flex',
                   alignItems: 'center', justifyContent: 'center', fontSize: '22px', marginBottom: '24px',
@@ -444,7 +469,7 @@ export default function HomePage() {
                   { icon: '🧹', bg: '#FFF0DC', title: 'Memory cleared on exit', desc: 'Files vanish from memory when you close the tab' },
                 ].map(feat => (
                   <div key={feat.title} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-                    <div style={{
+                    <div className="privacy-feat-icon" style={{
                       width: '44px', height: '44px', borderRadius: '10px', background: feat.bg,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0,
                     }}>{feat.icon}</div>
@@ -474,12 +499,16 @@ export default function HomePage() {
         @media (max-width: 599px) {
           .tools-grid { grid-template-columns: 1fr !important; }
           .trust-bar-grid { grid-template-columns: repeat(2,1fr) !important; }
-          .trust-bar-grid > div { border-right: none !important; border-bottom: 1px solid var(--border); padding: 10px 12px !important; }
+          .trust-bar-grid > .trust-item { border-right: none !important; border-bottom: 1px solid var(--border); padding: 10px 12px !important; }
         }
         @media (max-width: 767px) {
           .steps-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
           .step-arrow { display: none !important; }
           .privacy-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+        }
+        @media (hover: none) {
+          .tool-card:hover { background: white !important; box-shadow: none !important; }
+          .tool-arrow { opacity: 1 !important; transform: translateX(0) !important; }
         }
       `}</style>
     </>

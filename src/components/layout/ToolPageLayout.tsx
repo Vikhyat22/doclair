@@ -35,9 +35,9 @@ export default function ToolPageLayout({
           fontFamily: 'var(--font-dm-mono), DM Mono, monospace',
           fontSize: '12px',
         }}>
-          <Link href="/" style={{ color: 'var(--ink)', opacity: 0.45, textDecoration: 'none' }}>Home</Link>
+          <Link href="/" className="breadcrumb-link" style={{ color: 'var(--ink)', opacity: 0.45, textDecoration: 'none' }}>Home</Link>
           <span style={{ opacity: 0.25, fontSize: '11px' }}>›</span>
-          <Link href="/tools" style={{ color: 'var(--ink)', opacity: 0.45, textDecoration: 'none' }}>Tools</Link>
+          <Link href="/tools" className="breadcrumb-link" style={{ color: 'var(--ink)', opacity: 0.45, textDecoration: 'none' }}>Tools</Link>
           <span style={{ opacity: 0.25, fontSize: '11px' }}>›</span>
           <span style={{ color: 'var(--amber)', fontWeight: 500 }}>{toolName}</span>
         </div>

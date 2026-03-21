@@ -41,12 +41,25 @@ function SidebarCard({ label, tools, showDesc }: { label: string; tools: Sidebar
           padding: '9px 10px',
           borderRadius: '10px',
           textDecoration: 'none',
-          transition: 'background 0.15s',
+          transition: 'all 0.2s',
+          border: '1px solid transparent',
         }}
-          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(26,22,18,0.06)'}
-          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+          onMouseEnter={e => {
+            const el = e.currentTarget as HTMLElement
+            el.style.background = 'white'
+            el.style.borderColor = 'var(--border)'
+            const icon = el.querySelector('.sidebar-icon') as HTMLElement | null
+            if (icon) icon.style.transform = 'scale(1.08)'
+          }}
+          onMouseLeave={e => {
+            const el = e.currentTarget as HTMLElement
+            el.style.background = 'transparent'
+            el.style.borderColor = 'transparent'
+            const icon = el.querySelector('.sidebar-icon') as HTMLElement | null
+            if (icon) icon.style.transform = 'scale(1)'
+          }}
         >
-          <div style={{
+          <div className="sidebar-icon" style={{
             width: '38px',
             height: '38px',
             borderRadius: '8px',

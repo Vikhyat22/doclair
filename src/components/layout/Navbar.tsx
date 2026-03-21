@@ -55,26 +55,19 @@ export default function Navbar() {
 
           {/* Desktop nav */}
           <div className="nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-            <Link href="/tools" style={{ fontSize: '14px', fontWeight: 500, color: 'var(--ink)', textDecoration: 'none', opacity: 0.7 }}
-              onMouseEnter={e => { (e.target as HTMLElement).style.opacity = '1'; (e.target as HTMLElement).style.color = 'var(--amber)'; }}
-              onMouseLeave={e => { (e.target as HTMLElement).style.opacity = '0.7'; (e.target as HTMLElement).style.color = 'var(--ink)'; }}>
-              All Tools
-            </Link>
-            <Link href="/blog" style={{ fontSize: '14px', fontWeight: 500, color: 'var(--ink)', textDecoration: 'none', opacity: 0.7 }}
-              onMouseEnter={e => { (e.target as HTMLElement).style.opacity = '1'; (e.target as HTMLElement).style.color = 'var(--amber)'; }}
-              onMouseLeave={e => { (e.target as HTMLElement).style.opacity = '0.7'; (e.target as HTMLElement).style.color = 'var(--ink)'; }}>
-              Blog
-            </Link>
-            <Link href="/faqs" style={{ fontSize: '14px', fontWeight: 500, color: 'var(--ink)', textDecoration: 'none', opacity: 0.7 }}
-              onMouseEnter={e => { (e.target as HTMLElement).style.opacity = '1'; (e.target as HTMLElement).style.color = 'var(--amber)'; }}
-              onMouseLeave={e => { (e.target as HTMLElement).style.opacity = '0.7'; (e.target as HTMLElement).style.color = 'var(--ink)'; }}>
-              FAQs
-            </Link>
-            <Link href="/install-app" style={{ fontSize: '14px', fontWeight: 500, color: 'var(--ink)', textDecoration: 'none', opacity: 0.7 }}
-              onMouseEnter={e => { (e.target as HTMLElement).style.opacity = '1'; (e.target as HTMLElement).style.color = 'var(--amber)'; }}
-              onMouseLeave={e => { (e.target as HTMLElement).style.opacity = '0.7'; (e.target as HTMLElement).style.color = 'var(--ink)'; }}>
-              Install App
-            </Link>
+            {[
+              { href: '/tools', label: 'All Tools' },
+              { href: '/blog', label: 'Blog' },
+              { href: '/faqs', label: 'FAQs' },
+              { href: '/install-app', label: 'Install App' },
+            ].map(link => (
+              <Link key={link.href} href={link.href} className="nav-link" style={{
+                fontSize: '14px', fontWeight: 500, color: 'var(--muted)', textDecoration: 'none',
+              }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'var(--ink)'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'var(--muted)'}
+              >{link.label}</Link>
+            ))}
             <Link href="/tools" style={{
               background: 'var(--ink)',
               color: 'var(--cream)',
@@ -83,11 +76,11 @@ export default function Navbar() {
               fontSize: '14px',
               fontWeight: 500,
               textDecoration: 'none',
-              transition: 'transform 0.15s',
+              transition: 'background 0.2s, transform 0.15s',
               display: 'inline-block',
             }}
-              onMouseEnter={e => { (e.target as HTMLElement).style.transform = 'scale(1.04)'; }}
-              onMouseLeave={e => { (e.target as HTMLElement).style.transform = 'scale(1)'; }}>
+              onMouseEnter={e => (e.currentTarget as HTMLElement).style.transform = 'scale(1.04)'}
+              onMouseLeave={e => (e.currentTarget as HTMLElement).style.transform = 'scale(1)'}>
               Browse 55+ Tools →
             </Link>
           </div>
@@ -104,7 +97,11 @@ export default function Navbar() {
               cursor: 'pointer',
               color: 'var(--ink)',
               padding: '8px',
+              opacity: 0.7,
+              transition: 'opacity 0.2s',
             }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+            onMouseLeave={e => (e.currentTarget.style.opacity = '0.7')}
             aria-label="Open menu"
           >☰</button>
         </div>
