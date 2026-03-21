@@ -83,11 +83,10 @@ const BREADCRUMB_SCHEMA = {
   ],
 }
 
-function getStatus(progress: number) {
-  if (progress < 35) return 'Analysing PDF…'
-  if (progress < 70) return 'Compressing pages…'
-  if (progress < 95) return 'Optimising file…'
-  return 'Almost done…'
+function getStatus(progress: number, currentPage: number, totalPages: number) {
+  if (progress < 20) return 'Loading PDF…'
+  if (progress < 90) return `Compressing page ${currentPage} of ${totalPages}…`
+  return 'Finalising…'
 }
 
 function formatBytes(b: number) {
@@ -100,6 +99,8 @@ export default function CompressPDFPage() {
   const [quality, setQuality]                 = useState<Quality>('medium')
   const [toolState, setToolState]             = useState<ToolState>('idle')
   const [progress, setProgress]               = useState(0)
+  const [currentPage, setCurrentPage]         = useState(0)
+  const [totalPages, setTotalPages]           = useState(0)
   const [compressedBytes, setCompressedBytes] = useState<Uint8Array | null>(null)
   const [originalSize, setOriginalSize]       = useState(0)
   const [compressedSize, setCompressedSize]   = useState(0)
@@ -117,13 +118,17 @@ export default function CompressPDFPage() {
     if (!file) return
     setToolState('merging')
     setProgress(0)
+    setCurrentPage(0)
+    setTotalPages(0)
     try {
-      setProgress(20)
-      const bytes = await compressPDF(file, quality)
-      setProgress(90)
+      const bytes = await compressPDF(file, quality, (current, total) => {
+        setCurrentPage(current)
+        setTotalPages(total)
+        setProgress(Math.round((current / total) * 90))
+      })
+      setProgress(100)
       setCompressedBytes(bytes)
       setCompressedSize(bytes.byteLength)
-      setProgress(100)
       setToolState('done')
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error'
@@ -147,17 +152,21 @@ export default function CompressPDFPage() {
     setFile(null)
     setCompressedBytes(null)
     setProgress(0)
+    setCurrentPage(0)
+    setTotalPages(0)
     setOriginalSize(0)
     setCompressedSize(0)
     setToolState('idle')
   }
 
-  const pctSmaller = originalSize > 0 && compressedSize > 0
-    ? Math.round((1 - compressedSize / originalSize) * 100)
+  const reduction = originalSize > 0 && compressedSize > 0
+    ? Math.round(((originalSize - compressedSize) / originalSize) * 100)
     : 0
 
   const downloadDesc = compressedSize > 0
-    ? `${formatBytes(originalSize)} → ${formatBytes(compressedSize)} · ${pctSmaller > 0 ? pctSmaller + '% smaller' : 'no change'}`
+    ? reduction > 0
+      ? `${formatBytes(originalSize)} → ${formatBytes(compressedSize)} · ${reduction}% smaller`
+      : 'File already optimised — no reduction possible'
     : ''
 
   const sidebar = (
@@ -284,6 +293,10 @@ export default function CompressPDFPage() {
                 </button>
               ))}
             </div>
+            <p style={{
+              fontFamily: 'var(--font-dm-mono), DM Mono, monospace',
+              fontSize: '11px', color: 'var(--muted)', marginTop: '8px', lineHeight: 1.5,
+            }}>Note: compressed PDFs are image-based. Text will not be selectable in the output.</p>
           </div>
 
           {/* Action buttons */}
@@ -343,7 +356,7 @@ export default function CompressPDFPage() {
           <div style={{
             fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '12px',
             color: 'rgba(255,255,255,0.45)', marginBottom: '24px',
-          }}>{getStatus(progress)}</div>
+          }}>{getStatus(progress, currentPage, totalPages)}</div>
           <div style={{
             maxWidth: '320px', margin: '0 auto', height: '4px',
             background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden',
