@@ -1,65 +1,487 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { useState } from 'react'
+import Link from 'next/link'
+import Navbar from '@/components/layout/Navbar'
+import Footer from '@/components/layout/Footer'
+import { TOOLS, CATEGORIES, CATEGORY_ICON_BG } from '@/constants/tools'
+
+export default function HomePage() {
+  const [activeCat, setActiveCat] = useState('All Tools')
+
+  const filteredTools = activeCat === 'All Tools'
+    ? TOOLS
+    : TOOLS.filter(t => t.category === activeCat)
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <>
+      <Navbar />
+
+      {/* ── HERO ── */}
+      <section style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        minHeight: 'calc(100vh - 68px)',
+        position: 'relative',
+        zIndex: 1,
+      }} className="hero-grid">
+
+        {/* Hero Left */}
+        <div style={{
+          padding: '80px 64px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          maxWidth: '680px',
+        }} className="hero-left">
+          {/* Live badge */}
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '6px 14px',
+            borderRadius: '100px',
+            border: '1px solid rgba(26,22,18,0.15)',
+            background: 'rgba(255,255,255,0.5)',
+            backdropFilter: 'blur(8px)',
+            marginBottom: '28px',
+            width: 'fit-content',
+            animation: 'fadeUp 0.6s ease both',
+            animationDelay: '0.05s',
+          }}>
+            <div style={{
+              width: '7px', height: '7px', borderRadius: '50%', background: '#22c55e',
+              animation: 'pulse 2s ease-in-out infinite',
+            }} />
+            <span style={{
+              fontFamily: 'var(--font-dm-mono), DM Mono, monospace',
+              fontSize: '11px', fontWeight: 500, letterSpacing: '0.08em',
+              textTransform: 'uppercase', color: 'var(--ink)',
+            }}>100% browser-based · zero upload</span>
+          </div>
+
+          {/* H1 */}
+          <h1 style={{
+            fontFamily: 'var(--font-syne), Syne, sans-serif',
+            fontWeight: 800,
+            fontSize: 'clamp(44px, 5vw, 72px)',
+            lineHeight: 1.02,
+            letterSpacing: '-2px',
+            color: 'var(--ink)',
+            marginBottom: '24px',
+            animation: 'fadeUp 0.6s ease both',
+            animationDelay: '0.12s',
+          }}>
+            Your files.<br />Your device.<br />
+            <em style={{
+              fontStyle: 'normal',
+              color: 'var(--amber)',
+              position: 'relative',
+              display: 'inline-block',
+            }}>Your rules.
+              <span style={{
+                position: 'absolute',
+                bottom: '-4px',
+                left: 0,
+                right: 0,
+                height: '3px',
+                background: 'var(--amber)',
+                borderRadius: '2px',
+                display: 'block',
+              }} />
+            </em>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          {/* Subtitle */}
+          <p style={{
+            fontSize: '17px',
+            fontWeight: 300,
+            lineHeight: 1.65,
+            color: 'var(--ink)',
+            opacity: 0.72,
+            maxWidth: '460px',
+            marginBottom: '36px',
+            animation: 'fadeUp 0.6s ease both',
+            animationDelay: '0.18s',
+          }}>
+            55+ professional PDF, image &amp; document tools — all running privately in your browser.
+            Nothing leaves your device. No watermarks. No sign-up. Forever free.
           </p>
+
+          {/* Buttons */}
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            flexWrap: 'wrap',
+            marginBottom: '52px',
+            animation: 'fadeUp 0.6s ease both',
+            animationDelay: '0.24s',
+          }}>
+            <Link href="#tools" style={{
+              background: 'var(--ink)', color: 'white', padding: '14px 28px', borderRadius: '100px',
+              fontSize: '15px', fontWeight: 500, textDecoration: 'none', display: 'inline-flex',
+              alignItems: 'center', gap: '8px', transition: 'transform 0.15s',
+            }}>Explore All Tools <span>→</span></Link>
+            <Link href="#privacy" style={{
+              background: 'transparent', color: 'var(--ink)', padding: '14px 28px', borderRadius: '100px',
+              fontSize: '15px', fontWeight: 500, border: '2px solid rgba(26,22,18,0.15)',
+              textDecoration: 'none', transition: 'all 0.15s',
+            }}>How privacy works</Link>
+          </div>
+
+          {/* Stats */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            borderTop: '1px solid var(--border)',
+            paddingTop: '28px',
+            animation: 'fadeUp 0.6s ease both',
+            animationDelay: '0.32s',
+          }}>
+            {[
+              { num: '55+', label: 'Free tools' },
+              { num: '0 KB', label: 'Uploaded to servers' },
+              { num: '∞', label: 'No file size limits' },
+            ].map((s, i) => (
+              <div key={i} style={{
+                paddingRight: i < 2 ? '24px' : 0,
+                borderRight: i < 2 ? '1px solid var(--border)' : 'none',
+                marginRight: i < 2 ? '24px' : 0,
+              }}>
+                <div style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: '26px', color: 'var(--ink)' }}>{s.num}</div>
+                <div style={{ fontSize: '12px', color: 'var(--ink)', opacity: 0.55, marginTop: '2px' }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Hero Right */}
+        <div style={{
+          background: 'var(--ink)',
+          padding: '80px 64px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+        }} className="hero-right">
+          <div style={{
+            position: 'absolute', inset: 0, opacity: 0.04,
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+            backgroundSize: '200px', pointerEvents: 'none',
+          }} />
+
+          <div style={{
+            fontFamily: 'var(--font-dm-mono), DM Mono, monospace',
+            fontSize: '11px', color: 'var(--amber)', letterSpacing: '0.1em',
+            textTransform: 'uppercase', marginBottom: '24px', position: 'relative',
+          }}>// Popular right now</div>
+
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '32px', position: 'relative',
+          }}>
+            {[
+              { icon: '🔀', label: 'Merge PDF', slug: 'merge-pdf', featured: true },
+              { icon: '✂️', label: 'Split PDF', slug: 'split-pdf', featured: false },
+              { icon: '📦', label: 'Compress', slug: 'compress-pdf', featured: false },
+              { icon: '💬', label: 'Chat PDF', slug: 'chat-with-pdf', featured: true },
+              { icon: '🖼️', label: 'PDF→JPG', slug: 'pdf-to-jpg', featured: false },
+              { icon: '📄', label: 'Word→PDF', slug: 'word-to-pdf', featured: false },
+              { icon: '🧾', label: 'GST Invoice', slug: 'gst-invoice', featured: true },
+              { icon: '🔐', label: 'Encrypt', slug: 'encrypt-pdf', featured: false },
+              { icon: '👁️', label: 'OCR PDF', slug: 'ocr-pdf', featured: false },
+              { icon: '🎨', label: 'Remove BG', slug: 'remove-background', featured: true },
+              { icon: '📊', label: 'Excel→PDF', slug: 'excel-to-pdf', featured: false },
+              { icon: '🔪', label: 'Cut PDF', slug: 'cut-pdf', featured: false },
+            ].map(pill => (
+              <Link key={pill.slug} href={`/${pill.slug}`} style={{
+                padding: '9px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 500,
+                fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif', cursor: 'pointer',
+                textAlign: 'center', transition: 'transform 0.15s', textDecoration: 'none',
+                whiteSpace: 'nowrap',
+                border: pill.featured ? '1px solid var(--amber)' : '1px solid rgba(255,255,255,0.1)',
+                color: pill.featured ? 'var(--ink)' : 'var(--cream)',
+                background: pill.featured ? 'var(--amber)' : 'rgba(255,255,255,0.06)',
+              }}>{pill.icon} {pill.label}</Link>
+            ))}
+          </div>
+
+          <div style={{
+            background: '#0D1117', borderRadius: '12px', padding: '20px 24px',
+            fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '13px',
+            lineHeight: '1.75', marginBottom: '24px',
+            border: '1px solid rgba(255,255,255,0.08)', position: 'relative',
+          }}>
+            <div><span className="c-kw">const</span> result = <span className="c-kw">await</span> <span className="c-fn">mergePDF</span>(files);</div>
+            <div><span className="c-cm">{'// ↑ runs entirely in your browser'}</span></div>
+            <div><span className="c-kw">const</span> uploaded = <span className="c-val">false</span>; <span className="c-cm">{'// always'}</span></div>
+            <div><span className="c-fn">download</span>(result); <span className="c-cm">{'// yours, instantly'}</span></div>
+          </div>
+
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px',
+            borderRadius: '8px', background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)', position: 'relative',
+          }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', animation: 'pulse 2s ease-in-out infinite' }} />
+            <span style={{
+              fontFamily: 'var(--font-dm-mono), DM Mono, monospace',
+              fontSize: '11px', letterSpacing: '0.08em', textTransform: 'uppercase',
+              color: 'rgba(255,255,255,0.6)',
+            }}>Zero-server architecture</span>
+          </div>
         </div>
-      </main>
-    </div>
-  );
+      </section>
+
+      {/* ── TRUST BAR ── */}
+      <div style={{
+        borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
+        padding: '18px 0', position: 'relative', zIndex: 1, background: 'rgba(26,22,18,0.04)',
+      }}>
+        <div className="section-inner">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)' }} className="trust-bar-grid">
+            {[
+              { icon: '✦', text: 'No watermark, ever' },
+              { icon: '🔒', text: 'Files stay on device' },
+              { icon: '📡', text: 'Works offline' },
+              { icon: '🚫', text: 'No sign-up required' },
+              { icon: '∞', text: 'No file size cap' },
+            ].map((item, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center',
+                padding: '0 12px',
+                borderRight: i < 4 ? '1px solid var(--border)' : 'none',
+              }}>
+                <span style={{ fontSize: '15px' }}>{item.icon}</span>
+                <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--ink)', opacity: 0.8 }}>{item.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── TOOLS SECTION ── */}
+      <section id="tools" style={{ padding: '100px 0 80px', position: 'relative', zIndex: 1 }}>
+        <div className="section-inner">
+          <div style={{
+            fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px',
+            color: 'var(--amber)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '14px',
+          }}>// 55+ tools</div>
+          <h2 style={{
+            fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800,
+            fontSize: 'clamp(32px, 4vw, 48px)', letterSpacing: '-1.5px', color: 'var(--ink)',
+            marginBottom: '40px', lineHeight: 1.1,
+          }}>Everything your documents need</h2>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '40px' }}>
+            {CATEGORIES.map(cat => (
+              <button key={cat} onClick={() => setActiveCat(cat)} style={{
+                padding: '9px 18px', borderRadius: '100px', fontSize: '13px', fontWeight: 500,
+                border: `1px solid ${activeCat === cat ? 'var(--ink)' : 'rgba(26,22,18,0.15)'}`,
+                background: activeCat === cat ? 'var(--ink)' : 'transparent',
+                color: activeCat === cat ? 'white' : 'var(--ink)',
+                cursor: 'pointer', transition: 'all 0.15s',
+                fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif',
+              }}>{cat}</button>
+            ))}
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            border: '1px solid var(--border)',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            background: 'white',
+          }} className="tools-grid">
+            {filteredTools.map((tool) => (
+              <Link key={tool.id} href={`/${tool.slug}`} style={{
+                padding: '24px',
+                borderRight: '1px solid var(--border)',
+                borderBottom: '1px solid var(--border)',
+                cursor: 'pointer',
+                transition: 'all 0.18s',
+                position: 'relative',
+                textDecoration: 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                background: 'white',
+              }}>
+                <div style={{ position: 'absolute', top: '14px', right: '14px', display: 'flex', gap: '4px' }}>
+                  {tool.ai && (
+                    <span style={{
+                      padding: '3px 7px', borderRadius: '100px', background: '#EDE9FE', color: '#5B21B6',
+                      fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '9px', fontWeight: 500,
+                      letterSpacing: '0.06em', textTransform: 'uppercase',
+                    }}>AI</span>
+                  )}
+                  {tool.in && (
+                    <span style={{
+                      padding: '3px 7px', borderRadius: '100px', background: '#FFF0DC', color: '#92400E',
+                      fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '9px', fontWeight: 500,
+                    }}>IN 🇮🇳</span>
+                  )}
+                  {tool.isNew && (
+                    <span style={{
+                      padding: '3px 7px', borderRadius: '100px', background: '#DCFCE7', color: '#166534',
+                      fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '9px', fontWeight: 500,
+                      textTransform: 'uppercase',
+                    }}>New</span>
+                  )}
+                </div>
+                <div style={{
+                  width: '44px', height: '44px', borderRadius: '10px',
+                  background: CATEGORY_ICON_BG[tool.category] || '#F3F4F6',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '22px', marginBottom: '14px', flexShrink: 0,
+                }}>{tool.icon}</div>
+                <div style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '15px', color: 'var(--ink)', marginBottom: '5px', lineHeight: 1.2 }}>{tool.name}</div>
+                <div style={{ fontSize: '12px', color: 'var(--ink)', opacity: 0.55, lineHeight: 1.5, flex: 1 }}>{tool.desc}</div>
+                <div style={{ marginTop: '14px', fontSize: '16px', color: 'var(--amber)', width: 'fit-content' }}>→</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ── */}
+      <section style={{
+        padding: '100px 0', background: 'var(--ink)', position: 'relative', overflow: 'hidden', zIndex: 1,
+      }}>
+        <div style={{
+          position: 'absolute', inset: 0, opacity: 0.04,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+          backgroundSize: '200px', pointerEvents: 'none',
+        }} />
+        <div className="section-inner" style={{ position: 'relative' }}>
+          <div style={{
+            fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px',
+            color: 'var(--amber)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '14px',
+          }}>// zero friction</div>
+          <div style={{
+            fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800,
+            fontSize: 'clamp(32px, 4vw, 48px)', letterSpacing: '-1.5px', color: 'white',
+            marginBottom: '64px', lineHeight: 1.1,
+          }}>Done in three steps</div>
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0, position: 'relative',
+          }} className="steps-grid">
+            {[
+              { num: '01', icon: '📂', name: 'Pick a tool & drop your file', desc: 'Choose from 55+ tools. Drag your file in — no account, no waiting, no limit.' },
+              { num: '02', icon: '⚙️', name: 'Browser does the work', desc: 'WebAssembly runs the processing locally on your CPU. Your file never moves.' },
+              { num: '03', icon: '⬇️', name: 'Download instantly', desc: 'Your processed file downloads directly. Memory clears when you close the tab.' },
+            ].map((step, i) => (
+              <div key={i} style={{
+                paddingLeft: i === 0 ? '0' : '40px',
+                paddingRight: i === 2 ? '0' : '40px',
+                borderRight: i < 2 ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                position: 'relative',
+              }}>
+                <div style={{
+                  fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800,
+                  fontSize: '96px', lineHeight: 1, color: 'rgba(255,255,255,0.04)',
+                  position: 'absolute', top: '-12px', right: '20px', userSelect: 'none',
+                }}>{step.num}</div>
+                {i < 2 && (
+                  <div className="step-arrow" style={{
+                    position: 'absolute', top: '20px', right: '-16px', width: '32px', height: '32px',
+                    background: 'var(--amber)', borderRadius: '50%', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', fontSize: '14px',
+                    color: 'var(--ink)', zIndex: 2, fontWeight: 700,
+                  }}>→</div>
+                )}
+                <div style={{
+                  width: '48px', height: '48px', borderRadius: '12px',
+                  background: 'rgba(232,130,12,0.15)', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', fontSize: '22px', marginBottom: '24px',
+                }}>{step.icon}</div>
+                <div style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: 'white', marginBottom: '10px' }}>{step.name}</div>
+                <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.55)', lineHeight: '1.65' }}>{step.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── PRIVACY SECTION ── */}
+      <section id="privacy" style={{ padding: '100px 0', position: 'relative', zIndex: 1 }}>
+        <div className="section-inner">
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '80px', alignItems: 'center',
+          }} className="privacy-grid">
+            <div style={{
+              background: 'var(--ink)', borderRadius: '16px', padding: '32px',
+              fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '13px', lineHeight: '1.8',
+            }}>
+              <div><span className="c-kw">const</span> yourFile = dropZone.file;</div>
+              <div><span className="c-cm">{'// file lives only in memory'}</span></div>
+              <div><span className="c-kw">const</span> result = <span className="c-kw">await</span> <span className="c-fn">wasm.process</span>(yourFile);</div>
+              <div style={{ color: '#ef4444', textDecoration: 'line-through', opacity: 0.5 }}><span className="c-cm">{'// ✗ fetch(\'/upload\', yourFile)'}</span></div>
+              <div style={{ color: '#ef4444', textDecoration: 'line-through', opacity: 0.5 }}><span className="c-cm">{'// ✗ sendToServer(yourFile)'}</span></div>
+              <div><span className="c-kw">const</span> uploaded = <span className="c-val">false</span>; <span className="c-cm">{'// always'}</span></div>
+              <div><span className="c-fn">download</span>(result); <span className="c-cm">{"// that's it"}</span></div>
+              <div><span className="c-fn">memory.clear</span>(); <span className="c-cm">{'// gone when you leave'}</span></div>
+            </div>
+            <div>
+              <div style={{
+                fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px',
+                color: 'var(--amber)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '14px',
+              }}>// privacy by design</div>
+              <h2 style={{
+                fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800,
+                fontSize: 'clamp(32px, 4vw, 48px)', letterSpacing: '-1.5px', color: 'var(--ink)',
+                marginBottom: '16px', lineHeight: 1.1,
+              }}>Your files never<br />leave your device</h2>
+              <p style={{ fontSize: '16px', fontWeight: 300, opacity: 0.65, lineHeight: 1.7, marginBottom: '32px' }}>
+                Doclair brings the server to your browser using WebAssembly. Processing happens directly on your CPU.
+                We don&apos;t have servers to store your files — absolute privacy guaranteed by architecture, not just policy.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                {[
+                  { icon: '🛡️', bg: '#DBEAFE', title: 'Zero-upload architecture', desc: 'Files processed in WebAssembly, entirely client-side' },
+                  { icon: '📡', bg: '#DCFCE7', title: 'Works fully offline', desc: 'Once loaded, no internet required for any processing' },
+                  { icon: '🔍', bg: '#EDE9FE', title: 'No document tracking', desc: "We can't see your files even if we wanted to" },
+                  { icon: '🧹', bg: '#FFF0DC', title: 'Memory cleared on exit', desc: 'Files vanish from memory when you close the tab' },
+                ].map(feat => (
+                  <div key={feat.title} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                    <div style={{
+                      width: '44px', height: '44px', borderRadius: '10px', background: feat.bg,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0,
+                    }}>{feat.icon}</div>
+                    <div>
+                      <div style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '15px', color: 'var(--ink)', marginBottom: '3px' }}>{feat.title}</div>
+                      <div style={{ fontSize: '13px', color: 'var(--ink)', opacity: 0.55, lineHeight: 1.55 }}>{feat.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+
+      <style>{`
+        @media (max-width: 899px) {
+          .hero-grid { grid-template-columns: 1fr !important; min-height: auto !important; }
+          .hero-right { display: none !important; }
+          .hero-left { padding: 48px 24px !important; max-width: 100% !important; }
+        }
+        @media (min-width: 1100px) { .tools-grid { grid-template-columns: repeat(4,1fr) !important; } }
+        @media (max-width: 1099px) and (min-width: 768px) { .tools-grid { grid-template-columns: repeat(3,1fr) !important; } }
+        @media (max-width: 767px) and (min-width: 600px) { .tools-grid { grid-template-columns: repeat(2,1fr) !important; } }
+        @media (max-width: 599px) {
+          .tools-grid { grid-template-columns: 1fr !important; }
+          .trust-bar-grid { grid-template-columns: repeat(2,1fr) !important; }
+          .trust-bar-grid > div { border-right: none !important; border-bottom: 1px solid var(--border); padding: 10px 12px !important; }
+        }
+        @media (max-width: 767px) {
+          .steps-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+          .step-arrow { display: none !important; }
+          .privacy-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+        }
+      `}</style>
+    </>
+  )
 }
