@@ -1,53 +1,120 @@
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument, PDFName, PDFRawStream, PDFNumber, PDFRef } from 'pdf-lib'
 
-const QUALITY_SETTINGS = {
-  light:  { scale: 1.5, jpegQuality: 0.85 },
-  medium: { scale: 1.2, jpegQuality: 0.70 },
-  heavy:  { scale: 0.9, jpegQuality: 0.50 },
+const QUALITY_MAP = {
+  light:  0.85,
+  medium: 0.65,
+  heavy:  0.40,
 }
 
 export async function compressPDF(
   file: File,
   quality: 'light' | 'medium' | 'heavy',
-  onProgress?: (current: number, total: number) => void
+  onProgress?: (pct: number) => void
 ): Promise<Uint8Array> {
-  // Dynamic import keeps pdfjs-dist out of the SSR bundle (DOMMatrix etc. are browser-only)
-  const pdfjsLib = await import('pdfjs-dist')
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
+  const originalBytes = await file.arrayBuffer()
+  onProgress?.(10)
 
-  const settings = QUALITY_SETTINGS[quality]
-  const bytes = await file.arrayBuffer()
+  // ── LAYER 1: Load ────────────────────────────────────────────────
+  const doc = await PDFDocument.load(originalBytes, {
+    ignoreEncryption: false,
+    throwOnInvalidObject: false,
+  })
+  onProgress?.(20)
 
-  const pdf = await pdfjsLib.getDocument({ data: bytes }).promise
-  const totalPages = pdf.numPages
-  const newDoc = await PDFDocument.create()
+  // ── LAYER 2: Strip bloat from catalog ────────────────────────────
+  const catalog = doc.catalog
+  try { catalog.delete(PDFName.of('Thumbnails')) } catch { /* ignore */ }
+  try { catalog.delete(PDFName.of('Names'))      } catch { /* ignore */ }
+  if (quality !== 'light') {
+    try { catalog.delete(PDFName.of('AcroForm')) } catch { /* ignore */ }
+  }
+  onProgress?.(30)
 
-  for (let i = 1; i <= totalPages; i++) {
-    onProgress?.(i, totalPages)
+  // ── LAYER 3: Recompress embedded JPEG images ─────────────────────
+  // Only DCTDecode (JPEG) XObject images are targeted — text, fonts,
+  // vectors and non-JPEG images are completely untouched.
+  const jpegQuality = QUALITY_MAP[quality]
 
-    const page = await pdf.getPage(i)
-    const viewport = page.getViewport({ scale: settings.scale })
+  try {
+    // Collect all image XObjects that are JPEG and large enough to matter
+    const imageRefs: Array<[PDFRef, PDFRawStream]> = []
 
-    const canvas = document.createElement('canvas')
-    canvas.width  = viewport.width
-    canvas.height = viewport.height
+    for (const [ref, obj] of doc.context.enumerateIndirectObjects()) {
+      if (!(obj instanceof PDFRawStream)) continue
 
-    await page.render({ canvas, viewport }).promise
+      const subtype = obj.dict.lookupMaybe(PDFName.of('Subtype'), PDFName)
+      if (subtype?.asString() !== '/Image') continue
 
-    const blob = await new Promise<Blob>(resolve =>
-      canvas.toBlob(b => resolve(b!), 'image/jpeg', settings.jpegQuality)
-    )
-    const imgBytes = await blob.arrayBuffer()
-    const jpgImage = await newDoc.embedJpg(imgBytes)
+      const filter = obj.dict.lookupMaybe(PDFName.of('Filter'), PDFName)
+      if (filter?.asString() !== '/DCTDecode') continue
 
-    const newPage = newDoc.addPage([viewport.width, viewport.height])
-    newPage.drawImage(jpgImage, {
-      x: 0, y: 0,
-      width:  viewport.width,
-      height: viewport.height,
-    })
+      const w = obj.dict.lookupMaybe(PDFName.of('Width'),  PDFNumber)
+      const h = obj.dict.lookupMaybe(PDFName.of('Height'), PDFNumber)
+      if (!w || !h || w.asNumber() < 50 || h.asNumber() < 50) continue
+
+      imageRefs.push([ref as PDFRef, obj])
+    }
+
+    const total = imageRefs.length
+
+    for (let idx = 0; idx < total; idx++) {
+      const [ref, xObj] = imageRefs[idx]
+      try {
+        // For DCTDecode streams the raw contents ARE valid JPEG bytes
+        const jpegBytes = xObj.contents
+
+        // Decode JPEG via browser Image element
+        const srcBlob = new Blob([jpegBytes as BlobPart], { type: 'image/jpeg' })
+        const srcUrl  = URL.createObjectURL(srcBlob)
+
+        const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const el = new Image()
+          el.onload  = () => resolve(el)
+          el.onerror = () => reject(new Error('img decode failed'))
+          el.src     = srcUrl
+        })
+        URL.revokeObjectURL(srcUrl)
+
+        // Re-encode at target quality
+        const canvas = document.createElement('canvas')
+        canvas.width  = img.naturalWidth
+        canvas.height = img.naturalHeight
+        canvas.getContext('2d')!.drawImage(img, 0, 0)
+
+        const newBlob  = await new Promise<Blob>(resolve =>
+          canvas.toBlob(b => resolve(b!), 'image/jpeg', jpegQuality)
+        )
+        const newBytes = new Uint8Array(await newBlob.arrayBuffer())
+
+        // Only replace if we actually made it smaller
+        if (newBytes.length < jpegBytes.length) {
+          const newDict = xObj.dict.clone(doc.context)
+          newDict.set(PDFName.of('Filter'), PDFName.of('DCTDecode'))
+          newDict.set(PDFName.of('Length'), doc.context.obj(newBytes.length))
+          doc.context.assign(ref, PDFRawStream.of(newDict, newBytes))
+        }
+      } catch {
+        // One image failed — skip it, continue with the rest
+      }
+
+      onProgress?.(30 + Math.round(((idx + 1) / Math.max(total, 1)) * 55))
+    }
+
+    // If no images found, jump progress to 85 so the bar moves
+    if (total === 0) onProgress?.(85)
+  } catch {
+    // Image layer failed entirely — fall back to structure compression only
+    onProgress?.(85)
   }
 
-  return newDoc.save()
+  // ── LAYER 4: Re-save with structural compression ─────────────────
+  onProgress?.(88)
+  const compressed = await doc.save({
+    useObjectStreams: true,
+    addDefaultPage: false,
+    objectsPerTick: 50,
+  })
+  onProgress?.(100)
+
+  return compressed
 }
