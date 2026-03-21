@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cream:#F5F0E8;--ink:#1A1612;--amber:#E8820C;--white:#FFFFFF;
+  --border:#E0D8CC;--card:#FFFFFF;--amber-pale:#FFF0DC;
+  --ink8:rgba(26,22,18,.06);--ink15:rgba(26,22,18,.12);--ink60:rgba(26,22,18,.6);
+}
+html{font-size:16px}
+body{background:var(--cream);color:var(--ink);font-family:'DM Sans',sans-serif;min-height:100vh;position:relative}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.025;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px;mix-blend-mode:overlay}
+
+/* NAV */
+nav{background:var(--cream);border-bottom:1px solid var(--border);height:68px;display:flex;align-items:center;position:sticky;top:0;z-index:50}
+.nav-inner{max-width:1280px;margin:0 auto;padding:0 32px;display:flex;align-items:center;justify-content:space-between;width:100%}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-mark{width:34px;height:34px;background:var(--ink);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:16px;color:var(--amber)}
+.logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--ink);letter-spacing:-.5px}
+.nav-links{display:flex;align-items:center;gap:28px}
+.nav-links a{font-size:14px;font-weight:500;color:var(--ink);text-decoration:none;opacity:.65;transition:opacity .15s}
+.nav-links a:hover{opacity:1}
+.nav-cta{background:var(--ink);color:var(--white);padding:9px 20px;border-radius:100px;font-size:13px;font-weight:500;border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
+
+/* BREADCRUMB */
+.breadcrumb{border-bottom:1px solid var(--border);background:var(--cream);padding:0;position:relative;z-index:10}
+.breadcrumb-inner{max-width:1280px;margin:0 auto;padding:10px 32px;display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:12px}
+.bc-link{color:var(--ink);opacity:.45;text-decoration:none;transition:opacity .15s}
+.bc-link:hover{opacity:.9}
+.bc-sep{opacity:.25;font-size:11px}
+.bc-current{color:var(--amber);font-weight:500}
+
+/* MAIN LAYOUT */
+main{max-width:1280px;margin:0 auto;padding:32px 32px 80px;display:flex;gap:32px;position:relative;z-index:1}
+.main-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:16px}
+.sidebar{width:290px;flex-shrink:0;display:flex;flex-direction:column;gap:14px;position:sticky;top:100px;align-self:flex-start;height:fit-content}
+
+/* TOOL HEADER CARD */
+.tool-header{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:36px}
+.badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.tag{padding:5px 12px;border-radius:100px;font-family:'DM Mono',monospace;font-size:11px;font-weight:500;letter-spacing:.04em}
+.tag-green{background:#DCFCE7;color:#166534}
+.tag-amber{background:var(--amber-pale);color:#92400E}
+.tag-purple{background:#EDE9FE;color:#6B21A8}
+.tool-h1{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(32px,4vw,52px);line-height:1.05;letter-spacing:-1.5px}
+.tool-h1 .line2{color:var(--amber)}
+.tool-sub{font-size:16px;font-weight:300;color:var(--ink);opacity:.65;max-width:520px;margin-top:12px;line-height:1.6}
+
+/* DROPZONE */
+.dropzone-wrap{background:var(--ink8);border-radius:16px;padding:16px}
+.dropzone{border:2px dashed var(--border);border-radius:12px;background:var(--card);padding:56px 32px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;text-align:center}
+.dropzone.over{border-color:var(--amber);background:var(--amber-pale)}
+.dz-icon{font-size:48px;margin-bottom:16px;animation:float 3s ease-in-out infinite;line-height:1}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.dz-title{font-family:'Syne',sans-serif;font-weight:700;font-size:20px;color:var(--ink);margin-bottom:6px}
+.dz-sub{font-size:14px;color:var(--ink);opacity:.5;margin-bottom:20px}
+.dz-btn{background:var(--ink);color:var(--white);padding:11px 28px;border-radius:100px;font-size:14px;font-weight:500;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;transition:transform .15s}
+.dz-btn:hover{transform:scale(1.04)}
+.dz-meta{margin-top:14px;font-family:'DM Mono',monospace;font-size:11px;color:var(--ink);opacity:.4;display:flex;gap:6px;align-items:center}
+.dz-meta-dot{width:3px;height:3px;border-radius:50%;background:currentColor}
+
+/* FILE LIST */
+.file-list-wrap{display:flex;flex-direction:column;gap:0}
+.file-list-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.file-list-title{font-family:'Syne',sans-serif;font-weight:700;font-size:17px}
+.file-count-badge{background:var(--amber);color:var(--ink);padding:2px 9px;border-radius:100px;font-family:'DM Mono',monospace;font-size:11px;font-weight:500}
+.file-list-hint{font-family:'DM Mono',monospace;font-size:11px;color:var(--ink);opacity:.4;margin-bottom:12px}
+.file-list{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.file-row{display:flex;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);transition:all .15s;border-left:3px solid transparent}
+.file-row:last-child{border-bottom:none}
+.file-row.drag-over{border-left-color:var(--amber);background:var(--amber-pale)}
+.file-row:hover{background:rgba(26,22,18,.02)}
+.drag-handle{font-size:16px;color:var(--ink);opacity:.25;cursor:grab;padding:0 6px;user-select:none;line-height:1}
+.file-icon{width:32px;height:32px;background:#FEE2E2;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;margin:0 10px;flex-shrink:0}
+.file-info{flex:1;min-width:0}
+.file-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-size{font-family:'DM Mono',monospace;font-size:11px;opacity:.4;margin-top:1px}
+.file-remove{width:28px;height:28px;border-radius:6px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;opacity:.3;transition:all .15s;color:var(--ink)}
+.file-remove:hover{background:#FEE2E2;opacity:1;color:#DC2626}
+
+.add-more{width:100%;margin-top:10px;border:2px dashed var(--border);border-radius:10px;padding:12px;font-size:13px;font-weight:500;color:var(--ink);opacity:.55;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;font-family:'DM Sans',sans-serif}
+.add-more:hover{border-color:var(--amber);color:var(--amber);opacity:1}
+
+.merge-actions{display:flex;gap:10px;margin-top:16px}
+.btn-merge{flex:1;background:var(--ink);color:var(--white);padding:16px 24px;border-radius:100px;font-family:'Syne',sans-serif;font-weight:700;font-size:17px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .15s}
+.btn-merge:hover{transform:scale(1.02)}
+.btn-clear{width:52px;height:52px;border-radius:100px;border:1px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s;color:var(--ink);opacity:.5;flex-shrink:0}
+.btn-clear:hover{background:#FEE2E2;border-color:#FCA5A5;color:#DC2626;opacity:1}
+
+/* PROGRESS STATE */
+.progress-card{background:var(--ink);border-radius:16px;padding:56px 32px;text-align:center;display:none}
+.progress-spinner{width:56px;height:56px;border-radius:50%;border:4px solid rgba(255,255,255,.1);border-top-color:var(--amber);animation:spin 1s linear infinite;margin:0 auto 24px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.progress-title{font-family:'Syne',sans-serif;font-weight:700;font-size:24px;color:var(--white);margin-bottom:6px}
+.progress-status{font-family:'DM Mono',monospace;font-size:12px;color:rgba(255,255,255,.45);margin-bottom:24px}
+.progress-bar-wrap{max-width:320px;margin:0 auto;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+.progress-bar{height:100%;background:var(--amber);border-radius:2px;transition:width .4s ease;width:0%}
+
+/* DOWNLOAD STATE */
+.download-card{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:16px;padding:48px 32px;text-align:center;display:none}
+.dl-check{font-size:52px;margin-bottom:16px}
+.dl-title{font-family:'Syne',sans-serif;font-weight:700;font-size:26px;color:#166534;margin-bottom:6px}
+.dl-sub{font-size:14px;color:#166534;opacity:.65;margin-bottom:28px}
+.dl-btn{background:#16A34A;color:var(--white);padding:14px 36px;border-radius:100px;font-size:15px;font-weight:500;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:8px;transition:background .15s}
+.dl-btn:hover{background:#15803D}
+.dl-reset{display:block;font-family:'DM Mono',monospace;font-size:12px;color:var(--amber);margin-top:16px;cursor:pointer;background:none;border:none;text-align:center;width:100%}
+.dl-reset:hover{text-decoration:underline}
+
+/* SEO SECTION */
+.seo-section{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px;margin-top:4px}
+.seo-section h2{font-family:'Syne',sans-serif;font-weight:700;font-size:22px;color:var(--ink);margin-bottom:10px}
+.seo-section p{font-size:14px;color:var(--ink);opacity:.65;line-height:1.7;margin-bottom:24px}
+.seo-steps{display:flex;flex-direction:column;gap:16px;margin-bottom:32px}
+.seo-step{display:flex;gap:14px;align-items:flex-start}
+.seo-step-num{width:30px;height:30px;border-radius:50%;background:var(--amber);color:var(--white);font-family:'Syne',sans-serif;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.seo-section h3{font-family:'Syne',sans-serif;font-weight:700;font-size:16px;color:var(--ink);margin-bottom:6px;margin-top:4px}
+.seo-step p,.seo-section>p{font-size:14px;line-height:1.65;color:var(--ink);opacity:.65}
+
+/* FAQ */
+.faq-wrap{background:var(--amber-pale);border:1px solid var(--border);border-radius:16px;padding:32px;margin-top:4px}
+.faq-wrap h2{font-family:'Syne',sans-serif;font-weight:700;font-size:20px;margin-bottom:20px}
+.faq-list{background:var(--card);border-radius:10px;border:1px solid var(--border);overflow:hidden}
+.faq-item{border-bottom:1px solid var(--border)}
+.faq-item:last-child{border-bottom:none}
+.faq-q{width:100%;padding:16px 20px;background:none;border:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;text-align:left;font-family:'DM Sans',sans-serif}
+.faq-q-text{font-size:14px;font-weight:500;color:var(--ink);line-height:1.45}
+.faq-chevron{width:22px;height:22px;border-radius:50%;background:var(--ink8);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.faq-chevron svg{transition:transform .25s}
+.faq-item.open .faq-chevron{background:var(--amber-pale)}
+.faq-item.open .faq-chevron svg{transform:rotate(180deg)}
+.faq-a{font-size:13px;line-height:1.7;color:var(--ink);opacity:.65;padding:0 20px 16px;display:none}
+.faq-item.open .faq-a{display:block}
+
+/* SIDEBAR */
+.sidebar-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;overflow:hidden}
+.sidebar-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--amber);letter-spacing:.1em;text-transform:uppercase;font-weight:500;margin-bottom:14px}
+.sidebar-tool{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer;transition:background .15s;text-decoration:none}
+.sidebar-tool:hover{background:var(--ink8)}
+.sidebar-tool-icon{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;transition:transform .15s}
+.sidebar-tool:hover .sidebar-tool-icon{transform:scale(1.08)}
+.sidebar-tool-name{font-size:13px;font-weight:500;color:var(--ink)}
+.sidebar-tool-desc{font-size:11px;color:var(--ink);opacity:.45;margin-top:1px}
+.sidebar-privacy{background:var(--ink);border-radius:14px;padding:18px}
+.sidebar-privacy-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--amber);letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.sidebar-privacy-label .dot{width:7px;height:7px;border-radius:50%;background:#22c55e;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.sidebar-privacy p{font-size:13px;color:rgba(255,255,255,.6);line-height:1.6}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a class="logo" href="#">
+      <div class="logo-mark">D</div>
+      <span class="logo-text">Doclair</span>
+    </a>
+    <div class="nav-links">
+      <a href="#">All Tools</a>
+      <a href="#">Blog</a>
+      <a href="#">FAQs</a>
+      <a href="#">Install App</a>
+      <button class="nav-cta">All Tools →</button>
+    </div>
+  </div>
+</nav>
+
+<!-- BREADCRUMB -->
+<div class="breadcrumb">
+  <div class="breadcrumb-inner">
+    <a href="#" class="bc-link">Home</a>
+    <span class="bc-sep">›</span>
+    <a href="#" class="bc-link">Tools</a>
+    <span class="bc-sep">›</span>
+    <span class="bc-current">Merge PDF</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main>
+  <div class="main-col">
+
+    <!-- TOOL HEADER -->
+    <div class="tool-header">
+      <div class="badge-row">
+        <span class="tag tag-green">✓ 100% Free</span>
+        <span class="tag tag-amber">🔒 Files Stay On Device</span>
+        <span class="tag tag-purple">✦ No Watermark</span>
+      </div>
+      <h1 class="tool-h1">
+        <span class="line1">Merge PDF</span><br>
+        <span class="line2">Online Free</span>
+      </h1>
+      <p class="tool-sub">Combine multiple PDF files into one document. Drag to reorder, then merge — instantly in your browser. No upload. No watermark. No account needed.</p>
+    </div>
+
+    <!-- DROPZONE (idle, no files) -->
+    <div class="dropzone-wrap" id="dzWrap">
+      <div class="dropzone" id="dropzone">
+        <div class="dz-icon">📄</div>
+        <h2 class="dz-title">Drop PDF files here</h2>
+        <p class="dz-sub">or click to browse from your device</p>
+        <button class="dz-btn" id="dzBtn">Choose PDF Files</button>
+        <div class="dz-meta">
+          <span id="fileCounter">0 / 50 files</span>
+          <span class="dz-meta-dot"></span>
+          <span>Max 100MB per file</span>
+        </div>
+        <input type="file" multiple accept=".pdf" id="fileInput" style="display:none">
+      </div>
+    </div>
+
+    <!-- FILE LIST (shown after files added) -->
+    <div id="fileListSection" style="display:none">
+      <div class="file-list-wrap">
+        <div class="file-list-header">
+          <span class="file-list-title">Files to merge</span>
+          <span class="file-count-badge" id="fileBadge">0 files</span>
+        </div>
+        <p class="file-list-hint">↕ Drag to reorder — merged PDF follows this order</p>
+        <div class="file-list" id="fileList"></div>
+        <button class="add-more" id="addMoreBtn">+ Add more PDF files</button>
+        <input type="file" multiple accept=".pdf" id="addMoreInput" style="display:none">
+        <div class="merge-actions">
+          <button class="btn-merge" id="mergeBtn">🔀 Merge PDFs</button>
+          <button class="btn-clear" id="clearBtn" title="Clear all">🗑</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROGRESS STATE -->
+    <div class="progress-card" id="progressCard">
+      <div class="progress-spinner"></div>
+      <div class="progress-title">Merging your PDFs…</div>
+      <div class="progress-status" id="progressStatus">Reading files…</div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+    </div>
+
+    <!-- DOWNLOAD STATE -->
+    <div class="download-card" id="downloadCard">
+      <div class="dl-check">✅</div>
+      <div class="dl-title">Your merged PDF is ready!</div>
+      <div class="dl-sub" id="dlSub">Files merged · No watermark added</div>
+      <button class="dl-btn" id="dlBtn">⬇ Download merged.pdf</button>
+      <button class="dl-reset" id="resetBtn">Merge more files →</button>
+    </div>
+
+    <!-- SEO CONTENT -->
+    <div class="seo-section">
+      <h2>How to Merge PDF Files Online — Free</h2>
+      <p>Combining multiple documents into a single PDF is quick and completely free with Doclair. Here's how:</p>
+      <div class="seo-steps">
+        <div class="seo-step"><div class="seo-step-num">1</div><div><p>Click <strong>Choose PDF Files</strong> or drag and drop your PDFs into the upload area above.</p></div></div>
+        <div class="seo-step"><div class="seo-step-num">2</div><div><p>Drag the files to reorder them — the final PDF will follow this exact order.</p></div></div>
+        <div class="seo-step"><div class="seo-step-num">3</div><div><p>Click <strong>Merge PDFs</strong> and wait a few seconds while your browser combines the files.</p></div></div>
+        <div class="seo-step"><div class="seo-step-num">4</div><div><p>Click <strong>Download</strong> to save your merged PDF. No watermark, no size limit.</p></div></div>
+      </div>
+      <h3>Why merge PDFs online instead of desktop software?</h3>
+      <p style="margin-bottom:20px">Desktop tools like Adobe Acrobat can be expensive and slow to install. Doclair gives you the same result instantly in your browser — no installation, no subscription, no compromise on quality.</p>
+      <h3>Is it safe to merge confidential PDFs online?</h3>
+      <p style="margin-bottom:20px">Unlike older tools that upload files to remote servers, Doclair uses WebAssembly technology to process everything locally. Your files never leave your device — 100% safe for legal, medical, and business documents.</p>
+      <h3>Merge PDFs on iPhone and Android</h3>
+      <p>You don't need a dedicated app. Doclair works in mobile Safari and Chrome. Tap the upload button, select files from your Files app, and merge on the go.</p>
+    </div>
+
+    <!-- FAQ -->
+    <div class="faq-wrap">
+      <h2>Frequently Asked Questions</h2>
+      <div class="faq-list" id="faqList"></div>
+    </div>
+
+  </div><!-- /main-col -->
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-card">
+      <div class="sidebar-label">// Reverse Actions</div>
+      <a href="#" class="sidebar-tool">
+        <div class="sidebar-tool-icon" style="background:#DBEAFE">✂️</div>
+        <div><div class="sidebar-tool-name">Split PDF</div><div class="sidebar-tool-desc">Extract pages or split by range</div></div>
+      </a>
+      <a href="#" class="sidebar-tool">
+        <div class="sidebar-tool-icon" style="background:#DBEAFE">📋</div>
+        <div><div class="sidebar-tool-name">Organize Pages</div><div class="sidebar-tool-desc">Reorder, rotate or delete pages</div></div>
+      </a>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="sidebar-label">// Related Tools</div>
+      <a href="#" class="sidebar-tool">
+        <div class="sidebar-tool-icon" style="background:var(--amber-pale)">📦</div>
+        <div><div class="sidebar-tool-name">Compress PDF</div><div class="sidebar-tool-desc">Reduce file size safely</div></div>
+      </a>
+      <a href="#" class="sidebar-tool">
+        <div class="sidebar-tool-icon" style="background:#EDE9FE">✍️</div>
+        <div><div class="sidebar-tool-name">Edit PDF</div><div class="sidebar-tool-desc">Add text and signatures</div></div>
+      </a>
+      <a href="#" class="sidebar-tool">
+        <div class="sidebar-tool-icon" style="background:#DCFCE7">🖼️</div>
+        <div><div class="sidebar-tool-name">PDF → JPG</div><div class="sidebar-tool-desc">Extract pages as images</div></div>
+      </a>
+      <a href="#" class="sidebar-tool">
+        <div class="sidebar-tool-icon" style="background:#DBEAFE">📄</div>
+        <div><div class="sidebar-tool-name">Word → PDF</div><div class="sidebar-tool-desc">Secure document conversion</div></div>
+      </a>
+      <a href="#" class="sidebar-tool">
+        <div class="sidebar-tool-icon" style="background:#FEE2E2">🔐</div>
+        <div><div class="sidebar-tool-name">Encrypt PDF</div><div class="sidebar-tool-desc">Add password protection</div></div>
+      </a>
+    </div>
+
+    <div class="sidebar-privacy">
+      <div class="sidebar-privacy-label"><span class="dot"></span>Zero-Server Processing</div>
+      <p>Your files are processed entirely in this browser tab. Nothing is transmitted to any server — not even ours.</p>
+    </div>
+  </aside>
+
+</main>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let files = [];         // { id, name, size }
+let fileMap = new Map(); // id → File object
+let state = 'idle';     // idle | merging | done
+let mergedBytes = null;
+let dragIdx = null;
+let dragOverIdx = null;
+
+// ── ELEMENTS ──────────────────────────────────────────────────────────────────
+const dzWrap      = document.getElementById('dzWrap');
+const dropzone    = document.getElementById('dropzone');
+const fileInput   = document.getElementById('fileInput');
+const dzBtn       = document.getElementById('dzBtn');
+const fileCounter = document.getElementById('fileCounter');
+const fileListSec = document.getElementById('fileListSection');
+const fileListEl  = document.getElementById('fileList');
+const fileBadge   = document.getElementById('fileBadge');
+const addMoreBtn  = document.getElementById('addMoreBtn');
+const addMoreInput= document.getElementById('addMoreInput');
+const mergeBtn    = document.getElementById('mergeBtn');
+const clearBtn    = document.getElementById('clearBtn');
+const progressCard= document.getElementById('progressCard');
+const progStatus  = document.getElementById('progressStatus');
+const progBar     = document.getElementById('progressBar');
+const downloadCard= document.getElementById('downloadCard');
+const dlSub       = document.getElementById('dlSub');
+const dlBtn       = document.getElementById('dlBtn');
+const resetBtn    = document.getElementById('resetBtn');
+
+// ── ADD FILES ─────────────────────────────────────────────────────────────────
+function addFiles(rawFiles) {
+  Array.from(rawFiles).forEach(f => {
+    const id = Math.random().toString(36).slice(2);
+    files.push({ id, name: f.name, size: f.size });
+    fileMap.set(id, f);
+  });
+  renderView();
+}
+
+function formatSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function renderView() {
+  const count = files.length;
+  fileCounter.textContent = `${count} / 50 files`;
+
+  if (state === 'idle') {
+    progressCard.style.display = 'none';
+    downloadCard.style.display = 'none';
+    if (count === 0) {
+      dzWrap.style.display = 'block';
+      fileListSec.style.display = 'none';
+    } else {
+      dzWrap.style.display = 'none';
+      fileListSec.style.display = 'block';
+      fileBadge.textContent = count + ' file' + (count !== 1 ? 's' : '');
+      renderFileList();
+    }
+  } else if (state === 'merging') {
+    dzWrap.style.display = 'none';
+    fileListSec.style.display = 'none';
+    progressCard.style.display = 'block';
+    downloadCard.style.display = 'none';
+  } else if (state === 'done') {
+    dzWrap.style.display = 'none';
+    fileListSec.style.display = 'none';
+    progressCard.style.display = 'none';
+    downloadCard.style.display = 'block';
+    dlSub.textContent = files.length + ' files merged · No watermark added';
+  }
+}
+
+function renderFileList() {
+  fileListEl.innerHTML = '';
+  files.forEach((f, i) => {
+    const row = document.createElement('div');
+    row.className = 'file-row' + (dragOverIdx === i ? ' drag-over' : '');
+    row.draggable = true;
+    row.dataset.idx = i;
+    row.innerHTML = `
+      <span class="drag-handle" title="Drag to reorder">⠿</span>
+      <div class="file-icon">📄</div>
+      <div class="file-info">
+        <div class="file-name">${f.name}</div>
+        <div class="file-size">${formatSize(f.size)}</div>
+      </div>
+      <button class="file-remove" data-id="${f.id}" title="Remove">✕</button>
+    `;
+    row.addEventListener('dragstart', e => { dragIdx = i; e.dataTransfer.effectAllowed = 'move'; });
+    row.addEventListener('dragover', e => { e.preventDefault(); dragOverIdx = i; renderFileList(); });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      if (dragIdx !== null && dragIdx !== i) {
+        const moved = files.splice(dragIdx, 1)[0];
+        files.splice(i, 0, moved);
+      }
+      dragIdx = null; dragOverIdx = null; renderFileList();
+    });
+    row.addEventListener('dragend', () => { dragIdx = null; dragOverIdx = null; renderFileList(); });
+    row.querySelector('.file-remove').addEventListener('click', e => {
+      const id = e.currentTarget.dataset.id;
+      fileMap.delete(id);
+      files = files.filter(x => x.id !== id);
+      renderView();
+    });
+    fileListEl.appendChild(row);
+  });
+}
+
+// ── EVENTS ────────────────────────────────────────────────────────────────────
+dzBtn.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('click', e => { if (e.target !== dzBtn) fileInput.click(); });
+fileInput.addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('over'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('over');
+  if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+});
+
+addMoreBtn.addEventListener('click', () => addMoreInput.click());
+addMoreInput.addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
+
+clearBtn.addEventListener('click', () => { files = []; fileMap.clear(); state = 'idle'; renderView(); });
+
+mergeBtn.addEventListener('click', () => {
+  if (!files.length) return;
+  state = 'merging'; renderView();
+  const statuses = ['Reading files…','Combining pages…','Finalising PDF…','Almost done…'];
+  let pct = 0;
+  const steps = [
+    [300,  30, statuses[0]],
+    [800,  65, statuses[1]],
+    [1500, 90, statuses[2]],
+    [2200, 100, statuses[3]],
+  ];
+  steps.forEach(([delay, val, label]) => {
+    setTimeout(() => {
+      pct = val;
+      progBar.style.width = val + '%';
+      progStatus.textContent = label;
+      if (val === 100) { state = 'done'; mergedBytes = new Uint8Array(10); renderView(); }
+    }, delay);
+  });
+});
+
+dlBtn.addEventListener('click', () => {
+  // Replace with real pdf-lib bytes in production
+  const blob = new Blob([mergedBytes || new Uint8Array(10)], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'doclair-merged.pdf'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+});
+
+resetBtn.addEventListener('click', () => {
+  files = []; fileMap.clear(); state = 'idle'; mergedBytes = null;
+  progBar.style.width = '0%';
+  renderView();
+});
+
+// ── FAQ ────────────────────────────────────────────────────────────────────────
+const FAQS = [
+  ['Is merging PDFs on Doclair really free?','Yes, completely free forever. No daily limits, no fees, no watermark. Ever.'],
+  ['Are my PDF files uploaded to your servers?','No. Files never leave your browser. All processing uses WebAssembly running in your browser tab.'],
+  ['How many PDF files can I merge at once?','Up to 50 files per merge, limited only by your device memory. No server-side caps.'],
+  ['Can I reorder pages before merging?','Yes. Drag and drop the files in the list to set their order before clicking Merge.'],
+  ['Will the merged PDF have a watermark?','Never. Unlike Smallpdf or iLovePDF free tier, Doclair adds zero watermarks.'],
+  ['Can I merge PDFs on iPhone or Android?','Yes. Works on Safari and Chrome on mobile. No app download needed — it\'s a PWA.'],
+];
+
+const faqEl = document.getElementById('faqList');
+FAQS.forEach(([q, a]) => {
+  const item = document.createElement('div'); item.className = 'faq-item';
+  item.innerHTML = `
+    <button class="faq-q">
+      <span class="faq-q-text">${q}</span>
+      <span class="faq-chevron"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </button>
+    <div class="faq-a">${a}</div>
+  `;
+  item.querySelector('.faq-q').addEventListener('click', () => {
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(x => x.classList.remove('open'));
+    if (!isOpen) item.classList.add('open');
+  });
+  faqEl.appendChild(item);
+});
+
+renderView();
+</script>
+</body>
+</html>
