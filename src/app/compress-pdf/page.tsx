@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
@@ -12,9 +12,9 @@ import type { ToolState } from '@/types'
 type Quality = 'light' | 'medium' | 'heavy'
 
 const QUALITY_OPTIONS: { value: Quality; label: string; desc: string }[] = [
-  { value: 'light',  label: 'Light',  desc: 'Smallest reduction, best quality' },
-  { value: 'medium', label: 'Medium', desc: 'Balanced — recommended' },
-  { value: 'heavy',  label: 'Heavy',  desc: 'Maximum reduction' },
+  { value: 'light',  label: 'Standard', desc: 'Preserves full print quality' },
+  { value: 'medium', label: 'Balanced', desc: 'Optimised for sharing and email' },
+  { value: 'heavy',  label: 'Maximum',  desc: 'Smallest possible file size' },
 ]
 
 const FAQS = [
@@ -24,19 +24,19 @@ const FAQS = [
   },
   {
     q: 'Will compression reduce the quality of my PDF?',
-    a: 'For text-heavy PDFs, compression is essentially lossless — you will not notice any visual difference. For PDFs with embedded high-resolution images, heavier compression may slightly reduce image sharpness. Light or Medium compression preserves visual quality in almost all cases.',
+    a: 'Text, fonts, and vector graphics are fully preserved at every compression level — only raster images are re-encoded. For text-heavy PDFs compression is essentially lossless. For image-heavy PDFs, Balanced compression preserves visual quality in almost all cases.',
   },
   {
     q: 'How much can I reduce a PDF file size?',
-    a: 'Results vary by content. Text-only PDFs typically see 10–30% reduction. Image-heavy PDFs can see 40–70% reduction depending on the quality level chosen. The compressed file size is shown after processing so you can compare.',
+    a: 'Results vary by content. Image-heavy PDFs (scans, presentations) typically compress 40–70%. Text-only PDFs compress 10–30% since font subsetting and object stream packing are the main levers — text is stored as vectors, not pixels.',
   },
   {
     q: 'Are my files uploaded to a server during compression?',
-    a: 'No. Your file never leaves your browser. Doclair runs pdf-lib via WebAssembly entirely in your browser tab. Nothing is transmitted to any server — not even ours.',
+    a: 'No. Your file never leaves your browser. Doclair runs Ghostscript compiled to WebAssembly entirely in your browser tab. Nothing is transmitted to any server — not even ours.',
   },
   {
-    q: 'What is the difference between light, medium and heavy compression?',
-    a: 'Light compression applies minimal optimisation — ideal when you need near-original quality. Medium (recommended) strikes a balance between size and quality. Heavy compression applies maximum optimisation for the smallest possible file, which may result in slightly reduced image quality in image-heavy documents.',
+    q: 'What is the difference between Standard, Balanced and Maximum?',
+    a: 'Standard targets 300 DPI — ideal for documents that will be printed. Balanced targets 150 DPI — the sweet spot for email attachments and on-screen reading. Maximum targets 72 DPI — smallest possible file, best for web publishing or archiving.',
   },
   {
     q: 'Can I compress a password-protected PDF?',
@@ -53,12 +53,13 @@ const JSON_LD_SCHEMA = {
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
       url: 'https://doclair.com/compress-pdf',
-      description: 'Reduce PDF file size online for free. Choose light, medium or heavy compression. Files are processed entirely in your browser — no upload, no watermark.',
+      description: 'Reduce PDF file size online for free. Choose Standard, Balanced or Maximum compression. Powered by Ghostscript WebAssembly — files never leave your browser.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       featureList: [
-        'Three compression levels', 'No file upload to server',
+        'Ghostscript WASM — professional-grade compression',
+        'Three compression presets', 'No file upload to server',
         'No watermark on output', 'No sign-up required',
-        'Works on mobile', 'Shows original vs compressed size',
+        'Text and fonts fully preserved', 'Works on mobile',
       ],
       provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.com' },
     },
@@ -83,16 +84,18 @@ const BREADCRUMB_SCHEMA = {
   ],
 }
 
-function getStatus(progress: number) {
-  if (progress < 20) return 'Loading PDF…'
-  if (progress < 30) return 'Removing unused data…'
-  if (progress < 88) return 'Compressing images…'
+function getStatus(pct: number) {
+  if (pct < 5)   return 'Preparing…'
+  if (pct < 20)  return 'Loading compression engine…'
+  if (pct < 40)  return 'Reading PDF…'
+  if (pct < 50)  return 'Analysing document…'
+  if (pct < 85)  return 'Compressing with Ghostscript…'
   return 'Finalising…'
 }
 
 function formatBytes(b: number) {
   if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB'
-  return (b / (1024 * 1024)).toFixed(1) + ' MB'
+  return (b / (1024 * 1024)).toFixed(2) + ' MB'
 }
 
 export default function CompressPDFPage() {
@@ -103,6 +106,13 @@ export default function CompressPDFPage() {
   const [compressedBytes, setCompressedBytes] = useState<Uint8Array | null>(null)
   const [originalSize, setOriginalSize]       = useState(0)
   const [compressedSize, setCompressedSize]   = useState(0)
+  const [isFirstLoad, setIsFirstLoad]         = useState(false)
+
+  useEffect(() => {
+    try {
+      setIsFirstLoad(!localStorage.getItem('doclair_gs_loaded'))
+    } catch { /* localStorage unavailable */ }
+  }, [])
 
   const addFile = useCallback((files: File[]) => {
     if (files[0]) {
@@ -119,10 +129,11 @@ export default function CompressPDFPage() {
     setProgress(0)
     try {
       const bytes = await compressPDF(file, quality, (pct) => setProgress(pct))
-      setProgress(100)
       setCompressedBytes(bytes)
       setCompressedSize(bytes.byteLength)
       setToolState('done')
+      try { localStorage.setItem('doclair_gs_loaded', '1') } catch { /* ignore */ }
+      setIsFirstLoad(false)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error'
       alert('Compression failed: ' + message)
@@ -154,11 +165,11 @@ export default function CompressPDFPage() {
     ? Math.round(((originalSize - compressedSize) / originalSize) * 100)
     : 0
 
-  const downloadDesc = compressedSize > 0
-    ? reduction >= 5
-      ? `${formatBytes(originalSize)} → ${formatBytes(compressedSize)} · ${reduction}% smaller`
-      : 'Minimal reduction — this PDF is already optimised'
-    : ''
+  // Result display logic
+  const resultKind: 'good' | 'minimal' | 'none' | 'increased' =
+    reduction >= 3  ? 'good'      :
+    reduction >= -5 ? 'minimal'   :
+    reduction > -Infinity ? 'increased' : 'none'
 
   const sidebar = (
     <ToolSidebar
@@ -187,7 +198,7 @@ export default function CompressPDFPage() {
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
           <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#DCFCE7', color: '#166534', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✓ 100% Free</span>
           <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#FFF0DC', color: '#92400E', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>🔒 Files Stay On Device</span>
-          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#EDE9FE', color: '#6B21A8', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✦ No Watermark</span>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#EDE9FE', color: '#6B21A8', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>⚙ Ghostscript Engine</span>
         </div>
         <h1 style={{
           fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800,
@@ -200,7 +211,7 @@ export default function CompressPDFPage() {
           fontSize: '16px', fontWeight: 300, color: 'var(--ink)', opacity: 0.65,
           maxWidth: '520px', marginTop: '12px', lineHeight: 1.6,
         }}>
-          Reduce PDF file size without losing quality. 100% free, browser-based, no upload.
+          Professional-grade PDF compression powered by Ghostscript. Text, fonts and vectors preserved at every level.
         </p>
       </div>
 
@@ -286,8 +297,19 @@ export default function CompressPDFPage() {
             </div>
             <p style={{
               fontFamily: 'var(--font-dm-mono), DM Mono, monospace',
-              fontSize: '11px', color: 'var(--muted)', marginTop: '8px', lineHeight: 1.5,
-            }}>Text, fonts and vector graphics are preserved. Reduction varies by PDF type — image-heavy: 30–70% · text-only: 5–20%</p>
+              fontSize: '11px', color: 'var(--muted)', marginTop: '10px', lineHeight: 1.5,
+            }}>
+              Text, fonts and vector graphics are fully preserved at every level. Only raster images are optimised.
+            </p>
+            {isFirstLoad && (
+              <p style={{
+                fontFamily: 'var(--font-dm-mono), DM Mono, monospace',
+                fontSize: '10px', color: 'var(--muted)', marginTop: '6px', lineHeight: 1.5,
+                padding: '8px 10px', background: 'var(--cream)', borderRadius: '6px',
+              }}>
+                First compression loads the Ghostscript engine (~15 MB). Subsequent compressions are instant — engine is cached in memory.
+              </p>
+            )}
           </div>
 
           {/* Action buttons */}
@@ -361,13 +383,68 @@ export default function CompressPDFPage() {
       )}
 
       {/* State: done */}
-      {toolState === 'done' && (
-        <DownloadCard
-          filename="doclair-compressed.pdf"
-          description={downloadDesc}
-          onDownload={handleDownload}
-          onReset={handleReset}
-        />
+      {toolState === 'done' && resultKind === 'increased' && (
+        // Compression would increase file size — don't offer download
+        <div style={{
+          background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '32px',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: '32px', marginBottom: '12px' }}>📊</div>
+          <div style={{
+            fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700,
+            fontSize: '18px', color: 'var(--ink)', marginBottom: '8px',
+          }}>Your original is already optimal</div>
+          <p style={{ fontSize: '13px', color: 'var(--ink)', opacity: 0.6, lineHeight: 1.6, maxWidth: '380px', margin: '0 auto 20px' }}>
+            Compression would increase the file size. This PDF is already highly optimised — keep your original.
+          </p>
+          <div style={{
+            fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px',
+            color: 'var(--muted)', marginBottom: '20px',
+          }}>{formatBytes(originalSize)} → would be {formatBytes(compressedSize)}</div>
+          <button
+            onClick={handleReset}
+            style={{
+              padding: '12px 28px', borderRadius: '100px', border: '1px solid var(--border)',
+              background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-syne), Syne, sans-serif',
+              fontWeight: 600, fontSize: '14px', color: 'var(--ink)', transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--ink)'; e.currentTarget.style.color = 'white' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink)' }}
+          >← Keep Original</button>
+        </div>
+      )}
+
+      {toolState === 'done' && resultKind !== 'increased' && (
+        <>
+          {/* Amber notice for already-optimised PDFs */}
+          {resultKind === 'minimal' && (
+            <div style={{
+              background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '12px',
+              padding: '14px 18px', display: 'flex', gap: '12px', alignItems: 'flex-start',
+            }}>
+              <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>ℹ️</span>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: '#92400E', marginBottom: '4px' }}>
+                  This PDF is already well optimised
+                </div>
+                <div style={{ fontSize: '12px', color: '#92400E', opacity: 0.8, lineHeight: 1.5 }}>
+                  Text-only PDFs compress 5–15% maximum — text is stored as vectors, not pixels.
+                  Ghostscript may still have improved cross-viewer compatibility.
+                </div>
+              </div>
+            </div>
+          )}
+          <DownloadCard
+            filename="doclair-compressed.pdf"
+            description={
+              resultKind === 'minimal'
+                ? `${formatBytes(originalSize)} → ${formatBytes(compressedSize)}${reduction > 0 ? ` · ${reduction}% smaller` : ' · minimal change'}`
+                : `${formatBytes(originalSize)} → ${formatBytes(compressedSize)} · ${reduction}% smaller`
+            }
+            onDownload={handleDownload}
+            onReset={handleReset}
+          />
+        </>
       )}
 
       {/* SEO Content */}
@@ -381,8 +458,8 @@ export default function CompressPDFPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
           {[
             'Click <strong>Drop your PDF here</strong> or drag your PDF file into the upload area.',
-            'Choose a compression level — <strong>Light</strong> for best quality, <strong>Medium</strong> for a balance, or <strong>Heavy</strong> for maximum size reduction.',
-            'Click <strong>Compress PDF</strong> and wait a moment while your browser processes the file.',
+            'Choose a compression level — <strong>Standard</strong> for full print quality, <strong>Balanced</strong> for sharing, or <strong>Maximum</strong> for the smallest possible file.',
+            'Click <strong>Compress PDF</strong> and wait while Ghostscript processes your file entirely in your browser.',
             'Click <strong>Download</strong> to save your compressed PDF. The original vs compressed size is shown.',
           ].map((step, i) => (
             <div key={i} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
@@ -397,21 +474,22 @@ export default function CompressPDFPage() {
         </div>
 
         <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px', marginTop: '28px' }}>
-          Why compress PDF files?
+          Why Ghostscript gives better results than other online tools
         </h3>
         <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
-          Large PDF files are slow to email, upload to web forms, or store on mobile devices. Email services typically cap attachments at 10–25 MB.
-          Compressing a PDF can reduce it from several megabytes to a fraction — without any visible loss in quality for the reader.
-          It&apos;s especially useful for scanned documents, presentation PDFs, or any file that includes embedded images.
+          Most browser-based PDF compressors use simple object stream packing. Doclair uses Ghostscript — the same engine
+          behind Adobe Distiller and professional print workflows — compiled to WebAssembly so it runs entirely in your browser.
+          Ghostscript subsetsfonts to used characters only, downsamples images with bicubic interpolation, and removes
+          hidden layers of PDF bloat that other tools miss.
         </p>
 
         <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
           Is it safe to compress confidential PDFs online?
         </h3>
         <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
-          Absolutely. Doclair processes your PDF entirely inside your browser using WebAssembly. Your file is never transmitted to any server —
-          not even Doclair&apos;s. This means confidential contracts, medical records, financial statements, and any sensitive documents
-          can be compressed with complete privacy. The file exists only in your browser&apos;s memory and is cleared when you close the tab.
+          Absolutely. Doclair processes your PDF entirely inside your browser using WebAssembly. Your file is never
+          transmitted to any server — not even Doclair&apos;s. Confidential contracts, medical records, and financial
+          statements can be compressed with complete privacy.
         </p>
 
         <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
@@ -420,7 +498,6 @@ export default function CompressPDFPage() {
         <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>
           Doclair works in mobile browsers — Safari on iPhone and iPad, Chrome on Android — with no app download required.
           Tap the upload area to open the Files app picker, select your PDF, choose a compression level, and download the result.
-          You can also install Doclair to your home screen as a Progressive Web App for quick access.
         </p>
       </div>
 

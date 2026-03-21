@@ -29,3 +29,13 @@ export interface FAQ {
 }
 
 export type ToolState = 'idle' | 'merging' | 'done' | 'error'
+
+export interface CompressWorkerMessage {
+  fileBytes: ArrayBuffer
+  quality: 'light' | 'medium' | 'heavy'
+}
+
+export type CompressWorkerResult =
+  | { type: 'progress'; pct: number }
+  | { type: 'done'; bytes: ArrayBuffer }
+  | { type: 'error'; message: string }
