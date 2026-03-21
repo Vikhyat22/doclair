@@ -162,6 +162,7 @@ export default function EncryptPDFPage() {
           <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#DCFCE7', color: '#166534', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✓ 100% Free</span>
           <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#FFF0DC', color: '#92400E', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>🔒 Files Stay On Device</span>
           <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#EDE9FE', color: '#6B21A8', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✦ No Watermark</span>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#F0FDF4', color: '#14532D', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>🛡 AES-256</span>
         </div>
         <h1 style={{
           fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800,
@@ -172,9 +173,9 @@ export default function EncryptPDFPage() {
         </h1>
         <p style={{
           fontSize: '16px', fontWeight: 300, color: 'var(--ink)', opacity: 0.65,
-          maxWidth: '520px', marginTop: '12px', lineHeight: 1.6,
+          maxWidth: '540px', marginTop: '12px', lineHeight: 1.6,
         }}>
-          Password-protect your PDF with AES-256 encryption. Set open password and restrict printing, copying and editing. No upload.
+          Password-protect your PDF with AES-256 encryption — the same standard used by banks, governments and financial institutions. No upload, no watermark.
         </p>
       </div>
 

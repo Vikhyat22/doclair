@@ -40,14 +40,3 @@ export type CompressWorkerResult =
   | { type: 'done'; bytes: ArrayBuffer }
   | { type: 'error'; message: string }
 
-export interface EncryptWorkerMessage {
-  fileBytes:     ArrayBuffer
-  userPassword:  string
-  ownerPassword: string
-  permissions:   number   // GS -dPermissions integer
-}
-
-export type EncryptWorkerResult =
-  | { type: 'progress'; pct: number }
-  | { type: 'done'; bytes: ArrayBuffer }
-  | { type: 'error'; message: string }
