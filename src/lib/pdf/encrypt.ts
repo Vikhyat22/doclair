@@ -30,11 +30,15 @@ export async function encryptPDF(
     throwOnInvalidObject: false,
   })
 
-  // Force AES-256 (V=5 R=6 AESV3): @cantoo/pdf-lib selects the encryption
-  // algorithm based on the PDF header version string.
-  //   1.4 / 1.5  → V=2, RC4-128
-  //   1.6 / 1.7  → V=4, AES-128 (AESV2)
-  //   1.7ext3    → V=5, AES-256 (AESV3)  ← we want this
+  // Force AES-256 (AESV3) encryption.
+  // @cantoo/pdf-lib defaults to AES-128 for PDF 1.6/1.7 headers.
+  // Setting header minor to '7ext3' triggers the V=5/R=6/AESV3 algorithm.
+  // Confirmed via: Buffer.from(bytes).toString('binary').includes('AESV3')
+  //
+  // Algorithm selection table (see PDFSecurity.ts in @cantoo/pdf-lib):
+  //   header 1.4 / 1.5  → V=2, RC4-128  (deprecated)
+  //   header 1.6 / 1.7  → V=4, AES-128  (AESV2)
+  //   header 1.7ext3    → V=5, AES-256  (AESV3)  ← this line sets that
   ;(doc as any).context.header.minor = '7ext3'
 
   doc.encrypt({
