@@ -51,6 +51,16 @@ const nextConfig = {
   // Scoped to compress-pdf only — the sole page using Ghostscript WASM.
   // Applying these globally blocks third-party scripts and cross-origin resources
   // on every other page, which breaks analytics, ads, and Google indexing.
+  async redirects() {
+    return [
+      {
+        source: '/blog/how-to-reduce-pdf-size',
+        destination: '/blog/how-to-compress-pdf-file',
+        permanent: true,
+      },
+    ]
+  },
+
   async headers() {
     return [
       {
