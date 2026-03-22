@@ -333,7 +333,11 @@ export default function HomePage() {
                 textDecoration: 'none',
                 display: 'flex',
                 flexDirection: 'column',
-              }}>
+              }}
+                onTouchStart={e => e.currentTarget.classList.add('touching')}
+                onTouchEnd={e => { const el = e.currentTarget; setTimeout(() => el.classList.remove('touching'), 150) }}
+                onTouchCancel={e => e.currentTarget.classList.remove('touching')}
+              >
                 <div style={{ position: 'absolute', top: '14px', right: '14px', display: 'flex', gap: '4px' }}>
                   {tool.ai && (
                     <span style={{

@@ -197,7 +197,7 @@ export default function ToolSearchFilter({
       </div>
 
       {/* ── Category pills ── */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
+      <div className="category-pills" style={{ marginBottom: '14px' }}>
         {CATEGORIES.map(cat => (
           <button
             key={cat}

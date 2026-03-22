@@ -58,7 +58,11 @@ export default function ToolsPage() {
                 padding: '24px', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
                 cursor: 'pointer', position: 'relative',
                 textDecoration: 'none', display: 'flex', flexDirection: 'column',
-              }}>
+              }}
+                onTouchStart={e => e.currentTarget.classList.add('touching')}
+                onTouchEnd={e => { const el = e.currentTarget; setTimeout(() => el.classList.remove('touching'), 150) }}
+                onTouchCancel={e => e.currentTarget.classList.remove('touching')}
+              >
                 <div style={{ position: 'absolute', top: '14px', right: '14px', display: 'flex', gap: '4px' }}>
                   {tool.ai && <span style={{ padding: '3px 7px', borderRadius: '100px', background: '#EDE9FE', color: '#5B21B6', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '9px', fontWeight: 500, textTransform: 'uppercase' }}>AI</span>}
                   {tool.in && <span style={{ padding: '3px 7px', borderRadius: '100px', background: '#FFF0DC', color: '#92400E', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '9px', fontWeight: 500 }}>IN 🇮🇳</span>}
