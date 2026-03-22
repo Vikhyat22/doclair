@@ -37,12 +37,24 @@ const nextConfig = {
     return config
   },
 
-  // COEP + COOP enable SharedArrayBuffer for WASM threading
-  // Note: these may block cross-origin resources that lack the required CORP header
+  // COEP + COOP enable SharedArrayBuffer for WASM threading.
+  // Scoped to compress-pdf only — the sole page using Ghostscript WASM.
+  // Applying these globally blocks third-party scripts and cross-origin resources
+  // on every other page, which breaks analytics, ads, and Google indexing.
   async headers() {
     return [
       {
-        source: '/(.*)',
+        // Only apply COEP/COOP to compress-pdf
+        // which is the only page using Ghostscript WASM
+        source: '/compress-pdf',
+        headers: [
+          { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
+          { key: 'Cross-Origin-Opener-Policy',   value: 'same-origin'  },
+        ],
+      },
+      {
+        // Also apply to the compress worker API if it exists
+        source: '/api/(.*)',
         headers: [
           { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
           { key: 'Cross-Origin-Opener-Policy',   value: 'same-origin'  },
