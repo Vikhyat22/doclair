@@ -13,8 +13,11 @@ export async function removeImageBackground(
 ): Promise<RemoveBgResult> {
   onProgress?.(5)
 
+  // Must be an absolute URL — the library fetches WASM and ONNX model files
+  // from this base path. Relative '/' fails because fetch() needs a full URL.
+  // Using exact installed version (1.7.0) to avoid @latest redirect issues.
   const blob = await imglyRemoveBg(file, {
-    publicPath: '/',
+    publicPath: 'https://unpkg.com/@imgly/background-removal@1.7.0/dist/',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     progress: (_key: any, current: number, total: number) => {
       if (total > 0) {

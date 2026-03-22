@@ -49,8 +49,9 @@ function formatBytes(b: number) {
 }
 
 function getProgressLabel(pct: number) {
-  if (pct < 20) return 'Loading AI model…'
-  if (pct < 50) return 'Analysing image…'
+  if (pct < 10) return 'Initialising…'
+  if (pct < 30) return 'Downloading AI model (~40 MB, first use only)…'
+  if (pct < 60) return 'Analysing image…'
   if (pct < 85) return 'Removing background…'
   return 'Finalising…'
 }
