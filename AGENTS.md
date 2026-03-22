@@ -6,3 +6,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Doclair Conventions
 - Domain: doclair.in — never use doclair.com anywhere
+- AI API: OpenCode Go (MiniMax M2.7) via Anthropic-compatible SDK.
+  Base URL: https://opencode.ai/zen/go/v1
+  Switch to direct Anthropic API for production by changing
+  AI_BASE_URL and AI_API_KEY env vars.

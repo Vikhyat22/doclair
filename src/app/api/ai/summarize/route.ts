@@ -1,7 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
 
-const client = new Anthropic()
+const client = new Anthropic({
+  apiKey:  process.env.AI_API_KEY,
+  baseURL: process.env.AI_BASE_URL,
+})
 
 const SYSTEM_PROMPTS: Record<string, string> = {
   brief: `You are a document summarizer. Return only 3-4 most important bullet points from the document. Format as:
@@ -67,7 +70,7 @@ export async function POST(req: NextRequest) {
   const systemPrompt = SYSTEM_PROMPTS[summaryType as string] ?? SYSTEM_PROMPTS.standard
 
   const message = await client.messages.create({
-    model:      'claude-sonnet-4-6',
+    model:      process.env.AI_MODEL ?? 'minimax-m2.7',
     max_tokens: summaryType === 'detailed' ? 2048 : 1024,
     system:     systemPrompt,
     messages: [

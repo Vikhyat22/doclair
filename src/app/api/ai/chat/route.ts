@@ -1,7 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
 
-const client = new Anthropic()
+const client = new Anthropic({
+  apiKey:  process.env.AI_API_KEY,
+  baseURL: process.env.AI_BASE_URL,
+})
 
 export async function POST(req: NextRequest) {
   const { extractedText, question } = await req.json()
@@ -16,13 +19,14 @@ export async function POST(req: NextRequest) {
   const truncated = extractedText.slice(0, 50000)
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-6',
+    model:      process.env.AI_MODEL ?? 'minimax-m2.7',
     max_tokens: 1024,
     system:
-      'You are a helpful assistant. Answer questions based only on the PDF content provided. Be concise and accurate.',
+      'You are a helpful assistant. Answer questions based ' +
+      'only on the PDF content provided. Be concise and accurate.',
     messages: [
       {
-        role: 'user',
+        role:    'user',
         content: `PDF Content:\n${truncated}\n\nQuestion: ${question}`,
       },
     ],
@@ -30,7 +34,10 @@ export async function POST(req: NextRequest) {
 
   const content = message.content[0]
   if (content.type !== 'text') {
-    return NextResponse.json({ error: 'Unexpected response type' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Unexpected response type' },
+      { status: 500 }
+    )
   }
 
   return NextResponse.json({ answer: content.text })
