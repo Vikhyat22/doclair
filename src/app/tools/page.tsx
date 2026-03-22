@@ -34,14 +34,19 @@ export default function ToolsPage() {
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '40px' }}>
             {CATEGORIES.map(cat => (
-              <button key={cat} onClick={() => setActiveCat(cat)} style={{
-                padding: '9px 18px', borderRadius: '100px', fontSize: '13px', fontWeight: 500,
-                border: `1px solid ${activeCat === cat ? 'var(--ink)' : 'rgba(26,22,18,0.15)'}`,
-                background: activeCat === cat ? 'var(--ink)' : 'transparent',
-                color: activeCat === cat ? 'white' : 'var(--ink)',
-                cursor: 'pointer', transition: 'all 0.15s',
-                fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif',
-              }}>{cat}</button>
+              <button
+                key={cat}
+                onClick={() => setActiveCat(cat)}
+                className={`cat-btn${activeCat === cat ? ' cat-btn-active' : ''}`}
+                style={{
+                  padding: '9px 18px', borderRadius: '100px', fontSize: '13px', fontWeight: 500,
+                  border: `1px solid ${activeCat === cat ? 'var(--ink)' : 'rgba(26,22,18,0.15)'}`,
+                  background: activeCat === cat ? 'var(--ink)' : 'transparent',
+                  color: activeCat === cat ? 'white' : 'var(--ink)',
+                  cursor: 'pointer', transition: 'all 0.15s',
+                  fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif',
+                }}
+              >{cat}</button>
             ))}
           </div>
 
@@ -51,20 +56,20 @@ export default function ToolsPage() {
             overflow: 'hidden', background: 'white',
           }} className="tools-grid">
             {filteredTools.map((tool) => (
-              <Link key={tool.id} href={`/${tool.slug}`} style={{
+              <Link key={tool.id} href={`/${tool.slug}`} className="tool-card" style={{
                 padding: '24px', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
-                cursor: 'pointer', transition: 'all 0.18s', position: 'relative',
-                textDecoration: 'none', display: 'flex', flexDirection: 'column', background: 'white',
+                cursor: 'pointer', position: 'relative',
+                textDecoration: 'none', display: 'flex', flexDirection: 'column',
               }}>
                 <div style={{ position: 'absolute', top: '14px', right: '14px', display: 'flex', gap: '4px' }}>
                   {tool.ai && <span style={{ padding: '3px 7px', borderRadius: '100px', background: '#EDE9FE', color: '#5B21B6', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '9px', fontWeight: 500, textTransform: 'uppercase' }}>AI</span>}
                   {tool.in && <span style={{ padding: '3px 7px', borderRadius: '100px', background: '#FFF0DC', color: '#92400E', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '9px', fontWeight: 500 }}>IN 🇮🇳</span>}
                   {tool.isNew && <span style={{ padding: '3px 7px', borderRadius: '100px', background: '#DCFCE7', color: '#166534', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '9px', fontWeight: 500, textTransform: 'uppercase' }}>New</span>}
                 </div>
-                <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: CATEGORY_ICON_BG[tool.category] || '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', marginBottom: '14px', flexShrink: 0 }}>{tool.icon}</div>
+                <div className="tool-icon" style={{ width: '44px', height: '44px', borderRadius: '10px', background: CATEGORY_ICON_BG[tool.category] || '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', marginBottom: '14px', flexShrink: 0 }}>{tool.icon}</div>
                 <div style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '15px', color: 'var(--ink)', marginBottom: '5px', lineHeight: 1.2 }}>{tool.name}</div>
                 <div style={{ fontSize: '12px', color: 'var(--ink)', opacity: 0.55, lineHeight: 1.5, flex: 1 }}>{tool.desc}</div>
-                <div style={{ marginTop: '14px', fontSize: '16px', color: 'var(--amber)', width: 'fit-content' }}>→</div>
+                <div className="tool-arrow">→</div>
               </Link>
             ))}
           </div>
