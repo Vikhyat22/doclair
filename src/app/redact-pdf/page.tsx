@@ -188,40 +188,55 @@ export default function RedactPDFPage() {
     setSearchText('')
   }
 
+  // Returns pointer position in natural-image pixel space, correcting for CSS scaling
+  function getImgCoords(e: React.PointerEvent<HTMLDivElement>) {
+    const img = pageImageRef.current
+    if (!img) return null
+    const rect   = img.getBoundingClientRect()
+    const scaleX = img.naturalWidth  / rect.width
+    const scaleY = img.naturalHeight / rect.height
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top)  * scaleY,
+    }
+  }
+
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     const el = overlayRef.current
     if (!el) return
+    const coords = getImgCoords(e)
+    if (!coords) return
     el.setPointerCapture(e.pointerId)
-    const rect = el.getBoundingClientRect()
-    const startX = (e.clientX - rect.left) / rect.width
-    const startY = (e.clientY - rect.top) / rect.height
     setDrawing({
-      active: true,
-      page: currentPreviewPage - 1,
-      startX,
-      startY,
-      currentX: startX,
-      currentY: startY,
+      active:   true,
+      page:     currentPreviewPage - 1,
+      startX:   coords.x,
+      startY:   coords.y,
+      currentX: coords.x,
+      currentY: coords.y,
     })
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
     if (!drawing || !drawing.active) return
-    const el = overlayRef.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    const currentX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width))
-    const currentY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height))
+    const img    = pageImageRef.current
+    if (!img) return
+    const coords = getImgCoords(e)
+    if (!coords) return
+    const currentX = Math.max(0, Math.min(img.naturalWidth,  coords.x))
+    const currentY = Math.max(0, Math.min(img.naturalHeight, coords.y))
     setDrawing(prev => prev ? { ...prev, currentX, currentY } : null)
   }
 
   function handlePointerUp() {
     if (!drawing || !drawing.active) return
+    const img = pageImageRef.current
+    if (!img) return
     const { page, startX, startY, currentX, currentY } = drawing
-    const x      = Math.min(startX, currentX)
-    const y      = Math.min(startY, currentY)
-    const width  = Math.abs(currentX - startX)
-    const height = Math.abs(currentY - startY)
+    const x      = Math.min(startX, currentX)  / img.naturalWidth
+    const y      = Math.min(startY, currentY)  / img.naturalHeight
+    const width  = Math.abs(currentX - startX) / img.naturalWidth
+    const height = Math.abs(currentY - startY) / img.naturalHeight
     if (width > 0.01 && height > 0.01) {
       setBoxes(prev => [...prev, { page, x, y, width, height }])
     }
@@ -527,20 +542,24 @@ export default function RedactPDFPage() {
                 })}
 
                 {/* Live rubber-band while drawing */}
-                {drawing && drawing.active && drawing.page === currentPreviewPage - 1 && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      left: Math.min(drawing.startX, drawing.currentX) * 100 + '%',
-                      top: Math.min(drawing.startY, drawing.currentY) * 100 + '%',
-                      width: Math.abs(drawing.currentX - drawing.startX) * 100 + '%',
-                      height: Math.abs(drawing.currentY - drawing.startY) * 100 + '%',
-                      background: 'rgba(0,0,0,0.4)',
-                      border: '2px dashed var(--amber)',
-                      pointerEvents: 'none',
-                    }}
-                  />
-                )}
+                {drawing && drawing.active && drawing.page === currentPreviewPage - 1 && (() => {
+                  const nw = pageImageRef.current?.naturalWidth  || 1
+                  const nh = pageImageRef.current?.naturalHeight || 1
+                  return (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left:   `${Math.min(drawing.startX, drawing.currentX)  / nw * 100}%`,
+                        top:    `${Math.min(drawing.startY, drawing.currentY)  / nh * 100}%`,
+                        width:  `${Math.abs(drawing.currentX - drawing.startX) / nw * 100}%`,
+                        height: `${Math.abs(drawing.currentY - drawing.startY) / nh * 100}%`,
+                        background: 'rgba(0,0,0,0.4)',
+                        border: '2px dashed var(--amber)',
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  )
+                })()}
               </div>
             </div>
 
