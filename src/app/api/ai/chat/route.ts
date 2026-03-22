@@ -57,7 +57,11 @@ export async function POST(req: NextRequest) {
     const data    = await response.json()
     console.log('Response keys:', Object.keys(data))
 
-    const content = data?.content?.[0]?.text
+    // Find first text block — MiniMax returns a thinking block before the text block
+    const textBlock = Array.isArray(data?.content)
+      ? data.content.find((block: { type: string }) => block.type === 'text')
+      : null
+    const content = textBlock?.text
                  ?? data?.choices?.[0]?.message?.content
                  ?? null
 
