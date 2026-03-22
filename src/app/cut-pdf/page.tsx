@@ -1,40 +1,196 @@
-import type { Metadata } from 'next'
-import { toolMetadata } from '@/constants/seo'
-import Navbar from '@/components/layout/Navbar'
-import Footer from '@/components/layout/Footer'
+'use client'
 
-export const metadata: Metadata = toolMetadata(
-  'Cut PDF',
-  'cut-pdf',
-  'Cut PDF pages in half horizontally or vertically. 100% free, no upload, no watermark.'
-)
+import { useState, useCallback } from 'react'
+import ToolPageLayout from '@/components/layout/ToolPageLayout'
+import DropZone from '@/components/ui/DropZone'
+import DownloadCard from '@/components/ui/DownloadCard'
+import FAQ from '@/components/ui/FAQ'
+import ToolSidebar from '@/components/ui/ToolSidebar'
+import { cutPDF, type CutDirection } from '@/lib/pdf/cut'
 
-export default function Page() {
+type ToolState = 'idle' | 'processing' | 'done' | 'error'
+
+const FAQS = [
+  {
+    q: 'What is the difference between horizontal and vertical cut?',
+    a: 'Horizontal splits each page into a top half and bottom half. Vertical splits each page into a left half and a right half. The resulting PDF will have twice as many pages.',
+  },
+  {
+    q: 'When would I use this tool?',
+    a: 'This is useful for scanned booklets or magazines scanned as double-page spreads — split vertically to separate each page. Also useful for presentations where each slide spans across the full page.',
+  },
+  {
+    q: 'Does the content get cut at exactly 50%?',
+    a: 'Yes. The split is at exactly the midpoint of each page. If content spans the cut line, it will be divided at that point.',
+  },
+  {
+    q: 'Is my file uploaded to a server?',
+    a: 'No. Everything runs in your browser using @cantoo/pdf-lib. Your file never leaves your device.',
+  },
+]
+
+const JSON_LD = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Cut PDF — Doclair',
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: 'https://doclair.in/cut-pdf',
+      description: 'Split each PDF page into two halves — top/bottom or left/right. Useful for booklets and double-page scans. Free, no upload.',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
+    },
+  ],
+}
+
+const SIDEBAR_RELATED = [
+  { name: 'Crop PDF',   slug: 'crop-pdf',   icon: '✂️', colorBg: '#DBEAFE', desc: 'Remove page margins' },
+  { name: 'Split PDF',  slug: 'split-pdf',  icon: '✂️', colorBg: '#FFF0DC', desc: 'Split into separate files' },
+  { name: 'Rotate PDF', slug: 'rotate-pdf', icon: '🔄', colorBg: '#EDE9FE', desc: 'Rotate pages' },
+]
+
+export default function CutPDFPage() {
+  const [file, setFile]           = useState<File | null>(null)
+  const [toolState, setToolState] = useState<ToolState>('idle')
+  const [result, setResult]       = useState<Uint8Array | null>(null)
+  const [error, setError]         = useState('')
+  const [direction, setDirection] = useState<CutDirection>('vertical')
+  const [pageCount, setPageCount] = useState(0)
+
+  const handleFiles = useCallback(async (files: File[]) => {
+    if (files.length === 0) return
+    const f = files[0]
+    setFile(f)
+    setToolState('idle')
+    setResult(null)
+    setError('')
+    try {
+      const { PDFDocument } = await import('@cantoo/pdf-lib')
+      const bytes = await f.arrayBuffer()
+      const doc   = await PDFDocument.load(bytes, { throwOnInvalidObject: false })
+      setPageCount(doc.getPageCount())
+    } catch { /* skip */ }
+  }, [])
+
+  const handleCut = useCallback(async () => {
+    if (!file) return
+    setToolState('processing')
+    setError('')
+    try {
+      const out = await cutPDF(file, direction)
+      setResult(out)
+      setToolState('done')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to cut PDF')
+      setToolState('error')
+    }
+  }, [file, direction])
+
+  const handleDownload = useCallback(() => {
+    if (!result || !file) return
+    const blob = new Blob([result as BlobPart], { type: 'application/pdf' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = file.name.replace(/\.pdf$/i, '-cut.pdf')
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [result, file])
+
+  const handleReset = useCallback(() => {
+    setFile(null); setResult(null); setError(''); setToolState('idle'); setPageCount(0)
+  }, [])
+
+  const pillStyle = (active: boolean): React.CSSProperties => ({
+    padding: '10px 20px', borderRadius: '100px', fontSize: '13px', fontWeight: 500,
+    border: `1px solid ${active ? 'var(--amber)' : 'var(--border)'}`,
+    background: active ? '#FFF8F0' : 'white',
+    color: active ? '#92400E' : 'var(--muted)',
+    cursor: 'pointer', transition: 'all 0.2s',
+  })
+
   return (
     <>
-      <Navbar />
-      <main style={{ padding: '80px 48px', textAlign: 'center', position: 'relative', zIndex: 1, minHeight: 'calc(100vh - 200px)' }}>
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h1 style={{
-            fontFamily: 'var(--font-syne), Syne, sans-serif',
-            fontWeight: 800,
-            fontSize: 'clamp(32px, 4vw, 52px)',
-            letterSpacing: '-1.5px',
-            color: 'var(--ink)',
-            marginBottom: '16px',
-            lineHeight: 1.05,
-          }}>Cut PDF</h1>
-          <p style={{ color: 'var(--muted)', marginTop: '16px', fontSize: '17px', fontWeight: 300, lineHeight: 1.6, marginBottom: '40px' }}>
-            Coming soon — this tool is under active development.
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
+      <ToolPageLayout
+        toolName="Cut PDF"
+        toolSlug="cut-pdf"
+        sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
+      >
+        <div>
+          <h1 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(28px, 4vw, 48px)', letterSpacing: '-1px', lineHeight: 1.05, marginBottom: '10px' }}>
+            <span style={{ color: 'var(--ink)' }}>Cut PDF </span>
+            <span style={{ color: 'var(--amber)' }}>Split Pages in Half</span>
+          </h1>
+          <p style={{ color: 'var(--muted)', fontSize: '16px', lineHeight: 1.6, maxWidth: '640px', marginBottom: '16px' }}>
+            Split each PDF page into two halves — top/bottom or left/right. Useful for booklets and double-page scans. Free, no upload.
           </p>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
-            borderRadius: '100px', background: '#DCFCE7', color: '#166534',
-            fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500,
-          }}>✓ 100% Free · No Upload · No Watermark</div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: '100px', background: '#DCFCE7', color: '#166534', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500 }}>✓ 100% Free</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: '100px', background: '#FFF0DC', color: '#92400E', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500 }}>🔒 Files Stay On Device</span>
+          </div>
         </div>
-      </main>
-      <Footer />
+
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '24px' }}>
+          <div style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '10px', color: 'var(--amber)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '16px' }}>// Cut Direction</div>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button style={pillStyle(direction === 'vertical')} onClick={() => setDirection('vertical')}>↕ Split Vertically (left / right)</button>
+            <button style={pillStyle(direction === 'horizontal')} onClick={() => setDirection('horizontal')}>↔ Split Horizontally (top / bottom)</button>
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '12px' }}>
+            {direction === 'vertical' ? 'Each page is split into left and right halves — ideal for double-page scans.' : 'Each page is split into top and bottom halves.'}
+          </div>
+        </div>
+
+        {!file && (
+          <DropZone onFilesAdded={handleFiles} accept=".pdf" maxFiles={1} maxSizeMB={200} icon="✂️" label="Drop your PDF here" subLabel="or click to browse — up to 200 MB" currentCount={0} />
+        )}
+
+        {file && toolState === 'idle' && (
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '24px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ fontSize: '32px' }}>📄</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 500, color: 'var(--ink)', fontSize: '15px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.name}</div>
+              <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
+                {pageCount > 0 ? `${pageCount} pages → ${pageCount * 2} half-pages` : `${(file.size / 1024 / 1024).toFixed(2)} MB`}
+              </div>
+            </div>
+            <button onClick={handleCut} style={{ background: 'var(--ink)', color: 'white', padding: '12px 28px', borderRadius: '100px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer' }}>
+              Cut PDF →
+            </button>
+            <button onClick={handleReset} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '13px' }}>✕</button>
+          </div>
+        )}
+
+        {toolState === 'processing' && (
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '48px 32px', textAlign: 'center' }}>
+            <div style={{ fontSize: '40px', marginBottom: '16px' }}>✂️</div>
+            <div style={{ fontWeight: 700, fontSize: '18px', color: 'var(--ink)', marginBottom: '6px' }}>Cutting PDF…</div>
+            <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Splitting pages {direction === 'vertical' ? 'left and right' : 'top and bottom'}</div>
+          </div>
+        )}
+
+        {toolState === 'error' && (
+          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '16px', padding: '24px', color: '#991B1B' }}>
+            <div style={{ fontWeight: 600, marginBottom: '4px' }}>Something went wrong</div>
+            <div style={{ fontSize: '13px', opacity: 0.8 }}>{error}</div>
+            <button onClick={handleReset} style={{ marginTop: '12px', background: 'none', border: '1px solid #FECACA', borderRadius: '8px', padding: '6px 16px', cursor: 'pointer', color: '#991B1B', fontSize: '13px' }}>Try again</button>
+          </div>
+        )}
+
+        {toolState === 'done' && result && file && (
+          <DownloadCard
+            filename={file.name.replace(/\.pdf$/i, '-cut.pdf')}
+            description={pageCount > 0 ? `${pageCount} pages → ${pageCount * 2} half-pages` : 'Pages split in half'}
+            onDownload={handleDownload}
+            onReset={handleReset}
+          />
+        )}
+
+        <FAQ faqs={FAQS} />
+      </ToolPageLayout>
     </>
   )
 }

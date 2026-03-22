@@ -11,7 +11,7 @@ interface SidebarTool {
 }
 
 interface ToolSidebarProps {
-  reverseActions: SidebarTool[]
+  reverseActions?: SidebarTool[]
   relatedTools: SidebarTool[]
 }
 
@@ -86,7 +86,9 @@ function SidebarCard({ label, tools, showDesc }: { label: string; tools: Sidebar
 export default function ToolSidebar({ reverseActions, relatedTools }: ToolSidebarProps) {
   return (
     <>
-      <SidebarCard label="// Reverse Actions" tools={reverseActions} />
+      {reverseActions && reverseActions.length > 0 && (
+        <SidebarCard label="// Reverse Actions" tools={reverseActions} />
+      )}
       <SidebarCard label="// Related Tools" tools={relatedTools} showDesc />
       <div style={{
         background: 'var(--ink)',

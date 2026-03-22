@@ -1,40 +1,41 @@
-import type { Metadata } from 'next'
-import { toolMetadata } from '@/constants/seo'
-import Navbar from '@/components/layout/Navbar'
-import Footer from '@/components/layout/Footer'
+'use client'
 
-export const metadata: Metadata = toolMetadata(
-  'PDF to ePub',
-  'pdf-to-epub',
-  'Convert PDF to eBook format. 100% free, no upload, no watermark.'
-)
+import ToolPageLayout from '@/components/layout/ToolPageLayout'
+import ToolSidebar from '@/components/ui/ToolSidebar'
 
-export default function Page() {
+const SIDEBAR_RELATED = [
+  { name: 'PDF to Text',     slug: 'pdf-to-text',     icon: '📝', colorBg: '#FFF0DC', desc: 'Extract plain text' },
+  { name: 'PDF to Markdown', slug: 'pdf-to-markdown', icon: '#️⃣', colorBg: '#F3F4F6', desc: 'Convert to Markdown' },
+  { name: 'PDF to Word',     slug: 'pdf-to-word',     icon: '📄', colorBg: '#DBEAFE', desc: 'Convert to .docx' },
+]
+
+export default function PDFToEpubPage() {
   return (
-    <>
-      <Navbar />
-      <main style={{ padding: '80px 48px', textAlign: 'center', position: 'relative', zIndex: 1, minHeight: 'calc(100vh - 200px)' }}>
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h1 style={{
-            fontFamily: 'var(--font-syne), Syne, sans-serif',
-            fontWeight: 800,
-            fontSize: 'clamp(32px, 4vw, 52px)',
-            letterSpacing: '-1.5px',
-            color: 'var(--ink)',
-            marginBottom: '16px',
-            lineHeight: 1.05,
-          }}>PDF to ePub</h1>
-          <p style={{ color: 'var(--muted)', marginTop: '16px', fontSize: '17px', fontWeight: 300, lineHeight: 1.6, marginBottom: '40px' }}>
-            Coming soon — this tool is under active development.
-          </p>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
-            borderRadius: '100px', background: '#DCFCE7', color: '#166534',
-            fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500,
-          }}>✓ 100% Free · No Upload · No Watermark</div>
-        </div>
-      </main>
-      <Footer />
-    </>
+    <ToolPageLayout
+      toolName="PDF to ePub"
+      toolSlug="pdf-to-epub"
+      sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
+    >
+      <div>
+        <h1 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(28px, 4vw, 48px)', letterSpacing: '-1px', lineHeight: 1.05, marginBottom: '10px' }}>
+          <span style={{ color: 'var(--ink)' }}>PDF to ePub </span>
+          <span style={{ color: 'var(--amber)' }}>Convert to eBook Format</span>
+        </h1>
+        <p style={{ color: 'var(--muted)', fontSize: '16px', lineHeight: 1.6, maxWidth: '640px', marginBottom: '16px' }}>
+          Convert PDF files to ePub format for reading on Kindle, Kobo, Apple Books and other eReaders.
+        </p>
+      </div>
+
+      <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '16px', padding: '32px', textAlign: 'center' }}>
+        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📖</div>
+        <div style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: 'var(--ink)', marginBottom: '10px' }}>Coming Soon</div>
+        <p style={{ color: 'var(--muted)', fontSize: '15px', lineHeight: 1.6, maxWidth: '400px', margin: '0 auto 20px' }}>
+          ePub generation requires complex layout reflow. We&apos;re working on a high-quality implementation.
+        </p>
+        <p style={{ color: 'var(--muted)', fontSize: '14px' }}>
+          In the meantime, use <a href="/pdf-to-text" style={{ color: 'var(--amber)', textDecoration: 'underline' }}>PDF to Text</a> to extract content, then convert using Calibre.
+        </p>
+      </div>
+    </ToolPageLayout>
   )
 }

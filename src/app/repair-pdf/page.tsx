@@ -1,40 +1,190 @@
-import type { Metadata } from 'next'
-import { toolMetadata } from '@/constants/seo'
-import Navbar from '@/components/layout/Navbar'
-import Footer from '@/components/layout/Footer'
+'use client'
 
-export const metadata: Metadata = toolMetadata(
-  'Repair PDF',
-  'repair-pdf',
-  'Fix corrupted or damaged PDF files. 100% free, no upload, no watermark.'
-)
+import { useState, useCallback } from 'react'
+import ToolPageLayout from '@/components/layout/ToolPageLayout'
+import DropZone from '@/components/ui/DropZone'
+import DownloadCard from '@/components/ui/DownloadCard'
+import FAQ from '@/components/ui/FAQ'
+import ToolSidebar from '@/components/ui/ToolSidebar'
+import { repairPDF } from '@/lib/pdf/repair'
 
-export default function Page() {
+type ToolState = 'idle' | 'processing' | 'done' | 'error'
+
+const FAQS = [
+  {
+    q: 'What types of PDF corruption can be repaired?',
+    a: 'This tool can fix structural corruption — incomplete object tables, malformed cross-reference streams, and broken object references. It works best on PDFs that fail to open but have most of their data intact.',
+  },
+  {
+    q: 'Will all content be recovered?',
+    a: 'Recovery depends on the extent of damage. Structurally damaged PDFs can usually be fully recovered. Severely truncated or overwritten files may only have partial content recoverable.',
+  },
+  {
+    q: 'Can it repair password-protected PDFs?',
+    a: 'Yes — this tool uses encryption-ignoring mode which can process some encrypted PDFs even without the password, though decrypted content may not be accessible.',
+  },
+  {
+    q: 'Is my file uploaded to a server?',
+    a: 'No. The repair runs entirely in your browser using @cantoo/pdf-lib. Your file never leaves your device.',
+  },
+  {
+    q: 'What if the repaired PDF still looks wrong?',
+    a: 'If the file is too severely corrupted for structural repair, some content may be unrecoverable. Try opening the repaired file in Adobe Acrobat for additional recovery options.',
+  },
+]
+
+const JSON_LD = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Repair PDF — Doclair',
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: 'https://doclair.in/repair-pdf',
+      description: 'Fix corrupted or damaged PDF files. Re-builds PDF structure to recover readable content. Free, no upload.',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ],
+}
+
+const SIDEBAR_RELATED = [
+  { name: 'Flatten PDF',       slug: 'flatten-pdf',       icon: '🔥', colorBg: '#FEE2E2', desc: 'Lock content permanently' },
+  { name: 'Compress PDF',      slug: 'compress-pdf',      icon: '📦', colorBg: '#FFF0DC', desc: 'Reduce file size' },
+  { name: 'Edit PDF Metadata', slug: 'edit-pdf-metadata', icon: '✏️', colorBg: '#EDE9FE', desc: 'Edit title, author' },
+  { name: 'Remove Password',   slug: 'remove-password',   icon: '🔓', colorBg: '#DCFCE7', desc: 'Unlock PDF' },
+]
+
+export default function RepairPDFPage() {
+  const [file, setFile]           = useState<File | null>(null)
+  const [toolState, setToolState] = useState<ToolState>('idle')
+  const [result, setResult]       = useState<Uint8Array | null>(null)
+  const [error, setError]         = useState('')
+
+  const handleFiles = useCallback((files: File[]) => {
+    if (files.length > 0) {
+      setFile(files[0])
+      setToolState('idle')
+      setResult(null)
+      setError('')
+    }
+  }, [])
+
+  const handleRepair = useCallback(async () => {
+    if (!file) return
+    setToolState('processing')
+    setError('')
+    try {
+      const out = await repairPDF(file)
+      setResult(out)
+      setToolState('done')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to repair PDF')
+      setToolState('error')
+    }
+  }, [file])
+
+  const handleDownload = useCallback(() => {
+    if (!result || !file) return
+    const blob = new Blob([result as BlobPart], { type: 'application/pdf' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = file.name.replace(/\.pdf$/i, '-repaired.pdf')
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [result, file])
+
+  const handleReset = useCallback(() => {
+    setFile(null)
+    setResult(null)
+    setError('')
+    setToolState('idle')
+  }, [])
+
   return (
     <>
-      <Navbar />
-      <main style={{ padding: '80px 48px', textAlign: 'center', position: 'relative', zIndex: 1, minHeight: 'calc(100vh - 200px)' }}>
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h1 style={{
-            fontFamily: 'var(--font-syne), Syne, sans-serif',
-            fontWeight: 800,
-            fontSize: 'clamp(32px, 4vw, 52px)',
-            letterSpacing: '-1.5px',
-            color: 'var(--ink)',
-            marginBottom: '16px',
-            lineHeight: 1.05,
-          }}>Repair PDF</h1>
-          <p style={{ color: 'var(--muted)', marginTop: '16px', fontSize: '17px', fontWeight: 300, lineHeight: 1.6, marginBottom: '40px' }}>
-            Coming soon — this tool is under active development.
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
+      <ToolPageLayout
+        toolName="Repair PDF"
+        toolSlug="repair-pdf"
+        sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
+      >
+        {/* Header */}
+        <div>
+          <h1 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(28px, 4vw, 48px)', letterSpacing: '-1px', lineHeight: 1.05, marginBottom: '10px' }}>
+            <span style={{ color: 'var(--ink)' }}>Repair PDF </span>
+            <span style={{ color: 'var(--amber)' }}>Fix Corrupted Documents</span>
+          </h1>
+          <p style={{ color: 'var(--muted)', fontSize: '16px', lineHeight: 1.6, maxWidth: '640px', marginBottom: '16px' }}>
+            Attempt to repair damaged or corrupted PDF files. Re-builds the PDF structure to recover readable content. Free, no upload.
           </p>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px',
-            borderRadius: '100px', background: '#DCFCE7', color: '#166534',
-            fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500,
-          }}>✓ 100% Free · No Upload · No Watermark</div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: '100px', background: '#DCFCE7', color: '#166534', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500 }}>✓ 100% Free</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: '100px', background: '#FFF0DC', color: '#92400E', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500 }}>🔒 Files Stay On Device</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: '100px', background: '#EDE9FE', color: '#6B21A8', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500 }}>✦ No Watermark</span>
+          </div>
         </div>
-      </main>
-      <Footer />
+
+        {/* Disclaimer */}
+        <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '12px', padding: '16px 20px', fontSize: '13px', color: '#92400E', lineHeight: 1.6 }}>
+          <strong>ℹ️ Repair works best on structurally damaged PDFs.</strong> Severely corrupted files may not be fully recoverable. Always keep a backup of your original file.
+        </div>
+
+        {toolState === 'idle' && !file && (
+          <DropZone onFilesAdded={handleFiles} accept=".pdf" maxFiles={1} maxSizeMB={200} icon="🔧" label="Drop your damaged PDF here" subLabel="or click to browse — up to 200 MB" currentCount={0} />
+        )}
+
+        {toolState === 'idle' && file && (
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '24px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ fontSize: '32px' }}>📄</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 500, color: 'var(--ink)', fontSize: '15px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.name}</div>
+              <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>{(file.size / 1024 / 1024).toFixed(2)} MB</div>
+            </div>
+            <button onClick={handleRepair} style={{ background: 'var(--ink)', color: 'white', padding: '12px 28px', borderRadius: '100px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}>
+              Repair PDF →
+            </button>
+            <button onClick={handleReset} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '13px' }}>✕ Remove</button>
+          </div>
+        )}
+
+        {toolState === 'processing' && (
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '48px 32px', textAlign: 'center' }}>
+            <div style={{ fontSize: '40px', marginBottom: '16px' }}>🔧</div>
+            <div style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--ink)', marginBottom: '6px' }}>Repairing PDF…</div>
+            <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Rebuilding PDF structure and recovering content</div>
+          </div>
+        )}
+
+        {toolState === 'error' && (
+          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '16px', padding: '24px', color: '#991B1B' }}>
+            <div style={{ fontWeight: 600, marginBottom: '4px' }}>Could not repair this PDF</div>
+            <div style={{ fontSize: '13px', opacity: 0.8 }}>{error}</div>
+            <button onClick={handleReset} style={{ marginTop: '12px', background: 'none', border: '1px solid #FECACA', borderRadius: '8px', padding: '6px 16px', cursor: 'pointer', color: '#991B1B', fontSize: '13px' }}>Try another file</button>
+          </div>
+        )}
+
+        {toolState === 'done' && result && file && (
+          <DownloadCard
+            filename={file.name.replace(/\.pdf$/i, '-repaired.pdf')}
+            description="PDF structure rebuilt"
+            onDownload={handleDownload}
+            onReset={handleReset}
+          />
+        )}
+
+        <FAQ faqs={FAQS} />
+      </ToolPageLayout>
     </>
   )
 }
