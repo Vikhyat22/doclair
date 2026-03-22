@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# imgly background-removal model files (large binaries — downloaded by postinstall)
+/public/imgly/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

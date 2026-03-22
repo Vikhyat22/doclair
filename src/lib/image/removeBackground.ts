@@ -13,11 +13,16 @@ export async function removeImageBackground(
 ): Promise<RemoveBgResult> {
   onProgress?.(5)
 
-  // Must be an absolute URL — the library fetches WASM and ONNX model files
-  // from this base path. Relative '/' fails because fetch() needs a full URL.
-  // Using exact installed version (1.7.0) to avoid @latest redirect issues.
+  // Serve model files from our own domain (public/imgly/ populated by postinstall).
+  // Must be absolute — fetch() requires a full URL, not a relative path.
+  // Falls back gracefully if window is not defined (SSR guard, though this
+  // function is only ever called client-side).
+  const publicPath = typeof window !== 'undefined'
+    ? `${window.location.origin}/imgly/`
+    : 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/'
+
   const blob = await imglyRemoveBg(file, {
-    publicPath: 'https://unpkg.com/@imgly/background-removal@1.7.0/dist/',
+    publicPath,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     progress: (_key: any, current: number, total: number) => {
       if (total > 0) {
@@ -25,7 +30,7 @@ export async function removeImageBackground(
         onProgress?.(pct)
       }
     },
-    model: 'isnet',
+    model: 'isnet_quint8',   // quantised — 44 MB vs 168 MB for full isnet
   })
 
   onProgress?.(95)
