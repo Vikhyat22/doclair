@@ -42,6 +42,8 @@
 html {
   font-size: 16px;
   scroll-behavior: smooth;
+  /* Reserve scrollbar space on Windows so layout doesn't shift */
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -53,6 +55,29 @@ body {
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
+}
+
+/* ── Scrollbar styling (desktop only — hover:hover targets non-touch) ── */
+/* Keeps Mac/mobile using native overlay scrollbars */
+@media (hover: hover) and (pointer: fine) {
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--cream);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--muted);
+  }
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) var(--cream);
+  }
 }
 
 /* Noise texture */
