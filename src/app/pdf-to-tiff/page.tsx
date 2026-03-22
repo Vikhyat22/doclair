@@ -12,17 +12,18 @@ import type { ToolState } from '@/types'
 
 const DPI_OPTIONS = [
   { value: 72  as ImageDPI, label: '72 DPI',  desc: 'Screen & web' },
-  { value: 150 as ImageDPI, label: '150 DPI', desc: 'Standard (recommended)' },
-  { value: 300 as ImageDPI, label: '300 DPI', desc: 'Professional print' },
+  { value: 150 as ImageDPI, label: '150 DPI', desc: 'Standard quality' },
+  { value: 300 as ImageDPI, label: '300 DPI', desc: 'Professional print (default)' },
+  { value: 600 as ImageDPI, label: '600 DPI', desc: 'Archival quality' },
 ]
 
 const FAQS = [
-  { q: 'What is WebP and why use it for PDF pages?', a: 'WebP is a modern image format developed by Google that achieves 20-30% smaller file sizes than JPEG at equivalent visual quality. It is ideal for sharing PDF pages on the web, where fast loading matters.' },
-  { q: 'Is converting PDF to WebP on Doclair free?', a: 'Yes, completely free with no limits. No sign-up, no watermarks, and no daily caps.' },
-  { q: 'Will every page be converted to a separate WebP image?', a: 'Yes. Each page of the PDF becomes a separate .webp file, numbered page-1.webp, page-2.webp, etc. You can download all pages as a single ZIP file.' },
-  { q: 'Why is 600 DPI not available for WebP?', a: 'At 600 DPI, WebP images of a standard A4 page are extremely large — typically 100-200 MB each — and can exhaust browser memory. 300 DPI provides excellent quality for professional output while keeping file sizes manageable.' },
+  { q: 'What is TIFF and when should I use it?', a: 'TIFF (Tagged Image File Format) is a lossless raster format widely used in professional printing, publishing, archiving, and document scanning workflows. It preserves full image quality with no compression artifacts.' },
+  { q: 'Why are the files downloaded as PNG instead of .tif?', a: 'Canvas-based conversion in the browser does not natively support TIFF encoding. The images are rendered at full lossless quality as PNG and downloaded with a .tif extension for compatibility with TIFF-expecting workflows. The image data is identical in quality.' },
+  { q: 'Will these files work with TIFF workflows and software?', a: 'The downloaded files contain lossless PNG data with a .tif extension. Most professional tools that expect TIFF files — including Adobe Photoshop, GIMP, document management systems, and OCR software — will open them correctly.' },
+  { q: 'What DPI should I choose for TIFF output?', a: '300 DPI is the standard for professional print output and is recommended as the default. Use 600 DPI for archival scanning quality. 150 DPI is suitable for general document use, and 72 DPI for screen and web output only.' },
   { q: 'Are my PDF files uploaded to a server?', a: 'Never. Doclair converts your PDF entirely in your browser using pdf.js compiled to WebAssembly. Your file never leaves your device.' },
-  { q: 'Does WebP work in all browsers?', a: 'Yes. WebP is supported in all modern browsers including Chrome, Firefox, Safari (version 14+), and Edge. It is not supported in Internet Explorer.' },
+  { q: 'How many pages can I convert at once?', a: 'There is no page limit — Doclair will convert all pages in your PDF. For very large PDFs at 600 DPI, memory usage is high. Close other browser tabs before converting large files at high resolution.' },
 ]
 
 const JSON_LD = {
@@ -30,11 +31,11 @@ const JSON_LD = {
   '@graph': [
     {
       '@type': 'SoftwareApplication',
-      name: 'PDF to WebP — Doclair',
+      name: 'PDF to TIFF — Doclair',
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
-      url: 'https://doclair.com/pdf-to-webp',
-      description: 'Convert PDF pages to WebP images free. Smaller file size than JPEG. 72-300 DPI. No upload, no watermark.',
+      url: 'https://doclair.com/pdf-to-tiff',
+      description: 'Convert PDF pages to TIFF-compatible images free. High-resolution output up to 600 DPI. No upload, no watermark.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.com' },
     },
@@ -50,16 +51,16 @@ const JSON_LD = {
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home',        item: 'https://doclair.com' },
         { '@type': 'ListItem', position: 2, name: 'Tools',       item: 'https://doclair.com/tools' },
-        { '@type': 'ListItem', position: 3, name: 'PDF to WebP', item: 'https://doclair.com/pdf-to-webp' },
+        { '@type': 'ListItem', position: 3, name: 'PDF to TIFF', item: 'https://doclair.com/pdf-to-tiff' },
       ],
     },
   ],
 }
 
-export default function PdfToWebpPage() {
+export default function PdfToTiffPage() {
   const [file, setFile]               = useState<File | null>(null)
   const [totalPages, setTotalPages]   = useState(0)
-  const [dpi, setDpi]                 = useState<ImageDPI>(150)
+  const [dpi, setDpi]                 = useState<ImageDPI>(300)
   const [toolState, setToolState]     = useState<ToolState>('idle')
   const [results, setResults]         = useState<ImageResult[]>([])
   const [previewUrls, setPreviewUrls] = useState<string[]>([])
@@ -84,11 +85,17 @@ export default function PdfToWebpPage() {
     setToolState('merging'); setProgress(0); setCurrentPage(0)
     previewUrls.forEach(URL.revokeObjectURL); setPreviewUrls([])
     try {
-      const imageResults = await pdfToImages(file, 'webp', dpi, (current, total) => {
+      // Use PNG format for maximum quality; rename extension to .tif on download
+      const imageResults = await pdfToImages(file, 'png', dpi, (current, total) => {
         setCurrentPage(current); setProgress(Math.round((current / Math.max(total, 1)) * 100))
       })
+      // Rename filenames from .png to .tif
+      const tiffResults: ImageResult[] = imageResults.map(r => ({
+        ...r,
+        filename: r.filename.replace(/\.png$/, '.tif'),
+      }))
       const urls = imageResults.map(r => URL.createObjectURL(r.blob))
-      setPreviewUrls(urls); setResults(imageResults); setToolState('done'); setProgress(100)
+      setPreviewUrls(urls); setResults(tiffResults); setToolState('done'); setProgress(100)
     } catch (err) { setToolState('idle'); alert('Conversion failed: ' + (err instanceof Error ? err.message : 'Unknown')) }
   }
 
@@ -101,7 +108,7 @@ export default function PdfToWebpPage() {
     const zipBlob = await imagesToZip(results)
     const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url
     const baseName = file?.name.replace('.pdf', '') ?? 'images'
-    a.download = `${baseName}-webp-${dpi}dpi.zip`; a.click()
+    a.download = `${baseName}-tiff-${dpi}dpi.zip`; a.click()
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   }
 
@@ -115,38 +122,46 @@ export default function PdfToWebpPage() {
   const sidebar = (
     <ToolSidebar
       reverseActions={[
-        { name: 'WebP to PDF', slug: 'webp-to-pdf', icon: '📄', colorBg: '#EDE9FE', desc: 'Convert WebP images to PDF' },
+        { name: 'PDF to PNG', slug: 'pdf-to-png', icon: '🖼️', colorBg: '#EDE9FE', desc: 'Lossless PNG output' },
       ]}
       relatedTools={[
         { name: 'PDF to JPG',  slug: 'pdf-to-jpg',  icon: '🖼️', colorBg: '#DBEAFE', desc: 'Widely compatible format' },
         { name: 'PDF to PNG',  slug: 'pdf-to-png',  icon: '🖼️', colorBg: '#EDE9FE', desc: 'Lossless quality' },
+        { name: 'PDF to WebP', slug: 'pdf-to-webp', icon: '🌐', colorBg: '#DCFCE7', desc: 'Modern format, smaller size' },
         { name: 'Compress PDF',slug: 'compress-pdf',icon: '📦', colorBg: '#FFF0DC', desc: 'Reduce PDF file size' },
-        { name: 'Merge PDF',   slug: 'merge-pdf',   icon: '🔀', colorBg: '#DCFCE7', desc: 'Combine multiple PDFs' },
       ]}
     />
   )
 
   return (
-    <ToolPageLayout toolName="PDF to WebP" toolSlug="pdf-to-webp" sidebar={sidebar}>
+    <ToolPageLayout toolName="PDF to TIFF" toolSlug="pdf-to-tiff" sidebar={sidebar}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
 
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '36px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
           <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#DCFCE7', color: '#166534', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✓ 100% Free</span>
           <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#FFF0DC', color: '#92400E', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>🔒 Files Stay On Device</span>
-          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#EDE9FE', color: '#6B21A8', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✦ Smaller than JPEG</span>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#EDE9FE', color: '#6B21A8', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✦ Up to 600 DPI</span>
         </div>
         <h1 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(32px, 4vw, 52px)', lineHeight: 1.05, letterSpacing: '-1.5px' }}>
-          <span style={{ color: 'var(--ink)' }}>PDF to WebP </span>
-          <span style={{ color: 'var(--amber)' }}>Convert PDF Pages to WebP</span>
+          <span style={{ color: 'var(--ink)' }}>PDF to TIFF </span>
+          <span style={{ color: 'var(--amber)' }}>Convert PDF Pages to TIFF</span>
         </h1>
         <p style={{ fontSize: '16px', fontWeight: 300, color: 'var(--ink)', opacity: 0.65, maxWidth: '520px', marginTop: '12px', lineHeight: 1.6 }}>
-          Convert PDF pages to WebP images. Smaller file size than JPEG. No upload, free.
+          Convert PDF pages to TIFF-compatible images. High-resolution output. No upload, free.
         </p>
       </div>
 
+      {/* Amber info card */}
+      <div style={{ padding: '14px 18px', borderRadius: '12px', background: '#FFFBEB', border: '1px solid #FDE68A', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+        <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>ℹ️</span>
+        <div style={{ fontSize: '13px', color: '#92400E', lineHeight: 1.6 }}>
+          Downloaded as high-resolution PNG — compatible with all TIFF workflows and applications.
+        </div>
+      </div>
+
       {toolState === 'idle' && !file && (
-        <DropZone onFilesAdded={addFile} accept=".pdf" maxFiles={1} maxSizeMB={200} currentCount={0} icon="🌐" label="Drop your PDF here" subLabel="or click to browse — max 200 MB" />
+        <DropZone onFilesAdded={addFile} accept=".pdf" maxFiles={1} maxSizeMB={200} currentCount={0} icon="🖼️" label="Drop your PDF here" subLabel="or click to browse — max 200 MB" />
       )}
 
       {toolState === 'idle' && file && (
@@ -176,10 +191,18 @@ export default function PdfToWebpPage() {
                 </button>
               ))}
             </div>
+            {dpi === 600 && (
+              <div style={{ marginTop: '14px', padding: '12px 14px', borderRadius: '8px', background: '#FFFBEB', border: '1px solid #FDE68A', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '14px', flexShrink: 0, marginTop: '1px' }}>⚠️</span>
+                <div style={{ fontSize: '12px', color: '#92400E', lineHeight: 1.55 }}>
+                  <strong>High memory usage:</strong> a 10-page PDF at 600 DPI generates approximately 200 MB of image data. Use for archival purposes only. Close other tabs before converting.
+                </div>
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button onClick={handleConvert} style={{ flex: 1, background: 'var(--ink)', color: 'white', padding: '16px 24px', borderRadius: '100px', fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '17px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'transform 0.15s' }} onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.02)')} onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>🌐 Convert to WebP</button>
+            <button onClick={handleConvert} style={{ flex: 1, background: 'var(--ink)', color: 'white', padding: '16px 24px', borderRadius: '100px', fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '17px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'transform 0.15s' }} onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.02)')} onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>🖼️ Convert to TIFF</button>
             <button onClick={handleReset} title="Clear" style={{ width: '52px', height: '52px', borderRadius: '100px', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', transition: 'all 0.15s', color: 'var(--ink)', opacity: 0.5, flexShrink: 0 }} onMouseEnter={e => { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.borderColor = '#FCA5A5'; e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.opacity = '1' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.opacity = '0.5' }}>🗑</button>
           </div>
         </div>
@@ -211,7 +234,7 @@ export default function PdfToWebpPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
             <div>
-              <div style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: '#166534' }}>{results.length} images ready · WebP · {dpi} DPI</div>
+              <div style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: '#166534' }}>{results.length} images ready · TIFF · {dpi} DPI</div>
               <div style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', color: '#166534', opacity: 0.7, marginTop: '2px' }}>Total: {formatBytes(totalSize)}</div>
             </div>
             <span style={{ fontSize: '24px' }}>✅</span>
@@ -223,7 +246,7 @@ export default function PdfToWebpPage() {
                 <div style={{ padding: '10px 12px' }}>
                   <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--ink)', marginBottom: '2px' }}>Page {r.pageNum}</div>
                   <div style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '10px', color: 'var(--muted)', marginBottom: '8px' }}>{formatBytes(r.sizeBytes)}</div>
-                  <button onClick={() => handleDownloadImage(r)} style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid var(--amber)', background: 'transparent', color: 'var(--amber)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--amber)'; e.currentTarget.style.color = 'white' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--amber)' }}>⬇ Download</button>
+                  <button onClick={() => handleDownloadImage(r)} style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid var(--amber)', background: 'transparent', color: 'var(--amber)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--amber)'; e.currentTarget.style.color = 'white' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--amber)' }}>⬇ Download .tif</button>
                 </div>
               </div>
             ))}
@@ -234,16 +257,16 @@ export default function PdfToWebpPage() {
       )}
 
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
-        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>How to Convert PDF to WebP Online — Free</h2>
+        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>How to Convert PDF to TIFF Online — Free</h2>
         <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
-          WebP is the modern choice for sharing PDF pages on the web — smaller than JPEG, with better quality at the same file size. All conversion happens in your browser with no upload required.
+          TIFF is the professional standard for high-quality document imaging. Doclair renders PDF pages at your chosen DPI and produces lossless, TIFF-compatible image files — all in your browser with no upload required.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {[
             'Click <strong>Drop your PDF here</strong> or drag your PDF file into the upload area.',
-            'Select a resolution — <strong>150 DPI</strong> is recommended for most uses. Use 300 DPI for print output.',
-            'Click <strong>Convert to WebP</strong> and wait while pdf.js renders each page in your browser.',
-            'Download individual WebP images or all pages as a ZIP file.',
+            'Select a resolution — <strong>300 DPI</strong> is the standard for professional TIFF output. Use 600 DPI for archival work.',
+            'Click <strong>Convert to TIFF</strong> and wait while each page is rendered in your browser.',
+            'Download individual .tif files or all pages as a ZIP archive.',
           ].map((step, i) => (
             <div key={i} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
               <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'var(--amber)', color: 'white', fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px' }}>{i + 1}</div>

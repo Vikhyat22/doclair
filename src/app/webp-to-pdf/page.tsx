@@ -35,12 +35,12 @@ const PAGE_SIZE_OPTIONS: { value: PageSize; label: string; desc: string }[] = [
 ]
 
 const FAQS = [
-  { q: 'Does PNG to PDF preserve transparency?', a: 'Yes. PNG transparency is preserved when embedding into PDF using pdf-lib. Transparent areas will appear as white on most PDF viewers, since PDF pages have a white background by default.' },
-  { q: 'Can I convert multiple PNG files at once?', a: 'Yes. Drop as many PNG files as you need — up to 50 at a time. Each image becomes one page in the PDF, in the order you set by dragging.' },
-  { q: 'Can I set the page size?', a: 'Yes. Choose Fit (each PNG fills one page exactly), A4, US Letter, Legal, or A3. Portrait and landscape orientation are both supported for fixed page sizes.' },
-  { q: 'Can I rotate PNG images before converting?', a: 'Yes. Each image card has ↺ and ↻ buttons to rotate in 90° increments before the PDF is generated.' },
-  { q: 'Are my PNG files uploaded to a server?', a: 'Never. All conversion happens in your browser using pdf-lib. Your images are never transmitted to any server — including ours.' },
-  { q: 'What is the maximum file size for PNG images?', a: 'Each PNG file can be up to 50 MB. For very large PNG files, conversion may take a few seconds while the image is encoded for embedding.' },
+  { q: 'Can I convert WebP images to PDF for free?', a: 'Yes. Doclair converts WebP to PDF entirely in your browser using pdf-lib. No account, no watermark, no limits.' },
+  { q: 'Does WebP to PDF work in all browsers?', a: 'Yes. WebP is natively supported in all modern browsers including Chrome, Firefox, Safari, and Edge. Doclair decodes WebP images using the browser canvas API.' },
+  { q: 'Can I combine multiple WebP files into one PDF?', a: 'Yes. Drop multiple WebP files — up to 50 at a time. Each image becomes one page in the PDF, in the order you set by dragging.' },
+  { q: 'What page size options are available?', a: 'Choose Fit (each image fills one page exactly), A4, US Letter, Legal, or A3. Portrait and landscape orientations are available for fixed page sizes.' },
+  { q: 'Are my WebP images uploaded to a server?', a: 'Never. All conversion happens locally in your browser. Your images never leave your device — not even to our servers.' },
+  { q: 'Why convert WebP to PDF instead of keeping WebP?', a: 'PDFs are universally compatible and can be opened on any device without special software. PDF is ideal for sharing documents, printing, or archiving collections of images in a single file.' },
 ]
 
 const JSON_LD = {
@@ -48,11 +48,11 @@ const JSON_LD = {
   '@graph': [
     {
       '@type': 'SoftwareApplication',
-      name: 'PNG to PDF — Doclair',
+      name: 'WebP to PDF — Doclair',
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
-      url: 'https://doclair.com/png-to-pdf',
-      description: 'Convert PNG images to PDF online for free. Transparency preserved. Drag to reorder. No upload, no watermark.',
+      url: 'https://doclair.com/webp-to-pdf',
+      description: 'Convert WebP images to PDF online for free. Drag to reorder. No upload, no watermark.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.com' },
     },
@@ -66,44 +66,25 @@ const JSON_LD = {
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home',       item: 'https://doclair.com' },
-        { '@type': 'ListItem', position: 2, name: 'Tools',      item: 'https://doclair.com/tools' },
-        { '@type': 'ListItem', position: 3, name: 'PNG to PDF', item: 'https://doclair.com/png-to-pdf' },
+        { '@type': 'ListItem', position: 1, name: 'Home',        item: 'https://doclair.com' },
+        { '@type': 'ListItem', position: 2, name: 'Tools',       item: 'https://doclair.com/tools' },
+        { '@type': 'ListItem', position: 3, name: 'WebP to PDF', item: 'https://doclair.com/webp-to-pdf' },
       ],
     },
   ],
 }
 
 function SortableImageCard({
-  item,
-  onRotateCW,
-  onRotateCCW,
-  onRemove,
+  item, onRotateCW, onRotateCCW, onRemove,
 }: {
-  item: ImageItem
-  onRotateCW:  () => void
-  onRotateCCW: () => void
-  onRemove:    () => void
+  item: ImageItem; onRotateCW: () => void; onRotateCCW: () => void; onRemove: () => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id })
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 10 : 'auto' as const,
-  }
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1, zIndex: isDragging ? 10 : 'auto' as const }
   return (
     <div ref={setNodeRef} style={style}>
-      <div
-        style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden', position: 'relative', cursor: 'grab', userSelect: 'none' }}
-        {...attributes}
-        {...listeners}
-      >
-        <button
-          onClick={e => { e.stopPropagation(); onRemove() }}
-          onPointerDown={e => e.stopPropagation()}
-          style={{ position: 'absolute', top: '6px', right: '6px', zIndex: 2, width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >✕</button>
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden', position: 'relative', cursor: 'grab', userSelect: 'none' }} {...attributes} {...listeners}>
+        <button onClick={e => { e.stopPropagation(); onRemove() }} onPointerDown={e => e.stopPropagation()} style={{ position: 'absolute', top: '6px', right: '6px', zIndex: 2, width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
         <div style={{ height: '130px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F9FAFB' }}>
           {item.thumbUrl ? (
             <img src={item.thumbUrl} alt={item.name} style={{ maxWidth: '100%', maxHeight: '130px', objectFit: 'contain', transform: `rotate(${item.rotation}deg)`, transition: 'transform 0.2s ease' }} />
@@ -124,7 +105,7 @@ function SortableImageCard({
   )
 }
 
-export default function PngToPdfPage() {
+export default function WebpToPdfPage() {
   const [items, setItems]               = useState<ImageItem[]>([])
   const [pageSize, setPageSize]         = useState<PageSize>('fit')
   const [orientation, setOrientation]   = useState<Orientation>('portrait')
@@ -139,9 +120,7 @@ export default function PngToPdfPage() {
   )
 
   const addFiles = useCallback(async (files: File[]) => {
-    const newItems: ImageItem[] = files.map(f => ({
-      id: crypto.randomUUID(), file: f, name: f.name, size: f.size, thumbUrl: '', rotation: 0 as const,
-    }))
+    const newItems: ImageItem[] = files.map(f => ({ id: crypto.randomUUID(), file: f, name: f.name, size: f.size, thumbUrl: '', rotation: 0 as const }))
     setItems(prev => [...prev, ...newItems])
     for (const item of newItems) {
       generateThumb(item.file).then(url => {
@@ -150,64 +129,38 @@ export default function PngToPdfPage() {
     }
   }, [])
 
-  function rotateCW(id: string) {
-    setItems(prev => prev.map(item => item.id === id ? { ...item, rotation: ((item.rotation + 90) % 360) as 0 | 90 | 180 | 270 } : item))
-  }
-  function rotateCCW(id: string) {
-    setItems(prev => prev.map(item => item.id === id ? { ...item, rotation: ((item.rotation + 270) % 360) as 0 | 90 | 180 | 270 } : item))
-  }
-  function removeItem(id: string) {
-    setItems(prev => { const item = prev.find(i => i.id === id); if (item?.thumbUrl) URL.revokeObjectURL(item.thumbUrl); return prev.filter(i => i.id !== id) })
-  }
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    if (over && active.id !== over.id) {
-      setItems(prev => { const oi = prev.findIndex(i => i.id === active.id); const ni = prev.findIndex(i => i.id === over.id); return arrayMove(prev, oi, ni) })
-    }
-  }
+  function rotateCW(id: string) { setItems(prev => prev.map(item => item.id === id ? { ...item, rotation: ((item.rotation + 90) % 360) as 0 | 90 | 180 | 270 } : item)) }
+  function rotateCCW(id: string) { setItems(prev => prev.map(item => item.id === id ? { ...item, rotation: ((item.rotation + 270) % 360) as 0 | 90 | 180 | 270 } : item)) }
+  function removeItem(id: string) { setItems(prev => { const item = prev.find(i => i.id === id); if (item?.thumbUrl) URL.revokeObjectURL(item.thumbUrl); return prev.filter(i => i.id !== id) }) }
+  function handleDragEnd(event: DragEndEvent) { const { active, over } = event; if (over && active.id !== over.id) { setItems(prev => { const oi = prev.findIndex(i => i.id === active.id); const ni = prev.findIndex(i => i.id === over.id); return arrayMove(prev, oi, ni) }) } }
 
   async function handleConvert() {
     if (items.length === 0) return
-    setToolState('merging')
-    setProgress(0)
-    setProgressLabel('Loading images…')
+    setToolState('merging'); setProgress(0); setProgressLabel('Loading images…')
     try {
-      setProgress(20)
-      setProgressLabel(`Converting ${items.length} image${items.length > 1 ? 's' : ''}…`)
+      setProgress(20); setProgressLabel(`Converting ${items.length} image${items.length > 1 ? 's' : ''}…`)
       const bytes = await imagesToPDF(items, pageSize, orientation)
-      setProgress(95)
-      setProgressLabel('Finalising…')
-      setResultBytes(bytes)
-      setToolState('done')
-      setProgress(100)
-    } catch (err) {
-      setToolState('idle')
-      alert('Conversion failed: ' + (err instanceof Error ? err.message : 'Unknown'))
-    }
+      setProgress(95); setProgressLabel('Finalising…'); setResultBytes(bytes); setToolState('done'); setProgress(100)
+    } catch (err) { setToolState('idle'); alert('Conversion failed: ' + (err instanceof Error ? err.message : 'Unknown')) }
   }
 
   function handleDownload() {
     if (!resultBytes) return
     const blob = new Blob([resultBytes as BlobPart], { type: 'application/pdf' })
-    const url  = URL.createObjectURL(blob)
-    const a    = document.createElement('a')
-    a.href = url; a.download = 'doclair-png.pdf'; a.click()
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'doclair-webp.pdf'; a.click()
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   }
 
-  function handleReset() {
-    items.forEach(i => { if (i.thumbUrl) URL.revokeObjectURL(i.thumbUrl) })
-    setItems([]); setResultBytes(null); setToolState('idle'); setProgress(0)
-  }
+  function handleReset() { items.forEach(i => { if (i.thumbUrl) URL.revokeObjectURL(i.thumbUrl) }); setItems([]); setResultBytes(null); setToolState('idle'); setProgress(0) }
 
   const sidebar = (
     <ToolSidebar
       reverseActions={[
-        { name: 'PDF to PNG', slug: 'pdf-to-png', icon: '🖼️', colorBg: '#EDE9FE', desc: 'Extract PDF pages as PNG' },
+        { name: 'PDF to WebP', slug: 'pdf-to-webp', icon: '🌐', colorBg: '#EDE9FE', desc: 'Extract PDF pages as WebP' },
       ]}
       relatedTools={[
+        { name: 'PNG to PDF',   slug: 'png-to-pdf',   icon: '🖼️', colorBg: '#EDE9FE', desc: 'PNG images to PDF' },
         { name: 'JPG to PDF',   slug: 'jpg-to-pdf',   icon: '🖼️', colorBg: '#DBEAFE', desc: 'Convert JPG images to PDF' },
-        { name: 'WebP to PDF',  slug: 'webp-to-pdf',  icon: '🌐', colorBg: '#EDE9FE', desc: 'WebP images to PDF' },
         { name: 'Image to PDF', slug: 'image-to-pdf', icon: '📄', colorBg: '#DCFCE7', desc: 'Any format to PDF' },
         { name: 'Compress PDF', slug: 'compress-pdf', icon: '📦', colorBg: '#FFF0DC', desc: 'Reduce PDF file size' },
       ]}
@@ -215,40 +168,28 @@ export default function PngToPdfPage() {
   )
 
   return (
-    <ToolPageLayout toolName="PNG to PDF" toolSlug="png-to-pdf" sidebar={sidebar}>
+    <ToolPageLayout toolName="WebP to PDF" toolSlug="webp-to-pdf" sidebar={sidebar}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
 
-      {/* Header */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '36px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
           <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#DCFCE7', color: '#166534', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✓ 100% Free</span>
           <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#FFF0DC', color: '#92400E', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>🔒 Files Stay On Device</span>
-          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#EDE9FE', color: '#6B21A8', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✦ Transparency Preserved</span>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#EDE9FE', color: '#6B21A8', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✦ No Watermark</span>
         </div>
         <h1 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(32px, 4vw, 52px)', lineHeight: 1.05, letterSpacing: '-1.5px' }}>
-          <span style={{ color: 'var(--ink)' }}>PNG to PDF </span>
-          <span style={{ color: 'var(--amber)' }}>Convert PNG Images to PDF</span>
+          <span style={{ color: 'var(--ink)' }}>WebP to PDF </span>
+          <span style={{ color: 'var(--amber)' }}>Convert WebP Images to PDF</span>
         </h1>
         <p style={{ fontSize: '16px', fontWeight: 300, color: 'var(--ink)', opacity: 0.65, maxWidth: '520px', marginTop: '12px', lineHeight: 1.6 }}>
-          Convert one or more PNG images into a single PDF. Transparency preserved. No upload, free.
+          Convert WebP images to a PDF document. No upload, free, no watermark.
         </p>
       </div>
 
-      {/* Drop Zone */}
       {toolState === 'idle' && items.length === 0 && (
-        <DropZone
-          onFilesAdded={addFiles}
-          accept=".png"
-          maxFiles={50}
-          maxSizeMB={50}
-          currentCount={0}
-          icon="🖼️"
-          label="Drop PNG images here"
-          subLabel="or click to browse — PNG transparency is preserved"
-        />
+        <DropZone onFilesAdded={addFiles} accept=".webp" maxFiles={50} maxSizeMB={50} currentCount={0} icon="🌐" label="Drop WebP images here" subLabel="or click to browse — WebP files only" />
       )}
 
-      {/* Images loaded */}
       {toolState === 'idle' && items.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '20px' }}>
@@ -261,14 +202,11 @@ export default function PngToPdfPage() {
                 </div>
               </SortableContext>
             </DndContext>
-            <div style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', color: 'var(--muted)', textAlign: 'center', marginTop: '14px' }}>
-              Drag to set page order · Click ↻ to rotate
-            </div>
+            <div style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', color: 'var(--muted)', textAlign: 'center', marginTop: '14px' }}>Drag to set page order · Click ↻ to rotate</div>
           </div>
 
-          <DropZone onFilesAdded={addFiles} accept=".png" maxFiles={50} maxSizeMB={50} currentCount={items.length} icon="➕" label="Add more PNG images" subLabel="PNG files only" />
+          <DropZone onFilesAdded={addFiles} accept=".webp" maxFiles={50} maxSizeMB={50} currentCount={items.length} icon="➕" label="Add more WebP images" subLabel="WebP files only" />
 
-          {/* Page settings */}
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px' }}>
             <div style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '10px', color: 'var(--amber)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '14px' }}>// Page Settings</div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: pageSize !== 'fit' ? '14px' : '0' }}>
@@ -296,15 +234,13 @@ export default function PngToPdfPage() {
             </p>
           </div>
 
-          {/* Actions */}
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button onClick={handleConvert} style={{ flex: 1, background: 'var(--ink)', color: 'white', padding: '16px 24px', borderRadius: '100px', fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '17px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'transform 0.15s' }} onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.02)')} onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>🖼️ Convert to PDF</button>
+            <button onClick={handleConvert} style={{ flex: 1, background: 'var(--ink)', color: 'white', padding: '16px 24px', borderRadius: '100px', fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '17px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'transform 0.15s' }} onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.02)')} onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>🌐 Convert to PDF</button>
             <button onClick={handleReset} title="Clear all" style={{ width: '52px', height: '52px', borderRadius: '100px', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', transition: 'all 0.15s', color: 'var(--ink)', opacity: 0.5, flexShrink: 0 }} onMouseEnter={e => { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.borderColor = '#FCA5A5'; e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.opacity = '1' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--ink)'; e.currentTarget.style.opacity = '0.5' }}>🗑</button>
           </div>
         </div>
       )}
 
-      {/* Converting */}
       {toolState === 'merging' && (
         <div style={{ background: 'var(--ink)', borderRadius: '16px', padding: '56px 32px', textAlign: 'center' }}>
           <div style={{ width: '56px', height: '56px', border: '4px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--amber)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 24px' }} />
@@ -316,27 +252,25 @@ export default function PngToPdfPage() {
         </div>
       )}
 
-      {/* Done */}
       {toolState === 'done' && (
         <DownloadCard
-          filename="doclair-png.pdf"
+          filename="doclair-webp.pdf"
           description={`${items.length} image${items.length > 1 ? 's' : ''} · ${pageSize === 'fit' ? 'Fit to image' : pageSize.toUpperCase()}`}
           onDownload={handleDownload}
           onReset={handleReset}
         />
       )}
 
-      {/* SEO */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
-        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>How to Convert PNG to PDF Online — Free</h2>
+        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>How to Convert WebP to PDF Online — Free</h2>
         <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
-          Converting PNG images to a single PDF takes seconds with Doclair. No software to install, no account needed — and your files never leave your browser.
+          WebP is a modern image format developed by Google. Converting WebP images to PDF gives you a universally compatible document you can share, print, or archive — all done in your browser without any upload.
         </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {[
-            'Click <strong>Drop PNG images here</strong> or drag your PNG files into the upload area.',
-            'Reorder images by dragging the cards. Use <strong>↺</strong> and <strong>↻</strong> to rotate any image before converting.',
-            'Choose a <strong>Page Size</strong> — Fit, A4, Letter, Legal, or A3 — and select portrait or landscape if needed.',
+            'Click <strong>Drop WebP images here</strong> or drag your WebP files into the upload area.',
+            'Reorder images by dragging the cards. Use <strong>↺</strong> and <strong>↻</strong> to rotate any image.',
+            'Choose a <strong>Page Size</strong> — Fit, A4, Letter, Legal, or A3 — and orientation if needed.',
             'Click <strong>Convert to PDF</strong> and download your PDF instantly.',
           ].map((step, i) => (
             <div key={i} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
@@ -345,10 +279,6 @@ export default function PngToPdfPage() {
             </div>
           ))}
         </div>
-        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px', marginTop: '28px' }}>PNG transparency in PDF</h3>
-        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>
-          PNG files with transparent backgrounds are embedded directly into the PDF using pdf-lib. The transparency is preserved in the embedded image data. Most PDF viewers display transparent areas against a white page background, giving a clean, professional appearance.
-        </p>
       </div>
 
       <FAQ faqs={FAQS} />
