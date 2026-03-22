@@ -5,7 +5,7 @@ import Footer from '@/components/layout/Footer'
 export const metadata: Metadata = {
   title: 'Contact — Doclair',
   description: 'Contact Doclair for support, sponsorship, or general enquiries.',
-  alternates: { canonical: 'https://doclair.com/contact' },
+  alternates: { canonical: 'https://doclair.in/contact' },
 }
 
 export default function ContactPage() {
@@ -22,7 +22,7 @@ export default function ContactPage() {
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '14px', padding: '28px' }}>
               <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--ink)', marginBottom: '8px' }}>General Enquiries</h2>
               <p style={{ fontSize: '15px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '12px' }}>For questions about tools, bug reports, or feature requests:</p>
-              <span style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '14px', color: 'var(--amber)' }}>hello@doclair.com</span>
+              <span style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '14px', color: 'var(--amber)' }}>hello@doclair.in</span>
             </div>
             <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '14px', padding: '28px' }}>
               <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: 'var(--ink)', marginBottom: '8px' }}>GitHub</h2>
@@ -32,7 +32,7 @@ export default function ContactPage() {
             <div style={{ background: 'var(--ink)', borderRadius: '14px', padding: '28px' }}>
               <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '18px', color: 'white', marginBottom: '8px' }}>Tool Sponsorship Slots</h2>
               <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: '16px' }}>We offer direct sidebar sponsorship slots on high-traffic tool pages. No ad network, no per-click billing — flat monthly rate. Relevant tools and SaaS products only.</p>
-              <span style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '14px', color: 'var(--amber)' }}>sponsor@doclair.com</span>
+              <span style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '14px', color: 'var(--amber)' }}>sponsor@doclair.in</span>
             </div>
           </div>
         </div>

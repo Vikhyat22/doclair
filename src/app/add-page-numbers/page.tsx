@@ -27,7 +27,7 @@ const JSON_LD_SCHEMA = {
       name: 'Add Page Numbers — Doclair',
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
-      url: 'https://doclair.com/add-page-numbers',
+      url: 'https://doclair.in/add-page-numbers',
       description: 'Add page numbers to PDF pages free. Choose position, format, font size and page range. No upload, no watermark.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       featureList: [
@@ -40,7 +40,7 @@ const JSON_LD_SCHEMA = {
         'No watermark on output',
         'No sign-up required',
       ],
-      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.com' },
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
     {
       '@type': 'FAQPage',
@@ -57,9 +57,9 @@ const BREADCRUMB_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
   itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Home',             item: 'https://doclair.com' },
-    { '@type': 'ListItem', position: 2, name: 'Tools',            item: 'https://doclair.com/tools' },
-    { '@type': 'ListItem', position: 3, name: 'Add Page Numbers', item: 'https://doclair.com/add-page-numbers' },
+    { '@type': 'ListItem', position: 1, name: 'Home',             item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools',            item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: 'Add Page Numbers', item: 'https://doclair.in/add-page-numbers' },
   ],
 }
 

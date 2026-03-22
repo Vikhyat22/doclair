@@ -52,7 +52,7 @@ const JSON_LD_SCHEMA = {
       name: 'Compress PDF — Doclair',
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
-      url: 'https://doclair.com/compress-pdf',
+      url: 'https://doclair.in/compress-pdf',
       description: 'Reduce PDF file size online for free. Choose Standard, Balanced or Maximum compression. Powered by Ghostscript WebAssembly — files never leave your browser.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       featureList: [
@@ -61,7 +61,7 @@ const JSON_LD_SCHEMA = {
         'No watermark on output', 'No sign-up required',
         'Text and fonts fully preserved', 'Works on mobile',
       ],
-      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.com' },
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
     {
       '@type': 'FAQPage',
@@ -78,9 +78,9 @@ const BREADCRUMB_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
   itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Home',         item: 'https://doclair.com' },
-    { '@type': 'ListItem', position: 2, name: 'Tools',        item: 'https://doclair.com/tools' },
-    { '@type': 'ListItem', position: 3, name: 'Compress PDF', item: 'https://doclair.com/compress-pdf' },
+    { '@type': 'ListItem', position: 1, name: 'Home',         item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools',        item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: 'Compress PDF', item: 'https://doclair.in/compress-pdf' },
   ],
 }
 

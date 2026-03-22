@@ -5,7 +5,7 @@ import Footer from '@/components/layout/Footer'
 export const metadata: Metadata = {
   title: 'About Doclair — Privacy-First PDF Tools',
   description: 'Learn how Doclair works and why we built a 100% browser-based document processing suite.',
-  alternates: { canonical: 'https://doclair.com/about' },
+  alternates: { canonical: 'https://doclair.in/about' },
 }
 
 export default function AboutPage() {

@@ -82,14 +82,14 @@ const JSON_LD_SCHEMA = {
       name: 'POS Billing — Doclair',
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Any (browser-based)',
-      url: 'https://doclair.com/pos-billing',
+      url: 'https://doclair.in/pos-billing',
       description: 'Free point-of-sale billing for Indian shops. Product catalog, GST receipts, bill history. Works offline. No sign-up, data stays on device.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
       featureList: [
         'Product catalog', 'Cart with qty & discount', 'GST calculation',
         'Thermal receipt PDF', 'Bill history', 'Offline-capable', 'No server upload',
       ],
-      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.com' },
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
     {
       '@type': 'FAQPage',
@@ -106,9 +106,9 @@ const BREADCRUMB_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
   itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Home',        item: 'https://doclair.com' },
-    { '@type': 'ListItem', position: 2, name: 'Tools',       item: 'https://doclair.com/tools' },
-    { '@type': 'ListItem', position: 3, name: 'POS Billing', item: 'https://doclair.com/pos-billing' },
+    { '@type': 'ListItem', position: 1, name: 'Home',        item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools',       item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: 'POS Billing', item: 'https://doclair.in/pos-billing' },
   ],
 }
 
@@ -251,7 +251,7 @@ async function generateReceipt(bill: Bill, shop: ShopProfile): Promise<Uint8Arra
   y -= 4
 
   drawText('Thank you for your purchase!', { center: true, size: 8, color: muted })
-  drawText('Powered by Doclair — doclair.com', { center: true, size: 6, color: muted })
+  drawText('Powered by Doclair — doclair.in', { center: true, size: 6, color: muted })
 
   return doc.save()
 }

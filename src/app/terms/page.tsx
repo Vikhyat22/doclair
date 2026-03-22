@@ -5,7 +5,7 @@ import Footer from '@/components/layout/Footer'
 export const metadata: Metadata = {
   title: 'Terms of Service — Doclair',
   description: 'Doclair terms of service.',
-  alternates: { canonical: 'https://doclair.com/terms' },
+  alternates: { canonical: 'https://doclair.in/terms' },
 }
 
 export default function TermsPage() {

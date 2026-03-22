@@ -51,10 +51,10 @@ const JSON_LD = {
       name: 'PNG to PDF — Doclair',
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
-      url: 'https://doclair.com/png-to-pdf',
+      url: 'https://doclair.in/png-to-pdf',
       description: 'Convert PNG images to PDF online for free. Transparency preserved. Drag to reorder. No upload, no watermark.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.com' },
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
     {
       '@type': 'FAQPage',
@@ -66,9 +66,9 @@ const JSON_LD = {
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home',       item: 'https://doclair.com' },
-        { '@type': 'ListItem', position: 2, name: 'Tools',      item: 'https://doclair.com/tools' },
-        { '@type': 'ListItem', position: 3, name: 'PNG to PDF', item: 'https://doclair.com/png-to-pdf' },
+        { '@type': 'ListItem', position: 1, name: 'Home',       item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools',      item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'PNG to PDF', item: 'https://doclair.in/png-to-pdf' },
       ],
     },
   ],

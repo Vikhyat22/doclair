@@ -5,7 +5,7 @@ import Footer from '@/components/layout/Footer'
 export const metadata: Metadata = {
   title: 'Install Doclair as App — Works Offline',
   description: 'Install Doclair as a Progressive Web App on iPhone, Android, or desktop. Works offline. No App Store required.',
-  alternates: { canonical: 'https://doclair.com/install-app' },
+  alternates: { canonical: 'https://doclair.in/install-app' },
 }
 
 function Step({ num, text }: { num: number; text: string }) {

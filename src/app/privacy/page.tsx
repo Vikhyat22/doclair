@@ -5,7 +5,7 @@ import Footer from '@/components/layout/Footer'
 export const metadata: Metadata = {
   title: 'Privacy Policy — Doclair',
   description: 'Doclair privacy policy — how we handle your files and data.',
-  alternates: { canonical: 'https://doclair.com/privacy' },
+  alternates: { canonical: 'https://doclair.in/privacy' },
 }
 
 export default function PrivacyPage() {

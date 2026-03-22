@@ -26,7 +26,7 @@ const JSON_LD_SCHEMA = {
       name: 'PDF to Text — Doclair',
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
-      url: 'https://doclair.com/pdf-to-text',
+      url: 'https://doclair.in/pdf-to-text',
       description: 'Extract all text from any PDF as a plain .txt file. Searchable, copyable, editable. Free, no upload.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       featureList: [
@@ -38,7 +38,7 @@ const JSON_LD_SCHEMA = {
         'No sign-up required',
         'Works on mobile',
       ],
-      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.com' },
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
     {
       '@type': 'FAQPage',
@@ -55,9 +55,9 @@ const BREADCRUMB_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
   itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Home',        item: 'https://doclair.com' },
-    { '@type': 'ListItem', position: 2, name: 'Tools',       item: 'https://doclair.com/tools' },
-    { '@type': 'ListItem', position: 3, name: 'PDF to Text', item: 'https://doclair.com/pdf-to-text' },
+    { '@type': 'ListItem', position: 1, name: 'Home',        item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools',       item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: 'PDF to Text', item: 'https://doclair.in/pdf-to-text' },
   ],
 }
 

@@ -34,10 +34,10 @@ const JSON_LD = {
       name: 'PDF to PNG — Doclair',
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
-      url: 'https://doclair.com/pdf-to-png',
+      url: 'https://doclair.in/pdf-to-png',
       description: 'Convert PDF pages to PNG images free. Up to 600 DPI. Lossless quality. No upload, no watermark.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.com' },
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
     {
       '@type': 'FAQPage',
@@ -49,9 +49,9 @@ const JSON_LD = {
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home',       item: 'https://doclair.com' },
-        { '@type': 'ListItem', position: 2, name: 'Tools',      item: 'https://doclair.com/tools' },
-        { '@type': 'ListItem', position: 3, name: 'PDF to PNG', item: 'https://doclair.com/pdf-to-png' },
+        { '@type': 'ListItem', position: 1, name: 'Home',       item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools',      item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'PDF to PNG', item: 'https://doclair.in/pdf-to-png' },
       ],
     },
   ],

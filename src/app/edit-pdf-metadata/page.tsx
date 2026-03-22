@@ -45,10 +45,10 @@ const JSON_LD = {
       name: 'Edit PDF Metadata — Doclair',
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
-      url: 'https://doclair.com/edit-pdf-metadata',
+      url: 'https://doclair.in/edit-pdf-metadata',
       description: 'Read and edit the title, author, keywords and other properties stored inside any PDF. Free, no upload.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.com' },
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
     {
       '@type': 'FAQPage',
@@ -61,9 +61,9 @@ const JSON_LD = {
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home',              item: 'https://doclair.com' },
-        { '@type': 'ListItem', position: 2, name: 'Tools',             item: 'https://doclair.com/tools' },
-        { '@type': 'ListItem', position: 3, name: 'Edit PDF Metadata', item: 'https://doclair.com/edit-pdf-metadata' },
+        { '@type': 'ListItem', position: 1, name: 'Home',              item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools',             item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'Edit PDF Metadata', item: 'https://doclair.in/edit-pdf-metadata' },
       ],
     },
   ],

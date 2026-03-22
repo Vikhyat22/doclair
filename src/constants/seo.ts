@@ -9,12 +9,12 @@ export function toolMetadata(
     title: `${toolName} Online Free — No Upload, No Watermark`,
     description,
     alternates: {
-      canonical: `https://doclair.com/${slug}`,
+      canonical: `https://doclair.in/${slug}`,
     },
     openGraph: {
       title: `${toolName} Online Free | Doclair`,
       description,
-      url: `https://doclair.com/${slug}`,
+      url: `https://doclair.in/${slug}`,
       type: 'website',
     },
   }

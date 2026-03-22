@@ -51,10 +51,10 @@ const JSON_LD = {
       name: 'WebP to PDF — Doclair',
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
-      url: 'https://doclair.com/webp-to-pdf',
+      url: 'https://doclair.in/webp-to-pdf',
       description: 'Convert WebP images to PDF online for free. Drag to reorder. No upload, no watermark.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.com' },
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
     {
       '@type': 'FAQPage',
@@ -66,9 +66,9 @@ const JSON_LD = {
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home',        item: 'https://doclair.com' },
-        { '@type': 'ListItem', position: 2, name: 'Tools',       item: 'https://doclair.com/tools' },
-        { '@type': 'ListItem', position: 3, name: 'WebP to PDF', item: 'https://doclair.com/webp-to-pdf' },
+        { '@type': 'ListItem', position: 1, name: 'Home',        item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools',       item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'WebP to PDF', item: 'https://doclair.in/webp-to-pdf' },
       ],
     },
   ],

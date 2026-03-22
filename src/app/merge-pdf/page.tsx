@@ -29,7 +29,7 @@ const JSON_LD_SCHEMA = {
       name: 'Merge PDF — Doclair',
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
-      url: 'https://doclair.com/merge-pdf',
+      url: 'https://doclair.in/merge-pdf',
       description: 'Combine multiple PDF files into a single document online. Free, private, no watermark. Files are processed entirely in your browser.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       featureList: [
@@ -37,7 +37,7 @@ const JSON_LD_SCHEMA = {
         'No file upload to server', 'No watermark on output',
         'No sign-up required', 'Works offline after first load'
       ],
-      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.com' }
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' }
     },
     {
       '@type': 'FAQPage',
@@ -54,9 +54,9 @@ const BREADCRUMB_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
   itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.com' },
-    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.com/tools' },
-    { '@type': 'ListItem', position: 3, name: 'Merge PDF', item: 'https://doclair.com/merge-pdf' },
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: 'Merge PDF', item: 'https://doclair.in/merge-pdf' },
   ]
 }
 

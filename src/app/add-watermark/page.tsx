@@ -32,7 +32,7 @@ const JSON_LD_SCHEMA = {
       name: 'Add Watermark to PDF — Doclair',
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
-      url: 'https://doclair.com/add-watermark',
+      url: 'https://doclair.in/add-watermark',
       description: 'Add text or image watermarks to any PDF. Control opacity, rotation and position. Live CSS preview. Free, no upload, no watermark from Doclair.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       featureList: [
@@ -44,7 +44,7 @@ const JSON_LD_SCHEMA = {
         'No watermark on output from Doclair',
         'No sign-up required',
       ],
-      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.com' },
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
     {
       '@type': 'FAQPage',
@@ -61,9 +61,9 @@ const BREADCRUMB_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
   itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Home',          item: 'https://doclair.com' },
-    { '@type': 'ListItem', position: 2, name: 'Tools',         item: 'https://doclair.com/tools' },
-    { '@type': 'ListItem', position: 3, name: 'Add Watermark', item: 'https://doclair.com/add-watermark' },
+    { '@type': 'ListItem', position: 1, name: 'Home',          item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools',         item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: 'Add Watermark', item: 'https://doclair.in/add-watermark' },
   ],
 }
 

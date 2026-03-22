@@ -51,11 +51,11 @@ const JSON_LD = {
       name: 'Image to PDF — Doclair',
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
-      url: 'https://doclair.com/image-to-pdf',
+      url: 'https://doclair.in/image-to-pdf',
       description: 'Convert any image format to PDF online for free. JPG, PNG, WebP, HEIC, SVG, GIF, BMP, TIFF. No upload, no watermark.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       featureList: ['Supports JPG, PNG, WebP, HEIC, SVG, GIF, BMP, TIFF', 'Drag-to-reorder images', 'Per-image rotation controls', 'Multiple page size options', 'No file upload to server', 'No watermark on output'],
-      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.com' },
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
     {
       '@type': 'FAQPage',
@@ -67,9 +67,9 @@ const JSON_LD = {
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home',         item: 'https://doclair.com' },
-        { '@type': 'ListItem', position: 2, name: 'Tools',        item: 'https://doclair.com/tools' },
-        { '@type': 'ListItem', position: 3, name: 'Image to PDF', item: 'https://doclair.com/image-to-pdf' },
+        { '@type': 'ListItem', position: 1, name: 'Home',         item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools',        item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'Image to PDF', item: 'https://doclair.in/image-to-pdf' },
       ],
     },
   ],

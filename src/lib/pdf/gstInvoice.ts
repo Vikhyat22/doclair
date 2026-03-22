@@ -259,7 +259,7 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   }
 
   // Footer
-  page.drawText('Generated with Doclair — doclair.com', { x: 40, y: 20, size: 7, font: fontR, color: rgb(0.7, 0.7, 0.7) })
+  page.drawText('Generated with Doclair — doclair.in', { x: 40, y: 20, size: 7, font: fontR, color: rgb(0.7, 0.7, 0.7) })
 
   return doc.save()
 }

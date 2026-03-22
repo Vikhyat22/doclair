@@ -6,7 +6,7 @@ import Footer from '@/components/layout/Footer'
 export const metadata: Metadata = {
   title: 'Blog — PDF Tips, Guides & Tutorials',
   description: 'Learn how to use PDF tools, tips for document management, and guides for common PDF tasks.',
-  alternates: { canonical: 'https://doclair.com/blog' },
+  alternates: { canonical: 'https://doclair.in/blog' },
 }
 
 const ARTICLES = [

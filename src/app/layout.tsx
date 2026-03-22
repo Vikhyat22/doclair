@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   },
   description:
     '55+ free browser-based PDF, image & document tools. No upload, no watermark, no sign-up. Files never leave your device.',
-  metadataBase: new URL('https://doclair.com'),
+  metadataBase: new URL('https://doclair.in'),
   openGraph: { siteName: 'Doclair', type: 'website' },
   robots: { index: true, follow: true },
 }
@@ -43,7 +43,7 @@ export default function RootLayout({
       <head>
         <script
           defer
-          data-domain="doclair.com"
+          data-domain="doclair.in"
           src="https://plausible.io/js/script.js"
         />
         <link rel="manifest" href="/manifest.json" />

@@ -683,7 +683,7 @@ export default function OrganizePagesPage() {
             '@context': 'https://schema.org',
             '@type': 'WebApplication',
             name: 'Organize PDF Pages',
-            url: 'https://doclair.com/organize-pages',
+            url: 'https://doclair.in/organize-pages',
             description:
               'Reorder, rotate, delete and duplicate PDF pages. Free, no upload, browser-based.',
             applicationCategory: 'UtilitiesApplication',

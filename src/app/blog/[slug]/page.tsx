@@ -157,7 +157,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: article.title,
     description: article.desc,
-    alternates: { canonical: `https://doclair.com/blog/${slug}` },
+    alternates: { canonical: `https://doclair.in/blog/${slug}` },
   }
 }
 
@@ -171,7 +171,7 @@ export default async function BlogArticlePage({ params }: { params: Promise<{ sl
     '@type': 'Article',
     headline: article.title,
     description: article.desc,
-    url: `https://doclair.com/blog/${slug}`,
+    url: `https://doclair.in/blog/${slug}`,
     author: { '@type': 'Organization', name: 'Doclair' },
     publisher: { '@type': 'Organization', name: 'Doclair' },
   }

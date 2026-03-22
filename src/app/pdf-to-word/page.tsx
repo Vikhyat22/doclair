@@ -25,7 +25,7 @@ const JSON_LD_SCHEMA = {
       name: 'PDF to Word — Doclair',
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
-      url: 'https://doclair.com/pdf-to-word',
+      url: 'https://doclair.in/pdf-to-word',
       description: 'Convert PDF to editable Word (.docx) document. Text and headings extracted. No upload, no watermark.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       featureList: [
@@ -36,7 +36,7 @@ const JSON_LD_SCHEMA = {
         'Works on mobile',
         'Outputs standard .docx format',
       ],
-      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.com' },
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
     {
       '@type': 'FAQPage',
@@ -53,9 +53,9 @@ const BREADCRUMB_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
   itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Home',        item: 'https://doclair.com' },
-    { '@type': 'ListItem', position: 2, name: 'Tools',       item: 'https://doclair.com/tools' },
-    { '@type': 'ListItem', position: 3, name: 'PDF to Word', item: 'https://doclair.com/pdf-to-word' },
+    { '@type': 'ListItem', position: 1, name: 'Home',        item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools',       item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: 'PDF to Word', item: 'https://doclair.in/pdf-to-word' },
   ],
 }
 

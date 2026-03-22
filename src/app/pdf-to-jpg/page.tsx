@@ -40,7 +40,7 @@ const JSON_LD = {
       name: 'PDF to JPG — Doclair',
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
-      url: 'https://doclair.com/pdf-to-jpg',
+      url: 'https://doclair.in/pdf-to-jpg',
       description: 'Convert PDF pages to JPG, PNG or WebP images free. Up to 600 DPI. No upload, no watermark.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     },
@@ -54,9 +54,9 @@ const JSON_LD = {
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home',       item: 'https://doclair.com' },
-        { '@type': 'ListItem', position: 2, name: 'Tools',      item: 'https://doclair.com/tools' },
-        { '@type': 'ListItem', position: 3, name: 'PDF to JPG', item: 'https://doclair.com/pdf-to-jpg' },
+        { '@type': 'ListItem', position: 1, name: 'Home',       item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools',      item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'PDF to JPG', item: 'https://doclair.in/pdf-to-jpg' },
       ],
     },
   ],

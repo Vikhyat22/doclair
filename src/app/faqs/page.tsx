@@ -5,7 +5,7 @@ import Footer from '@/components/layout/Footer'
 export const metadata: Metadata = {
   title: 'Frequently Asked Questions',
   description: 'Everything you need to know about Doclair — privacy, security, how browser-based processing works, and more.',
-  alternates: { canonical: 'https://doclair.com/faqs' },
+  alternates: { canonical: 'https://doclair.in/faqs' },
 }
 
 const FAQ_SCHEMA = {

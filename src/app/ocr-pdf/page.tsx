@@ -43,7 +43,7 @@ const JSON_LD_SCHEMA = {
       name: 'OCR PDF — Doclair',
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
-      url: 'https://doclair.com/ocr-pdf',
+      url: 'https://doclair.in/ocr-pdf',
       description: 'Extract text from scanned PDFs and image-based documents. Download as searchable PDF or plain text. Powered by Tesseract.js — runs in your browser.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       featureList: [
@@ -55,7 +55,7 @@ const JSON_LD_SCHEMA = {
         'No sign-up required',
         'Powered by Tesseract.js WebAssembly',
       ],
-      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.com' },
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
     {
       '@type': 'FAQPage',
@@ -72,9 +72,9 @@ const BREADCRUMB_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
   itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Home',   item: 'https://doclair.com' },
-    { '@type': 'ListItem', position: 2, name: 'Tools',  item: 'https://doclair.com/tools' },
-    { '@type': 'ListItem', position: 3, name: 'OCR PDF', item: 'https://doclair.com/ocr-pdf' },
+    { '@type': 'ListItem', position: 1, name: 'Home',   item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools',  item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: 'OCR PDF', item: 'https://doclair.in/ocr-pdf' },
   ],
 }
 
