@@ -41,10 +41,20 @@ export default function RootLayout({
       className={`${syne.variable} ${dmSans.variable} ${dmMono.variable}`}
     >
       <head>
+        {/* Google Analytics 4 */}
         <script
-          defer
-          data-domain="doclair.in"
-          src="https://plausible.io/js/script.js"
+          async
+          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}');
+            `,
+          }}
         />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#1A1612" />
