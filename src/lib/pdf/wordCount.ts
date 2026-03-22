@@ -22,8 +22,7 @@ export async function countWords(
 ): Promise<WordCountResult> {
   // Dynamic import — pdfjs-dist uses DOMMatrix at eval time (not available in SSR)
   const pdfjsLib = await import('pdfjs-dist')
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 
   const bytes = await file.arrayBuffer()
   const pdf   = await pdfjsLib.getDocument({

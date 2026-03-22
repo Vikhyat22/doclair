@@ -18,8 +18,7 @@ export async function pdfToImages(
 ): Promise<ImageResult[]> {
   // Dynamic import — avoids SSR crash (pdfjs uses DOMMatrix at module eval time)
   const pdfjsLib = await import('pdfjs-dist')
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 
   const bytes = await file.arrayBuffer()
   const pdf   = await pdfjsLib.getDocument({

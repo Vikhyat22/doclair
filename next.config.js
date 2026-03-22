@@ -34,6 +34,16 @@ const nextConfig = {
       test: /\.wasm$/,
       type: 'asset/resource',
     })
+    // Emit pdf.js worker as a static asset so it can be fetched via new URL()
+    // without being inlined into the main bundle. This fixes ERR_FILE_NOT_FOUND
+    // errors in production where CDN worker URLs are blocked or unavailable.
+    config.module.rules.push({
+      test: /pdf\.worker\.(min\.)?mjs/,
+      type: 'asset/resource',
+      generator: {
+        filename: 'static/worker/[hash][ext][query]',
+      },
+    })
     return config
   },
 
