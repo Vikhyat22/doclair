@@ -9,23 +9,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.9,
   }))
 
-  const blogSlugs = [
-    'how-to-reduce-pdf-size',
-    'how-to-merge-pdf-files-free',
-    'how-to-convert-word-to-pdf',
-    'best-free-pdf-editor-no-watermark',
-    'how-to-remove-background-from-image',
-    'how-to-compress-pdf-on-iphone',
-    'how-to-protect-pdf-with-password',
-    'how-to-extract-text-from-pdf',
+  const blogUrls = [
+    { url: 'https://doclair.in/blog/how-to-compress-pdf-file',             lastModified: new Date('2026-03-22'), changeFrequency: 'monthly' as const, priority: 0.8 },
+    { url: 'https://doclair.in/blog/how-to-merge-pdf-files-free',          lastModified: new Date('2026-03-22'), changeFrequency: 'monthly' as const, priority: 0.8 },
+    { url: 'https://doclair.in/blog/how-to-convert-word-to-pdf',           lastModified: new Date('2026-03-22'), changeFrequency: 'monthly' as const, priority: 0.8 },
+    { url: 'https://doclair.in/blog/best-free-pdf-editor-no-watermark',    lastModified: new Date('2026-03-22'), changeFrequency: 'monthly' as const, priority: 0.8 },
+    { url: 'https://doclair.in/blog/how-to-remove-background-from-image',  lastModified: new Date('2026-03-22'), changeFrequency: 'monthly' as const, priority: 0.8 },
+    { url: 'https://doclair.in/blog/how-to-compress-pdf-on-iphone',        lastModified: new Date('2026-03-22'), changeFrequency: 'monthly' as const, priority: 0.8 },
+    { url: 'https://doclair.in/blog/how-to-protect-pdf-with-password',     lastModified: new Date('2026-03-22'), changeFrequency: 'monthly' as const, priority: 0.8 },
+    { url: 'https://doclair.in/blog/how-to-extract-text-from-pdf',         lastModified: new Date('2026-03-22'), changeFrequency: 'monthly' as const, priority: 0.8 },
   ]
-
-  const blogUrls = blogSlugs.map(slug => ({
-    url: `https://doclair.in/blog/${slug}`,
-    lastModified: new Date(),
-    changeFrequency: 'monthly' as const,
-    priority: 0.7,
-  }))
 
   return [
     { url: 'https://doclair.in', lastModified: new Date(), changeFrequency: 'weekly', priority: 1.0 },
