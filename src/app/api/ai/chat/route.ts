@@ -1,15 +1,8 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
-
-const client = new Anthropic({
-  apiKey:  process.env.AI_API_KEY ?? '',
-  baseURL: process.env.AI_BASE_URL,
-})
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { extractedText, question } = body
+    const { extractedText, question } = await req.json()
 
     if (!extractedText || !question) {
       return NextResponse.json(
@@ -18,41 +11,68 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Log env vars are set (not their values)
-    console.log('AI_BASE_URL set:', !!process.env.AI_BASE_URL)
-    console.log('AI_API_KEY set:', !!process.env.AI_API_KEY)
-    console.log('AI_MODEL:', process.env.AI_MODEL)
+    const truncated = extractedText.slice(0, 40000)
+    const baseURL   = process.env.AI_BASE_URL ?? 'https://opencode.ai/zen/go/v1'
+    const apiKey    = process.env.AI_API_KEY  ?? ''
+    const model     = process.env.AI_MODEL    ?? 'minimax-m2.7'
 
-    const truncated = extractedText.slice(0, 50000)
+    console.log('Calling:', `${baseURL}/messages`)
+    console.log('Model:', model)
 
-    const message = await client.messages.create({
-      model:      process.env.AI_MODEL ?? 'minimax-m2.7',
-      max_tokens: 1024,
-      system:
-        'You are a helpful assistant. Answer questions based ' +
-        'only on the PDF content provided. Be concise and accurate.',
-      messages: [
-        {
-          role:    'user',
-          content: `PDF Content:\n${truncated}\n\nQuestion: ${question}`,
-        },
-      ],
+    const response = await fetch(`${baseURL}/messages`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':      'application/json',
+        'Authorization':     `Bearer ${apiKey}`,
+        'x-api-key':         apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 1024,
+        system:
+          'You are a helpful assistant. Answer questions ' +
+          'based only on the PDF content provided. ' +
+          'Be concise and accurate.',
+        messages: [
+          {
+            role:    'user',
+            content: `PDF Content:\n${truncated}\n\nQuestion: ${question}`,
+          },
+        ],
+      }),
     })
 
-    const content = message.content[0]
-    if (!content || content.type !== 'text') {
-      console.error('Unexpected response:', JSON.stringify(message))
+    console.log('Response status:', response.status)
+
+    if (!response.ok) {
+      const text = await response.text()
+      console.error('API error response:', text.slice(0, 500))
       return NextResponse.json(
-        { error: 'Unexpected response from AI' },
+        { error: `API returned ${response.status}: ${text.slice(0, 200)}` },
+        { status: response.status }
+      )
+    }
+
+    const data    = await response.json()
+    console.log('Response keys:', Object.keys(data))
+
+    const content = data?.content?.[0]?.text
+                 ?? data?.choices?.[0]?.message?.content
+                 ?? null
+
+    if (!content) {
+      console.error('No content in response:', JSON.stringify(data).slice(0, 500))
+      return NextResponse.json(
+        { error: 'No content in AI response' },
         { status: 500 }
       )
     }
 
-    return NextResponse.json({ answer: content.text })
+    return NextResponse.json({ answer: content })
   } catch (err: unknown) {
-    const msg    = err instanceof Error ? err.message : 'Unknown error'
-    const status = (err as { status?: number })?.status ?? 500
-    console.error('Chat API error:', err)
-    return NextResponse.json({ error: msg }, { status })
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    console.error('Chat API error:', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
