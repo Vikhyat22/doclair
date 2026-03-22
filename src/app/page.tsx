@@ -1,17 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
-import { TOOLS, CATEGORIES, CATEGORY_ICON_BG } from '@/constants/tools'
+import { TOOLS, CATEGORY_ICON_BG } from '@/constants/tools'
+import ToolSearchFilter, { ToolEmptyState } from '@/components/ui/ToolSearchFilter'
 
 export default function HomePage() {
-  const [activeCat, setActiveCat] = useState('All Tools')
+  const [filteredTools, setFilteredTools] = useState(TOOLS)
+  const [activeSearch, setActiveSearch] = useState('')
+  const [resetSignal, setResetSignal] = useState(0)
 
-  const filteredTools = activeCat === 'All Tools'
-    ? TOOLS
-    : TOOLS.filter(t => t.category === activeCat)
+  const handleFiltered = useCallback((tools: typeof TOOLS) => {
+    setFilteredTools(tools)
+  }, [])
 
   return (
     <>
@@ -298,20 +301,13 @@ export default function HomePage() {
             marginBottom: '40px', lineHeight: 1.1,
           }}>Everything your documents need</h2>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '40px' }}>
-            {CATEGORIES.map(cat => (
-              <button key={cat} onClick={() => setActiveCat(cat)}
-                className={`cat-btn${activeCat === cat ? ' cat-btn-active' : ''}`}
-                style={{
-                  padding: '9px 18px', borderRadius: '100px', fontSize: '13px', fontWeight: 500,
-                  border: `1px solid ${activeCat === cat ? 'var(--ink)' : 'rgba(26,22,18,0.15)'}`,
-                  background: activeCat === cat ? 'var(--ink)' : 'transparent',
-                  color: activeCat === cat ? 'white' : 'var(--ink)',
-                  cursor: 'pointer', transition: 'all 0.15s',
-                  fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif',
-                }}>{cat}</button>
-            ))}
-          </div>
+          <ToolSearchFilter
+            tools={TOOLS}
+            onFiltered={handleFiltered}
+            onSearchChange={setActiveSearch}
+            showResultCount={true}
+            resetSignal={resetSignal}
+          />
 
           <div style={{
             display: 'grid',
@@ -321,6 +317,12 @@ export default function HomePage() {
             overflow: 'hidden',
             background: 'white',
           }} className="tools-grid">
+            {filteredTools.length === 0 && (
+              <ToolEmptyState
+                searchText={activeSearch}
+                onClear={() => { setFilteredTools(TOOLS); setActiveSearch(''); setResetSignal(s => s + 1) }}
+              />
+            )}
             {filteredTools.map((tool) => (
               <Link key={tool.id} href={`/${tool.slug}`} className="tool-card" style={{
                 padding: '24px',

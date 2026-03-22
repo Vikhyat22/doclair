@@ -1,18 +1,20 @@
 'use client'
 
-import type { Metadata } from 'next'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
-import { TOOLS, CATEGORIES, CATEGORY_ICON_BG } from '@/constants/tools'
+import { TOOLS, CATEGORY_ICON_BG } from '@/constants/tools'
+import ToolSearchFilter, { ToolEmptyState } from '@/components/ui/ToolSearchFilter'
 
 export default function ToolsPage() {
-  const [activeCat, setActiveCat] = useState('All Tools')
+  const [filteredTools, setFilteredTools] = useState(TOOLS)
+  const [activeSearch, setActiveSearch] = useState('')
+  const [resetSignal, setResetSignal] = useState(0)
 
-  const filteredTools = activeCat === 'All Tools'
-    ? TOOLS
-    : TOOLS.filter(t => t.category === activeCat)
+  const handleFiltered = useCallback((tools: typeof TOOLS) => {
+    setFilteredTools(tools)
+  }, [])
 
   return (
     <>
@@ -28,33 +30,29 @@ export default function ToolsPage() {
             fontSize: 'clamp(32px, 4vw, 52px)', letterSpacing: '-2px', color: 'var(--ink)',
             marginBottom: '16px', lineHeight: 1.05,
           }}>All PDF &amp; Document Tools</h1>
-          <p style={{ fontSize: '17px', fontWeight: 300, color: 'var(--ink)', opacity: 0.65, maxWidth: '560px', marginBottom: '40px', lineHeight: 1.6 }}>
+          <p style={{ fontSize: '17px', fontWeight: 300, color: 'var(--ink)', opacity: 0.65, maxWidth: '560px', marginBottom: '32px', lineHeight: 1.6 }}>
             Every tool runs in your browser. No upload. No watermark.
           </p>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '40px' }}>
-            {CATEGORIES.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setActiveCat(cat)}
-                className={`cat-btn${activeCat === cat ? ' cat-btn-active' : ''}`}
-                style={{
-                  padding: '9px 18px', borderRadius: '100px', fontSize: '13px', fontWeight: 500,
-                  border: `1px solid ${activeCat === cat ? 'var(--ink)' : 'rgba(26,22,18,0.15)'}`,
-                  background: activeCat === cat ? 'var(--ink)' : 'transparent',
-                  color: activeCat === cat ? 'white' : 'var(--ink)',
-                  cursor: 'pointer', transition: 'all 0.15s',
-                  fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif',
-                }}
-              >{cat}</button>
-            ))}
-          </div>
+          <ToolSearchFilter
+            tools={TOOLS}
+            onFiltered={handleFiltered}
+            onSearchChange={setActiveSearch}
+            showResultCount={true}
+            resetSignal={resetSignal}
+          />
 
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
             border: '1px solid var(--border)', borderRadius: '16px',
             overflow: 'hidden', background: 'white',
           }} className="tools-grid">
+            {filteredTools.length === 0 && (
+              <ToolEmptyState
+                searchText={activeSearch}
+                onClear={() => { setFilteredTools(TOOLS); setActiveSearch(''); setResetSignal(s => s + 1) }}
+              />
+            )}
             {filteredTools.map((tool) => (
               <Link key={tool.id} href={`/${tool.slug}`} className="tool-card" style={{
                 padding: '24px', borderRight: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
