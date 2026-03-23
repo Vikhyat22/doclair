@@ -103,7 +103,6 @@ export default function CSVToPDFPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <ToolPageLayout
         toolName="CSV to PDF"
-        toolSlug="csv-to-pdf"
         sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
       >
         <div>

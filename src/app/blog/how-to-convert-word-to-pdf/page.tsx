@@ -32,7 +32,7 @@ export default function WordToPDFArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout title="How to Convert Word to PDF Free — Preserve All Formatting" toolSlug="word-to-pdf" toolName="Word to PDF" readTime="5 min" category="Guide">
+      <ArticleLayout title="How to Convert Word to PDF Free — Preserve All Formatting" toolName="Word to PDF" readTime="5 min" category="Guide">
 
         <p>Converting a Word document to PDF ensures it looks identical on every device and operating system — no more formatting shifts when the recipient opens it in a different version of Word, LibreOffice, or Google Docs. <Link href="/word-to-pdf">Doclair's Word to PDF converter</Link> does this entirely in your browser, with no software needed and no file upload.</p>
 

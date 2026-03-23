@@ -215,7 +215,7 @@ export default function PngToPdfPage() {
   )
 
   return (
-    <ToolPageLayout toolName="PNG to PDF" toolSlug="png-to-pdf" sidebar={sidebar}>
+    <ToolPageLayout toolName="PNG to PDF" sidebar={sidebar}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
 
       {/* Header */}

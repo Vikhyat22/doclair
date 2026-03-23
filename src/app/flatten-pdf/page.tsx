@@ -199,7 +199,6 @@ export default function FlattenPDFPage() {
       />
       <ToolPageLayout
         toolName="Flatten PDF"
-        toolSlug="flatten-pdf"
         sidebar={<ToolSidebar reverseActions={SIDEBAR_REVERSE} relatedTools={SIDEBAR_RELATED} />}
       >
         {/* Header */}

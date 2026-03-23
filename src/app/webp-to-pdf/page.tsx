@@ -168,7 +168,7 @@ export default function WebpToPdfPage() {
   )
 
   return (
-    <ToolPageLayout toolName="WebP to PDF" toolSlug="webp-to-pdf" sidebar={sidebar}>
+    <ToolPageLayout toolName="WebP to PDF" sidebar={sidebar}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
 
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '36px' }}>

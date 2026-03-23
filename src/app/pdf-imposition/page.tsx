@@ -13,7 +13,6 @@ export default function PDFImpositionPage() {
   return (
     <ToolPageLayout
       toolName="PDF Imposition"
-      toolSlug="pdf-imposition"
       sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
     >
       <div>

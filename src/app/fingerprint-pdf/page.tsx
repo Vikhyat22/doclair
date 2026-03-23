@@ -113,7 +113,6 @@ export default function FingerprintPDFPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <ToolPageLayout
         toolName="Fingerprint PDF"
-        toolSlug="fingerprint-pdf"
         sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
       >
         <div>

@@ -151,7 +151,7 @@ export default function EncryptPDFPage() {
   )
 
   return (
-    <ToolPageLayout toolName="Encrypt PDF" toolSlug="encrypt-pdf" sidebar={sidebar}>
+    <ToolPageLayout toolName="Encrypt PDF" sidebar={sidebar}>
       {/* JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />

@@ -31,6 +31,7 @@ export default function RemovePagesPage() {
   const [toolState, setToolState]     = useState<ToolState>('idle')
   const [resultBytes, setResultBytes] = useState<Uint8Array | null>(null)
   const thumbUrlsRef                  = useRef<string[]>([])
+  const fileBufferRef                 = useRef<ArrayBuffer | null>(null)
 
   async function generateThumbnails(bytes: ArrayBuffer, count: number) {
     setThumbsLoading(true)
@@ -62,6 +63,7 @@ export default function RemovePagesPage() {
     thumbUrlsRef.current.forEach(URL.revokeObjectURL); thumbUrlsRef.current = []
     setThumbnails([]); setSelected(new Set()); setResultBytes(null); setToolState('idle')
     const bytes = await f.arrayBuffer()
+    fileBufferRef.current = bytes
     const { PDFDocument } = await import('pdf-lib')
     const doc = await PDFDocument.load(bytes)
     setFile(f); setTotalPages(doc.getPageCount())
@@ -80,7 +82,7 @@ export default function RemovePagesPage() {
     setToolState('merging')
     try {
       const { PDFDocument } = await import('pdf-lib')
-      const doc = await PDFDocument.load(await file.arrayBuffer())
+      const doc = await PDFDocument.load(fileBufferRef.current!)
       Array.from(selected).sort((a, b) => b - a).forEach(i => doc.removePage(i))
       setResultBytes(await doc.save())
       setToolState('done')
@@ -99,6 +101,7 @@ export default function RemovePagesPage() {
 
   function handleReset() {
     thumbUrlsRef.current.forEach(URL.revokeObjectURL); thumbUrlsRef.current = []
+    fileBufferRef.current = null
     setFile(null); setTotalPages(0); setThumbnails([]); setSelected(new Set())
     setResultBytes(null); setToolState('idle')
   }
@@ -122,7 +125,7 @@ export default function RemovePagesPage() {
   )
 
   return (
-    <ToolPageLayout toolName="Remove Pages from PDF" toolSlug="remove-pages-from-pdf" sidebar={sidebar}>
+    <ToolPageLayout toolName="Remove Pages from PDF" sidebar={sidebar}>
       {/* Header */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '36px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>

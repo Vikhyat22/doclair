@@ -4,7 +4,6 @@ import Footer from './Footer'
 
 interface ToolPageLayoutProps {
   toolName: string
-  toolSlug: string
   children: React.ReactNode
   sidebar?: React.ReactNode
 }

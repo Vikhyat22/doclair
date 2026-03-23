@@ -139,7 +139,7 @@ export default function AddPagesToPDFPage() {
   )
 
   return (
-    <ToolPageLayout toolName="Add Pages to PDF" toolSlug="add-pages-to-pdf" sidebar={sidebar}>
+    <ToolPageLayout toolName="Add Pages to PDF" sidebar={sidebar}>
       {/* Header */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '36px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>

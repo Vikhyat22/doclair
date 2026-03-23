@@ -104,7 +104,6 @@ export default function ExcelToPDFPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <ToolPageLayout
         toolName="Excel to PDF"
-        toolSlug="excel-to-pdf"
         sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
       >
         <div>

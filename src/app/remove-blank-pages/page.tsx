@@ -161,7 +161,6 @@ export default function RemoveBlankPagesPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <ToolPageLayout
         toolName="Remove Blank Pages"
-        toolSlug="remove-blank-pages"
         sidebar={<ToolSidebar reverseActions={SIDEBAR_REVERSE} relatedTools={SIDEBAR_RELATED} />}
       >
         {/* Header */}

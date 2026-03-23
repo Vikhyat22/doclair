@@ -291,7 +291,7 @@ export default function RedactPDFPage() {
   )
 
   return (
-    <ToolPageLayout toolName="Redact PDF" toolSlug="redact-pdf" sidebar={sidebar}>
+    <ToolPageLayout toolName="Redact PDF" sidebar={sidebar}>
       {/* JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />

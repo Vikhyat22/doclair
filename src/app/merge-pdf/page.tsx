@@ -135,7 +135,7 @@ export default function MergePDFPage() {
   )
 
   return (
-    <ToolPageLayout toolName="Merge PDF" toolSlug="merge-pdf" sidebar={sidebar}>
+    <ToolPageLayout toolName="Merge PDF" sidebar={sidebar}>
       {/* JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />

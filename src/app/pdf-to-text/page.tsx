@@ -153,7 +153,7 @@ export default function PDFToTextPage() {
   )
 
   return (
-    <ToolPageLayout toolName="PDF to Text" toolSlug="pdf-to-text" sidebar={sidebar}>
+    <ToolPageLayout toolName="PDF to Text" sidebar={sidebar}>
       {/* JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />

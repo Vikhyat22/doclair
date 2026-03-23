@@ -13,7 +13,6 @@ export default function PDFToEpubPage() {
   return (
     <ToolPageLayout
       toolName="PDF to ePub"
-      toolSlug="pdf-to-epub"
       sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
     >
       <div>

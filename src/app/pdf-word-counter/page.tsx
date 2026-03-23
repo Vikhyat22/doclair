@@ -156,7 +156,6 @@ export default function PDFWordCounterPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <ToolPageLayout
         toolName="PDF Word Counter"
-        toolSlug="pdf-word-counter"
         sidebar={<ToolSidebar reverseActions={SIDEBAR_REVERSE} relatedTools={SIDEBAR_RELATED} />}
       >
         {/* Header */}

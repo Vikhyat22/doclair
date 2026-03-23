@@ -470,7 +470,7 @@ export default function POSBillingPage() {
   )
 
   return (
-    <ToolPageLayout toolName="POS Billing" toolSlug="pos-billing" sidebar={sidebar}>
+    <ToolPageLayout toolName="POS Billing" sidebar={sidebar}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
 

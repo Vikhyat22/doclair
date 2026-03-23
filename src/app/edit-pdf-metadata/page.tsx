@@ -209,7 +209,6 @@ export default function EditPDFMetadataPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <ToolPageLayout
         toolName="Edit PDF Metadata"
-        toolSlug="edit-pdf-metadata"
         sidebar={<ToolSidebar reverseActions={SIDEBAR_REVERSE} relatedTools={SIDEBAR_RELATED} />}
       >
         {/* Header */}

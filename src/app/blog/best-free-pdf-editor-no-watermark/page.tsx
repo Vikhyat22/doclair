@@ -32,7 +32,7 @@ export default function BestFreePDFEditorArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout title="Best Free PDF Editor With No Watermark in 2026" toolSlug="compress-pdf" toolName="Doclair PDF Tools" readTime="7 min" category="Comparison">
+      <ArticleLayout title="Best Free PDF Editor With No Watermark in 2026" toolName="Doclair PDF Tools" readTime="7 min" category="Comparison">
 
         <p>Most "free" PDF editors add a watermark to every file you export — unless you pay. This is how they monetise: the free tier is limited enough to frustrate you into upgrading. Here is an honest comparison of the best free PDF tools in 2026, with a clear note on which ones watermark your files and which ones genuinely do not.</p>
 

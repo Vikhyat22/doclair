@@ -211,7 +211,7 @@ export default function SplitPDFPage() {
   )
 
   return (
-    <ToolPageLayout toolName="Split PDF" toolSlug="split-pdf" sidebar={sidebar}>
+    <ToolPageLayout toolName="Split PDF" sidebar={sidebar}>
       {/* JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
 

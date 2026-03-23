@@ -150,7 +150,7 @@ export default function RemovePasswordPage() {
   )
 
   return (
-    <ToolPageLayout toolName="Remove PDF Password" toolSlug="remove-password" sidebar={sidebar}>
+    <ToolPageLayout toolName="Remove PDF Password" sidebar={sidebar}>
       {/* JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />

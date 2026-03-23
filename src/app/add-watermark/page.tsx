@@ -7,11 +7,7 @@ import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
-import { addWatermark } from '@/lib/pdf/watermark'
 import type { WatermarkOptions, WatermarkPosition, WatermarkType } from '@/lib/pdf/watermark'
-
-// suppress unused import warning
-void addWatermark
 
 const PRESETS = ['DRAFT', 'CONFIDENTIAL', 'COPY', 'FOR REVIEW', 'SAMPLE']
 
@@ -257,7 +253,7 @@ export default function AddWatermarkPage() {
   )
 
   return (
-    <ToolPageLayout toolName="Add Watermark" toolSlug="add-watermark" sidebar={sidebar}>
+    <ToolPageLayout toolName="Add Watermark" sidebar={sidebar}>
       {/* JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />

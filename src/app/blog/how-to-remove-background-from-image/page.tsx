@@ -33,7 +33,7 @@ export default function RemoveBackgroundArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout title="How to Remove Background From Image Free — AI-Powered" toolSlug="remove-background" toolName="Remove Background" readTime="6 min" category="Guide">
+      <ArticleLayout title="How to Remove Background From Image Free — AI-Powered" toolName="Remove Background" readTime="6 min" category="Guide">
 
         <p>Background removal used to require Photoshop skills, expensive software, or paying for tools like Remove.bg. Today, AI can detect the subject of any photo and remove everything behind it — and <Link href="/remove-background">Doclair's Remove Background tool</Link> does it entirely in your browser, free, with the AI model running on your own device.</p>
 

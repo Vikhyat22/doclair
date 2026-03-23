@@ -13,7 +13,6 @@ export default function PDFToBookletPage() {
   return (
     <ToolPageLayout
       toolName="PDF to Booklet"
-      toolSlug="pdf-to-booklet"
       sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
     >
       <div>

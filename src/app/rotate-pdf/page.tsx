@@ -7,13 +7,7 @@ import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
-import { rotatePDF } from '@/lib/pdf/rotate'
-import type { RotationAngle } from '@/lib/pdf/rotate'
 import type { ToolState } from '@/types'
-
-// suppress unused import warnings — rotatePDF and RotationAngle are part of the required import list
-void rotatePDF
-type _RA = RotationAngle
 
 const FAQS = [
   { q: 'Can I rotate just some pages and not others?', a: 'Yes. Click ↺ or ↻ on individual page thumbnails to rotate specific pages. Or use the bulk controls to rotate all portrait or all landscape pages at once.' },
@@ -233,7 +227,7 @@ export default function RotatePDFPage() {
   )
 
   return (
-    <ToolPageLayout toolName="Rotate PDF" toolSlug="rotate-pdf" sidebar={sidebar}>
+    <ToolPageLayout toolName="Rotate PDF" sidebar={sidebar}>
       {/* JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />

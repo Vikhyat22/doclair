@@ -317,7 +317,7 @@ export default function JpgToPDFPage() {
   )
 
   return (
-    <ToolPageLayout toolName="JPG to PDF" toolSlug="jpg-to-pdf" sidebar={sidebar}>
+    <ToolPageLayout toolName="JPG to PDF" sidebar={sidebar}>
       {/* JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />

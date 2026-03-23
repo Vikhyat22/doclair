@@ -32,7 +32,7 @@ export default function ExtractTextArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout title="How to Extract Text From a PDF Free" toolSlug="pdf-to-text" toolName="PDF to Text" readTime="5 min" category="Guide">
+      <ArticleLayout title="How to Extract Text From a PDF Free" toolName="PDF to Text" readTime="5 min" category="Guide">
 
         <p>Whether you need to copy content from a locked PDF, extract data for a spreadsheet, or get text from a scanned document, <Link href="/pdf-to-text">Doclair's PDF to Text tool</Link> pulls all the text out of any PDF — free, in your browser, with no file size limit.</p>
 

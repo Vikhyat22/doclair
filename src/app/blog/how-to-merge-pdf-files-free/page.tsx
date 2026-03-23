@@ -32,7 +32,7 @@ export default function MergePDFArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout title="How to Merge PDF Files Free — No Watermark, No Sign-Up" toolSlug="merge-pdf" toolName="Merge PDF" readTime="5 min" category="Guide">
+      <ArticleLayout title="How to Merge PDF Files Free — No Watermark, No Sign-Up" toolName="Merge PDF" readTime="5 min" category="Guide">
 
         <p>Merging multiple PDF files into a single document is one of the most common document tasks. Whether you are combining government forms, joining a CV with certificates, or consolidating monthly reports, <Link href="/merge-pdf">Doclair's Merge PDF tool</Link> handles it in seconds — free, with no watermark added.</p>
 

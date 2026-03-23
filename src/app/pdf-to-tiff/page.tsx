@@ -134,7 +134,7 @@ export default function PdfToTiffPage() {
   )
 
   return (
-    <ToolPageLayout toolName="PDF to TIFF" toolSlug="pdf-to-tiff" sidebar={sidebar}>
+    <ToolPageLayout toolName="PDF to TIFF" sidebar={sidebar}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
 
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '36px' }}>

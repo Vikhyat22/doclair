@@ -189,7 +189,6 @@ export default function PDFViewerPage() {
   return (
     <ToolPageLayout
       toolName="PDF Viewer"
-      toolSlug="pdf-viewer"
       sidebar={<ToolSidebar reverseActions={[]} relatedTools={SIDEBAR_RELATED} />}
     >
       {/* Header */}

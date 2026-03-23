@@ -316,7 +316,7 @@ export default function PDFToAudioPage() {
   const sidebar = <ToolSidebar relatedTools={SIDEBAR_RELATED} reverseActions={SIDEBAR_REVERSE} />
 
   return (
-    <ToolPageLayout toolName="PDF to Audio" toolSlug="pdf-to-audio" sidebar={sidebar}>
+    <ToolPageLayout toolName="PDF to Audio" sidebar={sidebar}>
 
       {/* Header */}
       <div style={{ marginBottom: '28px' }}>

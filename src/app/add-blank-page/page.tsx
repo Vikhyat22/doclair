@@ -106,7 +106,7 @@ export default function AddBlankPagePage() {
   )
 
   return (
-    <ToolPageLayout toolName="Add Blank Page" toolSlug="add-blank-page" sidebar={sidebar}>
+    <ToolPageLayout toolName="Add Blank Page" sidebar={sidebar}>
       {/* Header */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '36px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>

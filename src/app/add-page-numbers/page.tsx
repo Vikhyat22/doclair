@@ -174,7 +174,7 @@ export default function AddPageNumbersPage() {
   const isSaveDisabled = !file
 
   return (
-    <ToolPageLayout toolName="Add Page Numbers" toolSlug="add-page-numbers" sidebar={sidebar}>
+    <ToolPageLayout toolName="Add Page Numbers" sidebar={sidebar}>
       {/* JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />

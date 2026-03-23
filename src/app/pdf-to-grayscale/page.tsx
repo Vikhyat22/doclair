@@ -151,7 +151,6 @@ export default function PDFToGrayscalePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <ToolPageLayout
         toolName="PDF to Grayscale"
-        toolSlug="pdf-to-grayscale"
         sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
       >
         <div>

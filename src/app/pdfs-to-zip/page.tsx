@@ -107,7 +107,6 @@ export default function PDFsToZIPPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <ToolPageLayout
         toolName="PDFs to ZIP"
-        toolSlug="pdfs-to-zip"
         sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
       >
         {/* Header */}

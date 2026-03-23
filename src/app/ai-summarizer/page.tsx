@@ -151,7 +151,7 @@ export default function AiSummarizerPage() {
   )
 
   return (
-    <ToolPageLayout toolName="AI PDF Summarizer" toolSlug="ai-summarizer" sidebar={sidebar}>
+    <ToolPageLayout toolName="AI PDF Summarizer" sidebar={sidebar}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB) }} />
 

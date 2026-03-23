@@ -131,7 +131,7 @@ export default function ComparePdfsPage() {
   )
 
   return (
-    <ToolPageLayout toolName="Compare PDFs" toolSlug="compare-pdfs" sidebar={sidebar}>
+    <ToolPageLayout toolName="Compare PDFs" sidebar={sidebar}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB) }} />
 

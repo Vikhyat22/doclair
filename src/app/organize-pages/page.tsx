@@ -538,7 +538,7 @@ export default function OrganizePagesPage() {
   // Render
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <ToolPageLayout toolName="Organize Pages" toolSlug="organize-pages" sidebar={sidebar}>
+    <ToolPageLayout toolName="Organize Pages" sidebar={sidebar}>
 
       {/* ── Preview Modal ── */}
       {previewIndex !== null && (() => {

@@ -162,7 +162,6 @@ export default function AddHeaderFooterPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <ToolPageLayout
         toolName="Add Header & Footer to PDF"
-        toolSlug="add-header-footer"
         sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
       >
         <div>

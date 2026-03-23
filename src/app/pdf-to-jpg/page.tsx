@@ -165,7 +165,7 @@ export default function PdfToJpgPage() {
   )
 
   return (
-    <ToolPageLayout toolName="PDF to JPG" toolSlug="pdf-to-jpg" sidebar={sidebar}>
+    <ToolPageLayout toolName="PDF to JPG" sidebar={sidebar}>
       {/* JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
 

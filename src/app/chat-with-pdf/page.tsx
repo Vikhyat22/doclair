@@ -169,7 +169,7 @@ export default function ChatWithPdfPage() {
   )
 
   return (
-    <ToolPageLayout toolName="Chat with PDF" toolSlug="chat-with-pdf" sidebar={sidebar}>
+    <ToolPageLayout toolName="Chat with PDF" sidebar={sidebar}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB) }} />
 

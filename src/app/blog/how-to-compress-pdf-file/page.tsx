@@ -36,7 +36,7 @@ export default function CompressPDFArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout title="How to Compress PDF File Free — Without Losing Quality" toolSlug="compress-pdf" toolName="Compress PDF" readTime="6 min" category="Guide">
+      <ArticleLayout title="How to Compress PDF File Free — Without Losing Quality" toolName="Compress PDF" readTime="6 min" category="Guide">
 
         <p>Large PDF files get rejected by email providers, refused by government portals, and time out on slow mobile connections. Compressing a PDF reduces file size by 30–70% without any visible quality loss — and you can do it free, directly in your browser, in under a minute.</p>
 

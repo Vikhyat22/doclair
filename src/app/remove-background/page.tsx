@@ -130,7 +130,7 @@ export default function RemoveBackgroundPage() {
   )
 
   return (
-    <ToolPageLayout toolName="Remove Background" toolSlug="remove-background" sidebar={sidebar}>
+    <ToolPageLayout toolName="Remove Background" sidebar={sidebar}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB) }} />
 

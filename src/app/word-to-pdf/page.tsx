@@ -166,7 +166,7 @@ export default function WordToPDFPage() {
   )
 
   return (
-    <ToolPageLayout toolName="Word to PDF" toolSlug="word-to-pdf" sidebar={sidebar}>
+    <ToolPageLayout toolName="Word to PDF" sidebar={sidebar}>
       {/* JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
 

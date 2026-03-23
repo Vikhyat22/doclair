@@ -168,7 +168,7 @@ export default function SvgToPdfPage() {
   )
 
   return (
-    <ToolPageLayout toolName="SVG to PDF" toolSlug="svg-to-pdf" sidebar={sidebar}>
+    <ToolPageLayout toolName="SVG to PDF" sidebar={sidebar}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
 
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '36px' }}>

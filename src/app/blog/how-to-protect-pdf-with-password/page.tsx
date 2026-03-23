@@ -32,7 +32,7 @@ export default function ProtectPDFArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout title="How to Password Protect a PDF Free — AES-256 Encryption" toolSlug="encrypt-pdf" toolName="Encrypt PDF" readTime="6 min" category="Guide">
+      <ArticleLayout title="How to Password Protect a PDF Free — AES-256 Encryption" toolName="Encrypt PDF" readTime="6 min" category="Guide">
 
         <p>Sensitive documents shared via email — salary slips, bank statements, contracts, Aadhaar copies — travel through multiple servers before reaching the recipient. A password-protected PDF ensures that even if the email is intercepted, the document is unreadable without the correct password. <Link href="/encrypt-pdf">Doclair's Encrypt PDF tool</Link> adds AES-256 encryption to any PDF, free, without uploading anything to a server.</p>
 

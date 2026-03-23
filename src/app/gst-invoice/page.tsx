@@ -389,7 +389,7 @@ export default function GSTInvoicePage() {
   )
 
   return (
-    <ToolPageLayout toolName="GST Invoice Generator" toolSlug="gst-invoice" sidebar={sidebar}>
+    <ToolPageLayout toolName="GST Invoice Generator" sidebar={sidebar}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
 
