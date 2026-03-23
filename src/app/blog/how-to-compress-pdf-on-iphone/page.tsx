@@ -32,7 +32,7 @@ export default function CompressPDFiPhoneArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout title="How to Compress PDF on iPhone — No App Download Needed" toolName="Compress PDF" readTime="5 min" category="Tutorial">
+      <ArticleLayout toolSlug="compress-pdf" title="How to Compress PDF on iPhone — No App Download Needed" toolName="Compress PDF" readTime="5 min" category="Tutorial">
 
         <p>iPhones are excellent at scanning documents, but the resulting PDFs are often too large for email, government portals, and WhatsApp. Scanner apps like Microsoft Lens, Adobe Scan, and the built-in Notes scanner produce high-resolution scans — typically 5–15 MB per document — which exceed limits everywhere. Here is how to compress them in under a minute without downloading any app.</p>
 
