@@ -19,7 +19,6 @@ export default function HomePage() {
   return (
     <>
       <Navbar />
-      <main>
 
       {/* ── HERO ── */}
       <section style={{
@@ -79,7 +78,7 @@ export default function HomePage() {
             Your files.<br />Your device.<br />
             <em style={{
               fontStyle: 'normal',
-              color: 'var(--amber-text)',
+              color: 'var(--amber)',
               position: 'relative',
               display: 'inline-block',
             }}>Your rules.
@@ -294,7 +293,7 @@ export default function HomePage() {
         <div className="section-inner">
           <div style={{
             fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px',
-            color: 'var(--amber-text)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '14px',
+            color: 'var(--amber)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '14px',
           }}>// 55+ tools</div>
           <h2 style={{
             fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800,
@@ -457,7 +456,7 @@ export default function HomePage() {
             <div>
               <div style={{
                 fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px',
-                color: 'var(--amber-text)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '14px',
+                color: 'var(--amber)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '14px',
               }}>// privacy by design</div>
               <h2 style={{
                 fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800,
@@ -518,7 +517,6 @@ export default function HomePage() {
           .tool-arrow { opacity: 1 !important; transform: translateX(0) !important; }
         }
       `}</style>
-      </main>
     </>
   )
 }

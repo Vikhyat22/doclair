@@ -41,7 +41,7 @@ export default function Footer() {
 
           {/* Essentials */}
           <div>
-            <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '14px', color: 'white', marginBottom: '20px' }}>Essentials</h3>
+            <h4 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '14px', color: 'white', marginBottom: '20px' }}>Essentials</h4>
             {essentials.map(t => (
               <Link key={t.id} href={`/${t.slug}`} style={{ display: 'block', fontSize: '13px', color: 'rgba(255,255,255,0.45)', textDecoration: 'none', marginBottom: '12px', transition: 'color 0.15s' }}
                 onMouseEnter={e => (e.target as HTMLElement).style.color = 'white'}
@@ -53,7 +53,7 @@ export default function Footer() {
 
           {/* Edit & Convert */}
           <div>
-            <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '14px', color: 'white', marginBottom: '20px' }}>Edit &amp; Convert</h3>
+            <h4 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '14px', color: 'white', marginBottom: '20px' }}>Edit &amp; Convert</h4>
             {editConvert.map(t => (
               <Link key={t.id} href={`/${t.slug}`} style={{ display: 'block', fontSize: '13px', color: 'rgba(255,255,255,0.45)', textDecoration: 'none', marginBottom: '12px', transition: 'color 0.15s' }}
                 onMouseEnter={e => (e.target as HTMLElement).style.color = 'white'}
@@ -65,7 +65,7 @@ export default function Footer() {
 
           {/* Company */}
           <div>
-            <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '14px', color: 'white', marginBottom: '20px' }}>Company</h3>
+            <h4 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '14px', color: 'white', marginBottom: '20px' }}>Company</h4>
             {[
               { href: '/about', label: 'About' },
               { href: '/privacy', label: 'Privacy Policy' },
@@ -107,7 +107,7 @@ export default function Footer() {
                 fontSize: '10px',
                 letterSpacing: '0.06em',
                 textTransform: 'uppercase',
-                color: 'rgba(255,255,255,0.65)',
+                color: 'rgba(255,255,255,0.3)',
               }}>{label}</span>
             ))}
           </div>

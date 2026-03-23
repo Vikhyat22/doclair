@@ -4,7 +4,6 @@
   --cream: #F5F0E8;
   --ink: #1A1612;
   --amber: #E8820C;
-  --amber-text: #B86200; /* darkened amber for text on light/cream bg — passes 4.5:1 */
   --amber-light: #FFF0DC;
   --amber-pale: #FDF8F0;
   --muted: #7A6E62;
@@ -119,9 +118,8 @@ body::before {
   transition: color 0.2s ease, opacity 0.2s ease;
 }
 
-/* Footer badge pills */
+/* Footer badge pills hover */
 .footer-badge {
-  color: #B86200; /* darkened amber — passes WCAG AA on light backgrounds */
   transition: all 0.15s;
 }
 .footer-badge:hover {
@@ -129,10 +127,8 @@ body::before {
   color: rgba(255,255,255,0.6) !important;
 }
 
-/* Breadcrumb links — #5C5248 gives 6.7:1 on cream, passes WCAG AA */
+/* Breadcrumb links */
 .breadcrumb-link {
-  color: #5C5248 !important;
-  opacity: 1 !important;
   transition: color 0.15s;
 }
 .breadcrumb-link:hover {
