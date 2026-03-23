@@ -9,7 +9,6 @@ import ProgressCard from '@/components/ui/ProgressCard'
 import DownloadCard from '@/components/ui/DownloadCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
-import { mergePDFs } from '@/lib/pdf/merge'
 import type { FileItem, ToolState } from '@/types'
 
 const FAQS = [
@@ -87,6 +86,7 @@ export default function MergePDFPage() {
       setProgress(20)
       const realFiles = files.map(f => fileMapRef.current.get(f.id)!)
       setProgress(40)
+      const { mergePDFs } = await import('@/lib/pdf/merge')
       const bytes = await mergePDFs(realFiles)
       setProgress(100)
       setMergedBytes(bytes)
