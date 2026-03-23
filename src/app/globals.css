@@ -127,8 +127,10 @@ body::before {
   color: rgba(255,255,255,0.6) !important;
 }
 
-/* Breadcrumb links */
+/* Breadcrumb links — #5C5248 gives 6.7:1 on cream, passes WCAG AA */
 .breadcrumb-link {
+  color: #5C5248 !important;
+  opacity: 1 !important;
   transition: color 0.15s;
 }
 .breadcrumb-link:hover {
