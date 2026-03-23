@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Syne, DM_Sans, DM_Mono } from 'next/font/google'
 import './globals.css'
+import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration'
 
 const syne = Syne({
   subsets: ['latin'],
@@ -63,7 +64,10 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body>{children}</body>
+      <body>
+        <ServiceWorkerRegistration />
+        {children}
+      </body>
     </html>
   )
 }

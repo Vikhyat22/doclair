@@ -7,13 +7,12 @@ const withPWA = require('next-pwa')({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Turbopack config for `next dev --turbo`. No `root` — intentionally omitted
+  // so production builds don't use Turbopack (build script uses `--webpack` explicitly).
   turbopack: {
-    root: __dirname,
     resolveAlias: {
       canvas: './src/lib/empty.js',
       // Stub Node.js built-ins that @okathira/ghostpdl-wasm imports conditionally
-      // (the runtime check `typeof process !== "undefined"` guards these, but
-      //  Turbopack resolves them at bundle time regardless)
       'module': './src/lib/empty.js',
       'node:module': './src/lib/empty.js',
       'node:path': './src/lib/empty.js',
@@ -21,8 +20,19 @@ const nextConfig = {
       'node:fs': './src/lib/empty.js',
     },
   },
-
   webpack: (config) => {
+    // Mirror the Turbopack resolveAlias stubs so webpack builds work identically.
+    // canvas and Node built-ins are imported conditionally by ghostpdl-wasm;
+    // webpack must also stub them out to avoid bundle-time resolution errors.
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      canvas: require('path').resolve(__dirname, './src/lib/empty.js'),
+      'module': require('path').resolve(__dirname, './src/lib/empty.js'),
+      'node:module': require('path').resolve(__dirname, './src/lib/empty.js'),
+      'node:path': require('path').resolve(__dirname, './src/lib/empty.js'),
+      'node:url': require('path').resolve(__dirname, './src/lib/empty.js'),
+      'node:fs': require('path').resolve(__dirname, './src/lib/empty.js'),
+    }
     // Enable WASM as async modules so the 15MB gs.wasm loads correctly
     config.experiments = {
       ...config.experiments,
