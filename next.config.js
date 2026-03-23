@@ -7,9 +7,12 @@ const withPWA = require('next-pwa')({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Turbopack config for `next dev --turbo`. No `root` — intentionally omitted
-  // so production builds don't use Turbopack (build script uses `--webpack` explicitly).
+  // Turbopack config for `next dev --turbo`.
+  // root is set so Turbopack resolves from the correct directory (prevents the
+  // multi-lockfile workspace detection from picking /Users/vikhyatgupta as root).
+  // The build script uses `--webpack` explicitly, which overrides this config for builds.
   turbopack: {
+    root: __dirname,
     resolveAlias: {
       canvas: './src/lib/empty.js',
       // Stub Node.js built-ins that @okathira/ghostpdl-wasm imports conditionally
