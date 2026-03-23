@@ -7,6 +7,7 @@ import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import { addWatermark } from '@/lib/pdf/watermark'
 import type { WatermarkOptions, WatermarkPosition, WatermarkType } from '@/lib/pdf/watermark'
 
 const PRESETS = ['DRAFT', 'CONFIDENTIAL', 'COPY', 'FOR REVIEW', 'SAMPLE']
