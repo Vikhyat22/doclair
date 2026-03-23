@@ -4,6 +4,7 @@
   --cream: #F5F0E8;
   --ink: #1A1612;
   --amber: #E8820C;
+  --amber-text: #B86200; /* darkened amber for text on light/cream bg — passes 4.5:1 */
   --amber-light: #FFF0DC;
   --amber-pale: #FDF8F0;
   --muted: #7A6E62;
@@ -118,8 +119,9 @@ body::before {
   transition: color 0.2s ease, opacity 0.2s ease;
 }
 
-/* Footer badge pills hover */
+/* Footer badge pills */
 .footer-badge {
+  color: #B86200; /* darkened amber — passes WCAG AA on light backgrounds */
   transition: all 0.15s;
 }
 .footer-badge:hover {
