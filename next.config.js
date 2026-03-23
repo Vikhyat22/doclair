@@ -86,8 +86,8 @@ const nextConfig = {
         ],
       },
       {
-        // Also apply to the compress worker API if it exists
-        source: '/api/(.*)',
+        // Apply to the compress-pdf API route used by the compress worker
+        source: '/api/compress-pdf(.*)',
         headers: [
           { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
           { key: 'Cross-Origin-Opener-Policy',   value: 'same-origin'  },

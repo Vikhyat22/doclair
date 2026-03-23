@@ -27,7 +27,15 @@ export const metadata: Metadata = {
   description:
     '55+ free browser-based PDF, image & document tools. No upload, no watermark, no sign-up. Files never leave your device.',
   metadataBase: new URL('https://doclair.in'),
-  openGraph: { siteName: 'Doclair', type: 'website' },
+  openGraph: {
+    siteName: 'Doclair',
+    type: 'website',
+    images: [{ url: 'https://doclair.in/og-image.png', width: 1200, height: 630, alt: 'Doclair — Free PDF Tools' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    images: ['https://doclair.in/og-image.png'],
+  },
   robots: { index: true, follow: true },
   // favicon.ico, icon.png and apple-icon.png are in src/app/ —
   // Next.js App Router picks them up automatically (no metadata.icons needed)
@@ -45,20 +53,24 @@ export default function RootLayout({
     >
       <head>
         {/* Google Analytics 4 */}
-        <script
-          async
-          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}');
-            `,
-          }}
-        />
+        {process.env.NEXT_PUBLIC_GA_ID && (
+          <>
+            <script
+              async
+              src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
+            />
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}');
+                `,
+              }}
+            />
+          </>
+        )}
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#1A1612" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
