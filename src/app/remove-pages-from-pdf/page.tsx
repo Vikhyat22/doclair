@@ -93,7 +93,7 @@ export default function RemovePagesPage() {
   function handleDownload() {
     if (!resultBytes) return
     const a = document.createElement('a')
-    a.href = URL.createObjectURL(new Blob([resultBytes], { type: 'application/pdf' }))
+    a.href = URL.createObjectURL(new Blob([resultBytes as BlobPart], { type: 'application/pdf' }))
     a.download = 'doclair-pages-removed.pdf'; a.click()
   }
 
