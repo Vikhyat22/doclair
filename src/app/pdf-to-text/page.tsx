@@ -154,6 +154,7 @@ export default function PDFToTextPage() {
         { name: 'PDF to Markdown',  slug: 'pdf-to-markdown',   icon: '#️⃣', colorBg: '#DBEAFE' },
         { name: 'Chat with PDF',    slug: 'chat-with-pdf',     icon: '💬', colorBg: '#F0FDF4' },
       ]}
+      blogPost={{ slug: 'how-to-extract-text-from-pdf', title: 'How to Extract Text From PDF Free' }}
     />
   )
 

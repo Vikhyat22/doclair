@@ -78,12 +78,14 @@ export default function ExcelToPDFPage() {
   const [activeSheet, setActiveSheet] = useState(0)
   const [fileName, setFileName]       = useState('')
   const [loading, setLoading]         = useState(false)
+  const [parseError, setParseError]   = useState('')
 
   const handleFiles = useCallback(async (files: File[]) => {
     if (files.length === 0) return
     const f = files[0]
     setFileName(f.name)
     setLoading(true)
+    setParseError('')
     try {
       const buf  = await f.arrayBuffer()
       const data = parseExcelFile(buf)
@@ -91,6 +93,7 @@ export default function ExcelToPDFPage() {
       setActiveSheet(0)
     } catch (err) {
       console.error(err)
+      setParseError(err instanceof Error ? err.message : 'Failed to parse spreadsheet — make sure it is a valid .xlsx or .xls file')
     } finally {
       setLoading(false)
     }
@@ -123,6 +126,11 @@ export default function ExcelToPDFPage() {
         sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
       >
         <div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+            <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#DCFCE7', color: '#166534', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✓ 100% Free</span>
+            <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#FFF0DC', color: '#92400E', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>🔒 Files Stay On Device</span>
+            <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#EDE9FE', color: '#6B21A8', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✦ No Watermark</span>
+          </div>
           <h1 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(28px, 4vw, 48px)', letterSpacing: '-1px', lineHeight: 1.05, marginBottom: '10px' }}>
             <span style={{ color: 'var(--ink)' }}>Excel to PDF </span>
             <span style={{ color: 'var(--amber)' }}>Convert Spreadsheets to PDF</span>
@@ -134,6 +142,10 @@ export default function ExcelToPDFPage() {
 
         {sheets.length === 0 && !loading && (
           <DropZone onFilesAdded={handleFiles} accept=".xlsx,.xls,.xlsm" maxFiles={1} maxSizeMB={50} icon="📊" label="Drop your Excel file here" subLabel="or click to browse — .xlsx, .xls, .xlsm" currentCount={0} />
+        )}
+
+        {parseError && (
+          <div style={{ color: '#DC2626', fontSize: '13px', padding: '14px 20px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '12px' }}>{parseError}</div>
         )}
 
         {loading && (

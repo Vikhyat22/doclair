@@ -210,6 +210,7 @@ export default function SplitPDFPage() {
         { name: 'PDF Viewer',     slug: 'pdf-viewer',            icon: '👁️', colorBg: '#EDE9FE', desc: 'View PDFs in browser' },
         { name: 'Add Bookmarks',  slug: 'add-bookmarks',         icon: '🔖', colorBg: '#FFF0DC', desc: 'Add navigation bookmarks' },
       ]}
+      blogPost={{ slug: 'how-to-split-a-pdf', title: 'How to Split a PDF File Free — Extract Pages or Ranges' }}
     />
   )
 

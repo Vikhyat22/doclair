@@ -577,6 +577,7 @@ export default function OrganizePagesPage() {
         { name: 'Add Page Numbers', slug: 'add-page-numbers',      icon: '🔢', colorBg: '#FFF0DC', desc: 'Number your pages' },
         { name: 'PDF Viewer',       slug: 'pdf-viewer',            icon: '👁️', colorBg: '#EDE9FE', desc: 'View PDFs in browser' },
       ]}
+      blogPost={{ slug: 'how-to-rearrange-pdf-pages', title: 'How to Rearrange PDF Pages Free — Drag to Reorder Instantly' }}
     />
   )
 

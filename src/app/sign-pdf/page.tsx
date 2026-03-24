@@ -230,6 +230,7 @@ export default function SignPDFPage() {
   const [pendingSig, setPendingSig] = useState<{ dataUrl: string; w: number; h: number } | null>(null)
   const [placing, setPlacing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [dragging, setDragging] = useState<{ id: string; ox: number; oy: number; sx: number; sy: number } | null>(null)
   const [resizing, setResizing] = useState<{ id: string; startW: number; startH: number; startX: number; startY: number } | null>(null)
@@ -325,6 +326,7 @@ export default function SignPDFPage() {
   const savePDF = async () => {
     if (!pageUrls.length) return
     setSaving(true)
+    setSaveError('')
     try {
       const { PDFDocument } = await import('@cantoo/pdf-lib')
       const out = await PDFDocument.create()
@@ -351,6 +353,9 @@ export default function SignPDFPage() {
       const a = document.createElement('a'); a.href = url
       a.download = pdfFile ? pdfFile.name.replace(/\.pdf$/i, '-signed.pdf') : 'signed.pdf'
       a.click(); URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error(err)
+      setSaveError(err instanceof Error ? err.message : 'Failed to save signed PDF')
     } finally { setSaving(false) }
   }
 
@@ -367,6 +372,7 @@ export default function SignPDFPage() {
         { name: 'Encrypt PDF', slug: 'encrypt-pdf', icon: '🔐', colorBg: '#FEE2E2', desc: 'Add password protection' },
         { name: 'PDF Viewer', slug: 'pdf-viewer', icon: '👓', colorBg: '#F3F4F6', desc: 'View PDFs in browser' },
       ]}
+      blogPost={{ slug: 'how-to-sign-pdf-free', title: 'How to Sign a PDF Free — Add Your Signature Without Printing' }}
     />
   )
 
@@ -418,6 +424,7 @@ export default function SignPDFPage() {
           }}>{saving ? 'Saving…' : 'Download Signed PDF'}</button>
         </div>
       )}
+      {saveError && <div style={{ color: '#DC2626', fontSize: '13px', textAlign: 'center', marginTop: '8px' }}>{saveError}</div>}
 
       {/* Page nav */}
       {hasFile && pageCount > 1 && (

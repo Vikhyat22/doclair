@@ -151,6 +151,7 @@ export default function EncryptPDFPage() {
         { name: 'Add Watermark',    slug: 'add-watermark',    icon: '💧', colorBg: '#DBEAFE', desc: 'Stamp text or image watermark' },
         { name: 'Add Page Numbers', slug: 'add-page-numbers', icon: '🔢', colorBg: '#FFF0DC', desc: 'Number pages automatically' },
       ]}
+      blogPost={{ slug: 'how-to-protect-pdf-with-password', title: 'How to Password Protect a PDF Free — AES-256' }}
     />
   )
 

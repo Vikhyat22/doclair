@@ -213,6 +213,7 @@ export default function EditPDFPage() {
   const [sigPlacing, setSigPlacing] = useState<string | null>(null) // dataUrl waiting to be placed
   const [dragging, setDragging] = useState<{ id: string; startX: number; startY: number; ox: number; oy: number } | null>(null)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const pdfDocRef = useRef<unknown>(null)
@@ -304,12 +305,12 @@ export default function EditPDFPage() {
   const savePDF = async () => {
     if (!canvasDataUrls.length) return
     setSaving(true)
+    setSaveError('')
     try {
       const { PDFDocument } = await import('@cantoo/pdf-lib')
       const outDoc = await PDFDocument.create()
 
       for (let pi = 0; pi < canvasDataUrls.length; pi++) {
-        // Composite: render base page + overlays onto an offscreen canvas
         const img = new Image()
         await new Promise<void>(res => { img.onload = () => res(); img.src = canvasDataUrls[pi] })
 
@@ -353,6 +354,9 @@ export default function EditPDFPage() {
       a.download = pdfFile ? pdfFile.name.replace(/\.pdf$/i, '-edited.pdf') : 'edited.pdf'
       a.click()
       URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error(err)
+      setSaveError(err instanceof Error ? err.message : 'Failed to save edited PDF')
     } finally {
       setSaving(false)
     }
@@ -451,6 +455,7 @@ export default function EditPDFPage() {
           }}>{saving ? 'Saving…' : 'Download PDF'}</button>
         )}
       </div>
+      {saveError && <div style={{ color: '#DC2626', fontSize: '13px', textAlign: 'center', marginTop: '8px' }}>{saveError}</div>}
 
       {/* Page navigation */}
       {hasFile && pageCount > 1 && (

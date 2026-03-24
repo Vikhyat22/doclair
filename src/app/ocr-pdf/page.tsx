@@ -183,6 +183,7 @@ export default function OcrPDFPage() {
         { name: 'Chat with PDF', slug: 'chat-with-pdf', icon: '💬', colorBg: '#DBEAFE', desc: 'Ask questions about your PDF' },
         { name: 'AI Summarizer', slug: 'ai-summarizer', icon: '🤖', colorBg: '#EDE9FE', desc: 'Summarise any document' },
       ]}
+      blogPost={{ slug: 'how-to-make-pdf-searchable', title: 'How to Make a Scanned PDF Searchable Free (OCR)' }}
     />
   )
 

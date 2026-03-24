@@ -162,6 +162,7 @@ export default function RemovePagesPage() {
         { name: 'Add Blank Page',  slug: 'add-blank-page',   icon: '📄', colorBg: '#DCFCE7', desc: 'Insert blank pages' },
         { name: 'Add Pages',       slug: 'add-pages-to-pdf', icon: '➕', colorBg: '#DBEAFE', desc: 'Insert pages from another PDF' },
       ]}
+      blogPost={{ slug: 'how-to-delete-pages-from-pdf', title: 'How to Delete Pages From PDF Free — Remove Any Page Instantly' }}
     />
   )
 

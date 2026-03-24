@@ -132,6 +132,7 @@ export default function MergePDFPage() {
         { name: 'Word → PDF', slug: 'word-to-pdf', icon: '📄', colorBg: '#DBEAFE', desc: 'Secure document conversion' },
         { name: 'Encrypt PDF', slug: 'encrypt-pdf', icon: '🔐', colorBg: '#FEE2E2', desc: 'Add password protection' },
       ]}
+      blogPost={{ slug: 'how-to-merge-pdf-files-free', title: 'How to Merge PDF Files Free — No Watermark' }}
     />
   )
 

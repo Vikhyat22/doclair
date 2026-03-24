@@ -165,6 +165,7 @@ export default function PdfToJpgPage() {
         { name: 'PDF to WebP',  slug: 'pdf-to-webp',  icon: '🌐', colorBg: '#FFF0DC', desc: 'Modern image format' },
         { name: 'Merge PDF',    slug: 'merge-pdf',    icon: '🔀', colorBg: '#DBEAFE', desc: 'Combine multiple PDFs' },
       ]}
+      blogPost={{ slug: 'how-to-convert-pdf-to-jpg', title: 'How to Convert PDF to JPG Free — Extract All Pages as Images' }}
     />
   )
 

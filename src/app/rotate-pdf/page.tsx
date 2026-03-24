@@ -226,6 +226,7 @@ export default function RotatePDFPage() {
         { name: 'PDF Viewer',   slug: 'pdf-viewer',             icon: '👁️', colorBg: '#FFF0DC', desc: 'View PDFs in browser' },
         { name: 'Remove Pages', slug: 'remove-pages-from-pdf',  icon: '🗑️', colorBg: '#FEE2E2', desc: 'Delete unwanted pages' },
       ]}
+      blogPost={{ slug: 'how-to-rotate-pdf-pages', title: 'How to Rotate PDF Pages Free — Fix Upside-Down or Sideways Pages' }}
     />
   )
 

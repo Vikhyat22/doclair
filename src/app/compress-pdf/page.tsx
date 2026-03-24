@@ -187,6 +187,7 @@ export default function CompressPDFPage() {
         { name: 'Word → PDF',      slug: 'word-to-pdf',     icon: '📄', colorBg: '#DBEAFE', desc: 'Secure document conversion' },
         { name: 'Remove Password', slug: 'remove-password', icon: '🔓', colorBg: '#DCFCE7', desc: 'Unlock protected PDFs' },
       ]}
+      blogPost={{ slug: 'how-to-compress-pdf-file', title: 'How to Compress PDF File Free — Reduce Size Instantly' }}
     />
   )
 

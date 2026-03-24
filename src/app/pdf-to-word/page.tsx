@@ -126,6 +126,7 @@ export default function PDFToWordPage() {
         { name: 'PDF to JPG',   slug: 'pdf-to-jpg',   icon: '🖼️', colorBg: '#FFF0DC', desc: 'Export pages as images' },
         { name: 'OCR PDF',      slug: 'ocr-pdf',      icon: '🔍', colorBg: '#DBEAFE', desc: 'Add text layer to scanned PDFs' },
       ]}
+      blogPost={{ slug: 'how-to-convert-pdf-to-word', title: 'How to Convert PDF to Word Free — Get an Editable .docx' }}
     />
   )
 

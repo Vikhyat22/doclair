@@ -129,6 +129,7 @@ export default function RemoveBackgroundPage() {
         { name: 'OCR PDF',    slug: 'ocr-pdf',    icon: '🤖', colorBg: '#EDE9FE' },
         { name: 'Chat with PDF', slug: 'chat-with-pdf', icon: '💬', colorBg: '#F0FDF4' },
       ]}
+      blogPost={{ slug: 'how-to-remove-background-from-image', title: 'How to Remove Background From Image Free (AI)' }}
     />
   )
 

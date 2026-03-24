@@ -124,6 +124,7 @@ export default function TranslatePDFPage() {
         { name: 'AI Summarizer', slug: 'ai-summarizer', icon: '🤖', colorBg: '#EDE9FE', desc: 'Get key points instantly' },
         { name: 'PDF to Text', slug: 'pdf-to-text', icon: '📝', colorBg: '#D1FAE5', desc: 'Extract all text from PDF' },
       ]}
+      blogPost={{ slug: 'how-to-translate-pdf', title: 'How to Translate a PDF Free — AI-Powered, 30+ Languages' }}
     />
   )
 

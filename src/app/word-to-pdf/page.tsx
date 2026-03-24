@@ -165,6 +165,7 @@ export default function WordToPDFPage() {
         { name: 'PDF to Word',      slug: 'pdf-to-word',      icon: '📝', colorBg: '#FEE2E2', desc: 'Extract editable text' },
         { name: 'Add Page Numbers', slug: 'add-page-numbers', icon: '🔢', colorBg: '#FFF0DC', desc: 'Number your pages' },
       ]}
+      blogPost={{ slug: 'how-to-convert-word-to-pdf', title: 'How to Convert Word to PDF Free — Keep Formatting' }}
     />
   )
 

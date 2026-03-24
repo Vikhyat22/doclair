@@ -66,6 +66,7 @@ export default function ComparePdfsPage() {
   const [viewMode, setViewMode]     = useState<ViewMode>('side-by-side')
   const [opacity, setOpacity]       = useState(50)
   const [zoom, setZoom]             = useState(1.0)
+  const [loadError, setLoadError]   = useState('')
   const panel1Ref                   = useRef<HTMLDivElement>(null)
   const panel2Ref                   = useRef<HTMLDivElement>(null)
   const syncingRef                  = useRef(false)
@@ -95,15 +96,15 @@ export default function ComparePdfsPage() {
   const loadFile1 = useCallback(async (files: File[]) => {
     const f = files[0]; if (!f) return
     pages1.forEach(u => URL.revokeObjectURL(u))
-    setFile1(f); setPages1([]); setLoading1(true); setCurrentPage(1)
-    try { const p = await renderPdfToPages(f, 1.5); setPages1(p) } catch { /* ignore */ } finally { setLoading1(false) }
+    setFile1(f); setPages1([]); setLoading1(true); setCurrentPage(1); setLoadError('')
+    try { const p = await renderPdfToPages(f, 1.5); setPages1(p) } catch (err) { console.error(err); setLoadError('Failed to load first PDF: ' + (err instanceof Error ? err.message : 'Unknown error')) } finally { setLoading1(false) }
   }, [pages1])
 
   const loadFile2 = useCallback(async (files: File[]) => {
     const f = files[0]; if (!f) return
     pages2.forEach(u => URL.revokeObjectURL(u))
-    setFile2(f); setPages2([]); setLoading2(true); setCurrentPage(1)
-    try { const p = await renderPdfToPages(f, 1.5); setPages2(p) } catch { /* ignore */ } finally { setLoading2(false) }
+    setFile2(f); setPages2([]); setLoading2(true); setCurrentPage(1); setLoadError('')
+    try { const p = await renderPdfToPages(f, 1.5); setPages2(p) } catch (err) { console.error(err); setLoadError('Failed to load second PDF: ' + (err instanceof Error ? err.message : 'Unknown error')) } finally { setLoading2(false) }
   }, [pages2])
 
   const handleReset = useCallback(() => {
@@ -153,6 +154,7 @@ export default function ComparePdfsPage() {
 
       {/* Two upload dropzones */}
       {!bothLoaded && (
+      <>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           {/* File 1 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -188,6 +190,8 @@ export default function ComparePdfsPage() {
             )}
           </div>
         </div>
+        {loadError && <div style={{ color: '#DC2626', fontSize: '13px', marginTop: '10px', padding: '10px 16px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px' }}>{loadError}</div>}
+      </>
       )}
 
       {/* Toolbar */}

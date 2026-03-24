@@ -105,6 +105,7 @@ export default function AnnotatePDFPage() {
   const [color, setColor] = useState('#FBBF24')
   const [lineWidth, setLineWidth] = useState(3)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [activeComment, setActiveComment] = useState<string | null>(null)
 
@@ -259,6 +260,7 @@ export default function AnnotatePDFPage() {
   const savePDF = async () => {
     if (!canvasUrls.length) return
     setSaving(true)
+    setSaveError('')
     try {
       const { PDFDocument } = await import('@cantoo/pdf-lib')
       const outDoc = await PDFDocument.create()
@@ -292,6 +294,9 @@ export default function AnnotatePDFPage() {
       a.download = pdfFile ? pdfFile.name.replace(/\.pdf$/i, '-annotated.pdf') : 'annotated.pdf'
       a.click()
       URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error(err)
+      setSaveError(err instanceof Error ? err.message : 'Failed to save annotated PDF')
     } finally {
       setSaving(false)
     }
@@ -393,6 +398,7 @@ export default function AnnotatePDFPage() {
               }}>{saving ? 'Saving…' : 'Download PDF'}</button>
             )}
           </div>
+          {saveError && <div style={{ color: '#DC2626', fontSize: '13px', textAlign: 'center', marginTop: '8px' }}>{saveError}</div>}
 
           {/* Page nav */}
           {hasFile && pageCount > 1 && (

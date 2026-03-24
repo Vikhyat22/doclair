@@ -317,6 +317,7 @@ export default function JpgToPDFPage() {
         { name: 'Rotate PDF',   slug: 'rotate-pdf',   icon: '🔄', colorBg: '#FFF0DC', desc: 'Fix page orientation' },
         { name: 'PDF to PNG',   slug: 'pdf-to-png',   icon: '🖼️', colorBg: '#FEE2E2', desc: 'Lossless page images' },
       ]}
+      blogPost={{ slug: 'how-to-convert-jpg-to-pdf', title: 'How to Convert JPG to PDF Free — Merge Multiple Images' }}
     />
   )
 
