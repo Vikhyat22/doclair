@@ -282,10 +282,11 @@ const addFile = useCallback(async (files: File[]) => {
       ]}
       relatedTools={[
         { name: 'Encrypt PDF',         slug: 'encrypt-pdf',      icon: '🔐', colorBg: '#DCFCE7', desc: 'Password-protect PDF' },
-        { name: 'Edit PDF Metadata',   slug: 'edit-metadata',    icon: '✏️', colorBg: '#EDE9FE', desc: 'Edit title, author, dates' },
+        { name: 'Edit PDF Metadata',   slug: 'edit-pdf-metadata',    icon: '✏️', colorBg: '#EDE9FE', desc: 'Edit title, author, dates' },
         { name: 'Fingerprint PDF',     slug: 'fingerprint-pdf',  icon: '🪪', colorBg: '#FFF0DC', desc: 'Add invisible tracking marks' },
         { name: 'Compress PDF',        slug: 'compress-pdf',     icon: '📦', colorBg: '#DCFCE7', desc: 'Reduce file size' },
       ]}
+      blogPost={{ slug: 'how-to-redact-pdf', title: 'How to Redact a PDF Free — Permanently Black Out Sensitive Text' }}
     />
   )
 

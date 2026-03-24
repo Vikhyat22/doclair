@@ -157,7 +157,7 @@ export default function AddPageNumbersPage() {
       ]}
       relatedTools={[
         { name: 'Add Watermark',     slug: 'add-watermark', icon: '💧', colorBg: '#EDE9FE', desc: 'Stamp text or image watermarks' },
-        { name: 'Edit PDF Metadata', slug: 'edit-metadata', icon: '🏷️', colorBg: '#FFF0DC', desc: 'Update title, author, keywords' },
+        { name: 'Edit PDF Metadata', slug: 'edit-pdf-metadata', icon: '🏷️', colorBg: '#FFF0DC', desc: 'Update title, author, keywords' },
         { name: 'Merge PDF',         slug: 'merge-pdf',     icon: '🔀', colorBg: '#DCFCE7', desc: 'Combine multiple PDFs' },
         { name: 'Compress PDF',      slug: 'compress-pdf',  icon: '📦', colorBg: '#DCFCE7', desc: 'Reduce file size' },
         { name: 'Split PDF',         slug: 'split-pdf',     icon: '✂️', colorBg: '#EDE9FE', desc: 'Extract page ranges' },

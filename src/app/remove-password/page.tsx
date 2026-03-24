@@ -190,7 +190,7 @@ export default function RemovePasswordPage() {
         { name: 'Compress PDF',      slug: 'compress-pdf',     icon: '📦', colorBg: '#DCFCE7', desc: 'Reduce file size' },
         { name: 'Merge PDF',         slug: 'merge-pdf',        icon: '🔀', colorBg: '#DBEAFE', desc: 'Combine multiple PDFs' },
         { name: 'Split PDF',         slug: 'split-pdf',        icon: '✂️', colorBg: '#EDE9FE', desc: 'Extract page ranges' },
-        { name: 'Edit PDF Metadata', slug: 'edit-metadata',    icon: '✏️', colorBg: '#FFF0DC', desc: 'Edit title, author and more' },
+        { name: 'Edit PDF Metadata', slug: 'edit-pdf-metadata',    icon: '✏️', colorBg: '#FFF0DC', desc: 'Edit title, author and more' },
         { name: 'Add Page Numbers',  slug: 'add-page-numbers', icon: '🔢', colorBg: '#FEE2E2', desc: 'Stamp page numbers on a PDF' },
       ]}
       blogPost={{ slug: 'how-to-remove-password-from-pdf', title: 'How to Remove Password From PDF Free — Unlock Instantly' }}

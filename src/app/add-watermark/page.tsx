@@ -255,8 +255,9 @@ export default function AddWatermarkPage() {
         { name: 'Flatten PDF',       slug: 'flatten-pdf',         icon: '🔥', colorBg: '#FEE2E2', desc: 'Flatten annotations permanently' },
         { name: 'Add Page Numbers',  slug: 'add-page-numbers',    icon: '🔢', colorBg: '#EDE9FE', desc: 'Stamp page numbers on PDF' },
         { name: 'Redact PDF',        slug: 'redact-pdf',          icon: '⬛', colorBg: '#1A1612', desc: 'Permanently remove sensitive text' },
-        { name: 'Edit PDF Metadata', slug: 'edit-metadata',       icon: '🏷️', colorBg: '#FFF0DC', desc: 'Change title, author and more' },
+        { name: 'Edit PDF Metadata', slug: 'edit-pdf-metadata',       icon: '🏷️', colorBg: '#FFF0DC', desc: 'Change title, author and more' },
       ]}
+      blogPost={{ slug: 'how-to-add-watermark-to-pdf', title: 'How to Add a Watermark to PDF Free — Text or Image' }}
     />
   )
 

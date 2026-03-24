@@ -387,6 +387,7 @@ export default function EditPDFPage() {
         { name: 'Add Watermark', slug: 'add-watermark', icon: '💧', colorBg: '#DBEAFE', desc: 'Stamp text or image watermark' },
         { name: 'Merge PDF', slug: 'merge-pdf', icon: '🔀', colorBg: '#FFF0DC', desc: 'Combine multiple PDFs' },
       ]}
+      blogPost={{ slug: 'best-free-pdf-editor-no-watermark', title: 'Best Free PDF Editor — No Watermark, No Sign-Up' }}
     />
   )
 
