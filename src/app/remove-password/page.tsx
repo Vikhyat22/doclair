@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { decryptPDF, isEncrypted } from '@/lib/pdf/decrypt'
+import { decryptPDF, analyzePdfForUnlock } from '@/lib/pdf/decrypt'
 import { decryptWithPassword } from '@/lib/pdf/decryptWithPassword'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
@@ -97,8 +97,12 @@ export default function RemovePasswordPage() {
     setPasswordError(null)
     setRenderProgress(null)
 
-    const enc = await isEncrypted(f)
+    const { encrypted: enc, needsOpenPassword } = await analyzePdfForUnlock(f)
     setEncrypted(enc)
+    if (needsOpenPassword) {
+      setNeedsPassword(true)
+      setTimeout(() => passwordInputRef.current?.focus(), 100)
+    }
   }, [])
 
   async function handleRemove() {
@@ -348,9 +352,9 @@ export default function RemovePasswordPage() {
                   <div style={{
                     fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700,
                     fontSize: '15px', color: 'var(--ink)', marginBottom: '4px',
-                  }}>This PDF requires a password to open</div>
+                  }}>Password required to open this PDF</div>
                   <div style={{ fontSize: '13px', color: 'var(--ink)', opacity: 0.6, lineHeight: 1.6 }}>
-                    Enter the password and Doclair will decrypt all pages in your browser. Nothing leaves your device.
+                    Enter the same password you use in Adobe or your bank app (often sent by SMS or email). Doclair decrypts every page in your browser — nothing is uploaded.
                   </div>
                 </div>
               </div>
