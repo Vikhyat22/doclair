@@ -759,6 +759,26 @@ export default function GSTInvoicePage() {
         </div>
       )}
 
+      {/* SEO */}
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+          How to Create a GST Invoice PDF — Step by Step
+        </h2>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          A GST-compliant invoice must include GSTIN, HSN/SAC codes, tax breakdowns (CGST, SGST, IGST), and the invoice number. Doclair generates a print-ready GST invoice PDF entirely in your browser.
+        </p>
+        <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Enter your business name, GSTIN, and address.</strong> GSTIN is validated instantly as you type.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Add the customer&apos;s details and GSTIN.</strong> Leave GSTIN blank for B2C (unregistered) customers.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Add line items with HSN/SAC codes, quantity, rate, and GST rate (5%, 12%, 18%, or 28%).</strong> CGST/SGST or IGST is calculated automatically based on place of supply.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Generate Invoice — review the preview and download as PDF.</strong> Your invoice data never leaves your browser.</li>
+        </ol>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>Is this GST invoice format legally compliant?</h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>The format follows standard GST invoice requirements under the CGST Act — GSTIN, supply date, invoice number, HSN/SAC codes, and tax breakdowns are all included. Always verify with your CA or tax advisor that the format meets your specific business requirements.</p>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>GST Invoice on iPhone and Android</h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>Doclair works in mobile Safari and Chrome. Fill in the invoice details on your phone and download the PDF directly to share with your customer by WhatsApp, email, or print.</p>
+      </div>
+
       {/* FAQ */}
       <FAQ faqs={FAQS} />
     </ToolPageLayout>

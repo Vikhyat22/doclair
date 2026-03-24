@@ -41,6 +41,22 @@ const JSON_LD = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'PDF to JSON', item: 'https://doclair.in/pdf-to-json' },
+      ],
+    },
   ],
 }
 
@@ -202,6 +218,25 @@ export default function PDFToJSONPage() {
             </button>
           </>
         )}
+
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+          <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+            How to Extract PDF Data as JSON — Step by Step
+          </h2>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+            PDF to JSON extracts the structured text content from a PDF and outputs it as a machine-readable JSON file. This is useful for developers building data pipelines, feeding PDF content into APIs, or automating document processing.
+          </p>
+          <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Upload your PDF.</strong> Drop the file or click to browse.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Doclair extracts text, metadata, and page structure.</strong> Processing happens in your browser with no server upload.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Preview the JSON output.</strong> The first 30 lines are shown inline.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Download JSON to save the file.</strong> Or copy the full JSON to clipboard.</li>
+          </ol>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>What data is included in the JSON output?</h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>The JSON includes the document metadata (title, author, creation date), total page count, and for each page: the page number and extracted text content. Tables and complex layouts are extracted as flat text; vector graphics and images are not included.</p>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>PDF to JSON on iPhone and Android</h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>Doclair works in mobile Safari and Chrome. Upload your PDF and download the JSON file directly to your device for further processing.</p>
+        </div>
 
         <FAQ faqs={FAQS} />
       </ToolPageLayout>

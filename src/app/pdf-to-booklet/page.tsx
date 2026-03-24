@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import FAQ from '@/components/ui/FAQ'
 import { rgb } from '@cantoo/pdf-lib'
 
 const SIDEBAR_RELATED = [
@@ -214,6 +215,35 @@ export default function PDFToBookletPage() {
           </>
         )}
       </div>
+
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+          How to Create a PDF Booklet — Step by Step
+        </h2>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          PDF booklet layout (also called saddle-stitch or signature layout) reorders pages so that when printed double-sided and folded, they read in the correct order. Doclair handles all the reordering automatically.
+        </p>
+        <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Drop your PDF into the upload area.</strong> No account needed.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Choose paper size.</strong> Select A4 or Letter and your preferred orientation.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Convert to Booklet.</strong> The PDF is reordered for booklet printing.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Print double-sided and fold.</strong> Flip on short edge and fold in the middle to create your booklet.</li>
+        </ol>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
+          What is booklet printing?
+        </h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          Booklet printing reorders pages so that 4 document pages fit on a single sheet of paper. For example, a 12-page document becomes 3 sheets — pages 12, 1, 2, 11 on sheet one; pages 10, 3, 4, 9 on sheet two; and so on. Fold and staple the result to create a professional booklet.
+        </p>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
+          PDF Booklet on iPhone and Android
+        </h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>
+          Doclair works in mobile Safari and Chrome. Upload your PDF from the Files app and download the booklet-ready PDF to print from a nearby printer or send to a print shop.
+        </p>
+      </div>
+
+      <FAQ faqs={FAQS} />
     </ToolPageLayout>
   )
 }

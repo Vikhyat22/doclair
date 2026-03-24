@@ -41,6 +41,22 @@ const JSON_LD = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'Text to PDF', item: 'https://doclair.in/text-to-pdf' },
+      ],
+    },
   ],
 }
 
@@ -178,6 +194,25 @@ export default function TextToPDFPage() {
         {toolState === 'done' && result && (
           <DownloadCard filename="doclair-text.pdf" description={`${text.split('\n').length} lines converted`} onDownload={handleDownload} onReset={handleReset} />
         )}
+
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+          <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+            How to Convert Text to PDF — Step by Step
+          </h2>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+            Need to save plain text as a PDF for sharing, printing, or archiving? Doclair converts any .txt file or pasted text into a clean, readable PDF in seconds.
+          </p>
+          <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Paste your text into the editor or upload a .txt file.</strong> The text area accepts any plain text content.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Choose font size and page size.</strong> Select A4 or Letter and pick from Sans-serif, Serif, or Monospace fonts.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Create PDF.</strong> The PDF is generated instantly in your browser with no upload required.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Download the PDF file.</strong> Save it to your device and share or print as needed.</li>
+          </ol>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>When to use Text to PDF?</h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>Text to PDF is useful for converting log files, code snippets, plain-text documents, or notes into shareable PDFs. It&apos;s also handy for creating simple form letters, instructions, or notices without a word processor.</p>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>Text to PDF on iPhone and Android</h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>Doclair works in mobile Safari and Chrome. Paste or upload your text, configure the layout, and download the PDF directly to your device.</p>
+        </div>
 
         <FAQ faqs={FAQS} />
       </ToolPageLayout>

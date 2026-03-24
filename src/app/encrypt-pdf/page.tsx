@@ -406,6 +406,26 @@ export default function EncryptPDFPage() {
         </div>
       )}
 
+      {/* SEO */}
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+          How to Password Protect a PDF — Step by Step
+        </h2>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          Encrypting a PDF with a password prevents unauthorized access. Anyone who opens the file must enter the password first. Doclair applies AES-256 encryption entirely in your browser.
+        </p>
+        <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Upload your PDF.</strong> Drop your file into the upload area — it stays on your device throughout.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Enter an owner password (required to change permissions).</strong> This controls who can edit, print, or copy the document.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Optionally add a user password (required to open the file).</strong> Leave blank if you only want to restrict permissions without blocking access.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Encrypt and download the protected PDF.</strong> AES-256 encryption is applied instantly in your browser.</li>
+        </ol>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>What is the difference between owner and user passwords?</h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>The user password (also called the open password) must be entered to open and read the PDF. The owner password controls editing, printing, and copying permissions. You can set both, one, or neither — but at minimum, you need an owner password to apply any restrictions.</p>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>Encrypt PDF on iPhone and Android</h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>Doclair works in mobile Safari and Chrome. Upload your PDF, set your passwords, and download the encrypted file directly to your device.</p>
+      </div>
+
       {/* FAQ */}
       <FAQ faqs={FAQS} />
     </ToolPageLayout>

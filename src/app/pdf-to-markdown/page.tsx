@@ -41,6 +41,22 @@ const JSON_LD = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'PDF to Markdown', item: 'https://doclair.in/pdf-to-markdown' },
+      ],
+    },
   ],
 }
 
@@ -183,6 +199,25 @@ export default function PDFToMarkdownPage() {
             </div>
           </>
         )}
+
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+          <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+            How to Convert PDF to Markdown — Step by Step
+          </h2>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+            PDF to Markdown extracts text from a PDF and converts it to Markdown format — useful for ingesting document content into note-taking apps, knowledge bases, or AI tools that work with Markdown.
+          </p>
+          <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Upload your PDF.</strong> Drop the file or click to browse.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Doclair extracts the text and applies Markdown formatting.</strong> A progress bar shows page-by-page status.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Preview the Markdown output.</strong> The first 500 characters are shown inline.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Copy to clipboard or download as a .md file.</strong> Use it directly in your editor or knowledge base.</li>
+          </ol>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>What Markdown formatting is applied?</h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>Headings are inferred from font size and bold formatting. Paragraphs are separated by blank lines. Lists are preserved where detected. Images and complex graphics are not included — this tool is for text extraction.</p>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>PDF to Markdown on iPhone and Android</h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>Doclair works in mobile Safari and Chrome. Upload your PDF and download the .md file directly to your device for use in Obsidian, Notion, or any Markdown editor.</p>
+        </div>
 
         <FAQ faqs={FAQS} />
       </ToolPageLayout>

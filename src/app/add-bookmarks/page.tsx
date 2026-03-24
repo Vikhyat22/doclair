@@ -42,6 +42,22 @@ const JSON_LD = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'Add Bookmarks to PDF', item: 'https://doclair.in/add-bookmarks' },
+      ],
+    },
   ],
 }
 
@@ -227,6 +243,33 @@ export default function AddBookmarksPage() {
             onReset={handleReset}
           />
         )}
+
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+          <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+            How to Add Bookmarks to a PDF — Step by Step
+          </h2>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+            PDF bookmarks (also called an outline or table of contents) appear in your PDF reader&apos;s sidebar and let readers jump directly to any section. Doclair makes it easy to create a full bookmark structure for long documents.
+          </p>
+          <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Upload your PDF.</strong> Doclair reads the total page count automatically.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click &quot;+ Add Bookmark&quot; and type the bookmark title and destination page number.</strong> Add as many bookmarks as your document needs.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Set the bookmark level.</strong> Level 0 = top-level, Level 1–3 = indented sub-items.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Reorder bookmarks using the ▲/▼ arrows, then click &quot;Add Bookmarks&quot; to download.</strong> Your PDF is ready instantly.</li>
+          </ol>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
+            What PDF readers display bookmarks?
+          </h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+            Bookmarks (called the &apos;Outline&apos; or &apos;Navigation&apos; panel) are supported by Adobe Acrobat Reader, Preview on Mac, Foxit Reader, Chrome&apos;s built-in PDF viewer, and most modern PDF applications. The reader sidebar usually has a bookmark icon — click it to see the navigation tree.
+          </p>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
+            Add Bookmarks on iPhone and Android
+          </h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>
+            Doclair works in Safari and Chrome on mobile. Build your bookmark structure and download the PDF — Adobe Acrobat Reader on iOS and Android will display the bookmarks in the navigation panel.
+          </p>
+        </div>
 
         <FAQ faqs={FAQS} />
       </ToolPageLayout>

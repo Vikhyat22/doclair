@@ -42,6 +42,22 @@ const JSON_LD = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'CSV to PDF', item: 'https://doclair.in/csv-to-pdf' },
+      ],
+    },
   ],
 }
 
@@ -157,6 +173,33 @@ export default function CSVToPDFPage() {
             onReset={handleReset}
           />
         )}
+
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+          <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+            How to Convert CSV to PDF — Step by Step
+          </h2>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+            Sharing a CSV as a PDF makes it easy to read and print without requiring a spreadsheet app. Doclair converts CSV files into a clean, formatted PDF table in your browser.
+          </p>
+          <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Drop your CSV file or click to upload.</strong> Standard comma-separated files are supported.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Doclair parses the file and shows a preview of the data.</strong> Headers are detected automatically.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Optionally adjust column widths or font size.</strong> Fine-tune the layout before exporting.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Save as PDF — your browser&apos;s print dialog opens.</strong> Select &apos;Save as PDF&apos; and download.</li>
+          </ol>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
+            Will my column headers be preserved?
+          </h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+            Yes. The first row of the CSV is treated as headers and formatted in bold. All other rows are displayed as table rows with alternating background colours for readability.
+          </p>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
+            CSV to PDF on iPhone and Android
+          </h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>
+            Doclair works in mobile Safari and Chrome. Upload your CSV from the Files app. When you click Save as PDF, use your browser&apos;s share → Print → Save to Files flow to download the PDF.
+          </p>
+        </div>
 
         <FAQ faqs={FAQS} />
       </ToolPageLayout>

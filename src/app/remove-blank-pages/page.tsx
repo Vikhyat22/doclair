@@ -291,6 +291,25 @@ export default function RemoveBlankPagesPage() {
           />
         )}
 
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+          <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+            How to Remove Blank Pages from a PDF — Step by Step
+          </h2>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+            Blank pages often appear in scanned documents, printed forms, and exported reports. Doclair automatically detects and removes blank pages from your PDF in your browser with no upload required.
+          </p>
+          <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Upload your PDF.</strong> Drop your file into the scanner — detection starts automatically.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Doclair scans each page for content.</strong> Each page is rendered and its pixels sampled to determine if it is blank.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Review the detected blank pages.</strong> Uncheck any page you want to keep before removing.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Remove Blank Pages and download the cleaned PDF.</strong> The original file is never modified.</li>
+          </ol>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>How does Doclair detect blank pages?</h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>Doclair renders each page and checks pixel content — a page is considered blank if more than 98% of pixels are white or near-white. Lightly watermarked pages or pages with faint content may or may not be detected as blank depending on the threshold.</p>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>Remove Blank Pages on iPhone and Android</h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>Doclair works in mobile Safari and Chrome. Upload your PDF from Files and download the cleaned version directly to your device.</p>
+        </div>
+
         <FAQ faqs={FAQS} />
       </ToolPageLayout>
     </>

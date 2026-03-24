@@ -390,6 +390,25 @@ export default function PDFViewerPage() {
         </div>
       )}
 
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+          How to View a PDF Online — No Download Needed
+        </h2>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          Doclair&apos;s PDF Viewer lets you open and read any PDF directly in your browser without downloading a PDF reader or installing any software. All rendering happens locally in your browser.
+        </p>
+        <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Drop your PDF or click to upload.</strong> Any PDF file up to 200 MB is supported.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>The document opens instantly in the browser viewer.</strong> No software installation or account required.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Navigate pages using the arrow controls or the page number input.</strong> Use keyboard shortcuts (Arrow keys) for fast navigation.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Zoom in/out using the zoom controls.</strong> Your file never leaves your device.</li>
+        </ol>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>Is my PDF safe to open in the viewer?</h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>Yes. The PDF is rendered entirely in your browser using PDF.js — it never leaves your device or gets uploaded to any server. This makes Doclair Viewer safe for confidential documents, legal filings, and financial statements.</p>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>PDF Viewer on iPhone and Android</h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>Doclair works in mobile Safari and Chrome. Open any PDF directly from your Files app for instant viewing without a dedicated reader app.</p>
+      </div>
+
       <FAQ faqs={FAQS} />
     </ToolPageLayout>
   )

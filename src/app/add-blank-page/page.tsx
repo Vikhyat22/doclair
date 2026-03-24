@@ -253,6 +253,29 @@ export default function AddBlankPagePage() {
           onDownload={handleDownload} onReset={handleReset} />
       )}
 
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+          How to Add a Blank Page to a PDF — Step by Step
+        </h2>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          Adding a blank page is useful for separating chapters, creating cover sheets, adding divider pages, or preparing a PDF for double-sided printing where you need an empty page between sections.
+        </p>
+        <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Drop your PDF or click to upload.</strong> Select your PDF from your device.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Choose where to insert the blank page</strong> — beginning, end, or after a specific page number.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Choose paper size</strong> (A4, Letter, or match existing pages).</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Add Page and download</strong> the updated PDF.</li>
+        </ol>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>Why add a blank page to a PDF?</h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          Common uses include adding a cover page placeholder, separating chapters with dividers, padding a document for double-sided printing, or adding a notes page at the end of a presentation.
+        </p>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>Add Blank Page on iPhone and Android</h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>
+          Doclair works in mobile Safari and Chrome. Upload your PDF from the Files app, configure the insertion point, and download the updated PDF to your device.
+        </p>
+      </div>
+
       <FAQ faqs={FAQS} />
     </ToolPageLayout>
   )

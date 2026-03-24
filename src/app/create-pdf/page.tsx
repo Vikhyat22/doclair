@@ -37,6 +37,22 @@ const JSON_LD = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'Create PDF', item: 'https://doclair.in/create-pdf' },
+      ],
+    },
   ],
 }
 
@@ -173,6 +189,33 @@ export default function CreatePDFPage() {
 
         <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '12px', padding: '14px 18px', fontSize: '13px', color: '#92400E', lineHeight: 1.6 }}>
           <strong>📄 Tip:</strong> For more powerful formatting, use <a href="/markdown-to-pdf" style={{ color: 'var(--amber)', textDecoration: 'underline' }}>Markdown to PDF</a> or convert a <a href="/word-to-pdf" style={{ color: 'var(--amber)', textDecoration: 'underline' }}>Word document</a>.
+        </div>
+
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+          <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+            How to Create a PDF from Scratch — Step by Step
+          </h2>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+            Need a blank PDF with custom page size and orientation? Or want to quickly type content into a new document and save it as PDF? Doclair&apos;s Create PDF tool handles both.
+          </p>
+          <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Choose your page size (A4, Letter, or custom dimensions) and orientation.</strong> Portrait or landscape, your choice.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Type or paste your content into the editor.</strong> Use the toolbar for headings, bold, italic, and lists.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Adjust font size and margins if needed.</strong> Preview updates in real time.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Create PDF to download.</strong> Your browser&apos;s print dialog opens — select &apos;Save as PDF&apos;.</li>
+          </ol>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
+            When to create a PDF vs convert one?
+          </h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+            Use Create PDF when you need a new document from scratch — for blank forms, cover pages, or simple text documents. For converting existing files (Word, Excel, images), use the dedicated conversion tools in the Convert category.
+          </p>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
+            Create PDF on iPhone and Android
+          </h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>
+            Doclair works in mobile Safari and Chrome. Type your content, configure the page settings, and download the PDF directly to your device without installing any app.
+          </p>
         </div>
 
         <FAQ faqs={FAQS} />

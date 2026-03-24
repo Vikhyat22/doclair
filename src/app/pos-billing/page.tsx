@@ -795,6 +795,26 @@ export default function POSBillingPage() {
         </div>
       )}
 
+      {/* SEO */}
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+          How to Create a POS Bill — Step by Step
+        </h2>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          Generate a clean, printable point-of-sale bill or receipt PDF in seconds. Doclair&apos;s POS Billing tool creates professional thermal-style receipts for retail, food service, and service businesses.
+        </p>
+        <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Enter your business name and contact details.</strong> Set up your shop profile once — it&apos;s saved automatically for future bills.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Add items with name, quantity, and price.</strong> Search your product catalog or add items directly from the cart tab.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Set tax rate and discount if applicable.</strong> GST is calculated automatically per item based on the assigned GST rate.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Generate Bill — preview and download as PDF.</strong> The bill is saved to history for reprinting later.</li>
+        </ol>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>Can I add a logo to the bill?</h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>Yes. Upload your business logo and it will appear at the top of the bill. The layout is optimised for A4 printing and standard thermal printer paper widths.</p>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>POS Billing on iPhone and Android</h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>Doclair works in mobile Safari and Chrome. Create bills on your phone and share directly via WhatsApp or print to a nearby Bluetooth thermal printer.</p>
+      </div>
+
       {/* FAQ */}
       <FAQ faqs={FAQS} />
     </ToolPageLayout>

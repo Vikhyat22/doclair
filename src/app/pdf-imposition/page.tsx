@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import FAQ from '@/components/ui/FAQ'
 
 const SIDEBAR_RELATED = [
   { name: 'PDF to Booklet', slug: 'pdf-to-booklet', icon: '📚', colorBg: '#FFF0DC', desc: 'Booklet layout' },
@@ -230,6 +231,35 @@ export default function PDFImpositionPage() {
           </>
         )}
       </div>
+
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+          How to Use PDF Imposition — Step by Step
+        </h2>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          PDF imposition arranges multiple pages onto a single printed sheet, saving paper and simplifying large print runs. Doclair supports 2-up, 4-up, 6-up, and 9-up layouts with A4 or Letter paper in portrait or landscape.
+        </p>
+        <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Choose your N-up layout.</strong> Pick 2, 4, 6, or 9 pages per sheet.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Select paper size and orientation.</strong> Choose A4 or Letter in portrait or landscape.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Drop your PDF or click to upload.</strong> Processing happens instantly in your browser.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Download and print.</strong> The imposed PDF downloads automatically — print double-sided to create a booklet or handout.</li>
+        </ol>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
+          What is N-up printing?
+        </h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          N-up printing places N document pages on a single physical sheet. 2-up is common for handouts, 4-up for presentation notes, and 9-up for thumbnail proofs. Imposition is used in professional printing to reduce paper and production costs.
+        </p>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
+          PDF Imposition on iPhone and Android
+        </h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>
+          Doclair works in mobile Safari and Chrome. Upload your PDF from the Files app, configure the layout, and download the imposed PDF directly to your device.
+        </p>
+      </div>
+
+      <FAQ faqs={FAQS} />
     </ToolPageLayout>
   )
 }

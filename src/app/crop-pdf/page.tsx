@@ -42,6 +42,22 @@ const JSON_LD = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
     },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'Crop PDF', item: 'https://doclair.in/crop-pdf' },
+      ],
+    },
   ],
 }
 
@@ -208,6 +224,33 @@ export default function CropPDFPage() {
         {toolState === 'done' && result && file && (
           <DownloadCard filename={file.name.replace(/\.pdf$/i, '-cropped.pdf')} description="Margins cropped from all pages" onDownload={handleDownload} onReset={handleReset} />
         )}
+
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+          <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+            How to Crop a PDF — Step by Step
+          </h2>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+            Cropping removes unwanted margins, headers, footers, or whitespace from PDF pages. Doclair applies a crop box to every page, resizing the visible area without discarding the original content.
+          </p>
+          <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Upload your PDF.</strong> Drop the file or click to browse.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Set the crop margins — top, right, bottom, left — in pixels or millimetres.</strong> Doclair shows the current page size to help you calculate.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Preview the cropped result.</strong> Adjust values until the framing is right.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Crop and download the updated PDF.</strong> All pages are cropped uniformly.</li>
+          </ol>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
+            Does cropping permanently delete content?
+          </h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+            No. PDF cropping changes the CropBox property, which tells viewers where to display the page. The original content outside the crop area is still in the file — it is just hidden from view. To permanently remove content, use Redact PDF.
+          </p>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
+            Crop PDF on iPhone and Android
+          </h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>
+            Doclair works in mobile Safari and Chrome. Upload your PDF from the Files app, enter the crop margins, and download the cropped PDF to your device.
+          </p>
+        </div>
 
         <FAQ faqs={FAQS} />
       </ToolPageLayout>

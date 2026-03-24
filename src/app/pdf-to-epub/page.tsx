@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import FAQ from '@/components/ui/FAQ'
 
 const SIDEBAR_RELATED = [
   { name: 'PDF to Text',     slug: 'pdf-to-text',     icon: '📝', colorBg: '#FFF0DC', desc: 'Extract plain text' },
@@ -221,6 +222,35 @@ ${paragraphs || '<p><em>(No text on this page)</em></p>'}
           </>
         )}
       </div>
+
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+          How to Convert PDF to EPUB — Step by Step
+        </h2>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          EPUB is the standard ebook format for e-readers like Kindle, Apple Books, and Kobo. Converting a PDF to EPUB extracts the text and produces a reflowable ebook that adjusts to any screen size.
+        </p>
+        <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Drop your PDF or click to upload.</strong> No account or sign-up required.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Wait while text is extracted.</strong> Text is extracted and formatted as EPUB entirely in your browser.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Download the .epub file.</strong> The converted file saves directly to your device.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Open in your reader.</strong> Open it in Apple Books, Calibre, or any EPUB reader, or upload to your e-reader.</li>
+        </ol>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
+          Will my PDF images and layout be preserved?
+        </h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          EPUB is a reflowable format — text reflows to fit the screen. Images embedded in the PDF are included where possible, but complex layouts, columns, and tables may simplify. For layout-critical documents such as textbooks or magazines, PDF viewing is generally preferred.
+        </p>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
+          PDF to EPUB on iPhone and Android
+        </h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>
+          Doclair works in mobile Safari and Chrome. After downloading the EPUB, tap to open it in Apple Books (iPhone) or any installed EPUB reader on Android. No desktop software required.
+        </p>
+      </div>
+
+      <FAQ faqs={FAQS} />
     </ToolPageLayout>
   )
 }

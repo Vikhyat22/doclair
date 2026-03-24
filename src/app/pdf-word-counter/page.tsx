@@ -342,6 +342,25 @@ export default function PDFWordCounterPage() {
           </>
         )}
 
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+          <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+            How to Count Words in a PDF — Step by Step
+          </h2>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+            Counting words in a PDF is useful for academic submissions, freelance writing billing, translation estimates, and content audits. Doclair extracts all text from your PDF and counts words, characters, and sentences instantly.
+          </p>
+          <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Upload your PDF.</strong> Drop your file into the upload area — it stays on your device throughout.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Doclair extracts all text and counts words per page.</strong> You can optionally exclude numbers or set words to ignore.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>View the total word count, character count, and per-page breakdown.</strong> The page with the most content is highlighted.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Copy the results or download a summary.</strong> All results are displayed instantly in your browser.</li>
+          </ol>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>Will word count be accurate for scanned PDFs?</h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>Scanned PDFs contain images of text rather than selectable text, so word counting won&apos;t work directly. Use OCR PDF first to extract the text layer, then run Word Counter on the OCR output.</p>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>Word Counter on iPhone and Android</h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>Doclair works in mobile Safari and Chrome. Upload your PDF and get an instant word count breakdown right in your browser.</p>
+        </div>
+
         <FAQ faqs={FAQS} />
       </ToolPageLayout>
     </>

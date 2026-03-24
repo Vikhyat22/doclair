@@ -8,6 +8,10 @@ import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import type { ToolState } from '@/types'
 
+const TOOL_SEO_NAME = 'Remove Pages from PDF'
+const TOOL_SLUG = 'remove-pages-from-pdf'
+const TOOL_DESCRIPTION = 'Remove unwanted pages from PDF files online free. Visual page selector with thumbnails. No upload, no watermark.'
+
 const FAQS = [
   { q: 'Can I remove multiple pages at once?', a: 'Yes. Check all the pages you want to delete, then click "Remove Selected Pages". All checked pages are removed in one step.' },
   { q: 'Is there a page limit?', a: 'No page limit. Doclair processes the PDF entirely in your browser so there are no server-side restrictions.' },
@@ -16,6 +20,41 @@ const FAQS = [
   { q: 'Can I remove pages from a password-protected PDF?', a: 'Only if the PDF does not require a password to open. If it does, decrypt it first using the Remove Password tool.' },
   { q: 'Can I remove pages on iPhone or Android?', a: 'Yes. Doclair works in Safari on iPhone and iPad, and Chrome on Android.' },
 ]
+
+const JSON_LD_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: `${TOOL_SEO_NAME} — Doclair`,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: `https://doclair.in/${TOOL_SLUG}`,
+      description: TOOL_DESCRIPTION,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      featureList: ['Visual page thumbnails', 'Select multiple pages', 'One-click removal', 'Browser-only processing'],
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ],
+}
+
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: TOOL_SEO_NAME, item: `https://doclair.in/${TOOL_SLUG}` },
+  ],
+}
 
 function formatBytes(b: number) {
   if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB'
@@ -126,6 +165,9 @@ export default function RemovePagesPage() {
 
   return (
     <ToolPageLayout toolName="Remove Pages from PDF" sidebar={sidebar}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
+
       {/* Header */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '36px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
@@ -226,6 +268,33 @@ export default function RemovePagesPage() {
           description={`${selected.size} page${selected.size !== 1 ? 's' : ''} removed · ${remaining} page${remaining !== 1 ? 's' : ''} remaining`}
           onDownload={handleDownload} onReset={handleReset} />
       )}
+
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+          How to Remove Pages from a PDF — Step by Step
+        </h2>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          Whether you need to delete a blank page, remove a confidential section, or trim an appendix, Doclair makes it easy to select and remove any page from your PDF without uploading to a server.
+        </p>
+        <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Drop your PDF or click to upload.</strong> Page thumbnails load automatically.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click the pages you want to remove.</strong> A red X appears on selected pages.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click &quot;Remove Selected Pages&quot;.</strong> The PDF is rebuilt without the selected pages.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Download the cleaned PDF.</strong> Your original file is never modified.</li>
+        </ol>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
+          Can I remove multiple pages at once?
+        </h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          Yes. Click all the pages you want to delete before hitting Remove. There is no limit on how many pages you can remove in a single operation.
+        </p>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
+          Remove Pages from PDF on iPhone and Android
+        </h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>
+          Doclair works in Safari and Chrome on mobile. Thumbnail generation works on all modern mobile browsers — tap pages to select them, then download the cleaned PDF.
+        </p>
+      </div>
 
       <FAQ faqs={FAQS} />
     </ToolPageLayout>

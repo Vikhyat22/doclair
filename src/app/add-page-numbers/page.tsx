@@ -453,6 +453,30 @@ export default function AddPageNumbersPage() {
         />
       )}
 
+      {/* SEO Section */}
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+          How to Add Page Numbers to a PDF — Step by Step
+        </h2>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          Page numbers make long documents easier to navigate and reference. Doclair stamps page numbers at the top or bottom of every page, with options for position, font size, and starting number.
+        </p>
+        <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Drop your PDF or click to upload.</strong> Select your PDF from your device.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Choose position</strong> (top-left, top-center, top-right, bottom-left, bottom-center, bottom-right).</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Set font size and starting number.</strong> Adjust the margin if needed.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Add Page Numbers and download</strong> the numbered PDF.</li>
+        </ol>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>Can I start from a custom number?</h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          Yes. If your document is a chapter starting at page 47, set the start number to 47 and Doclair will number from there. This is useful for multi-chapter documents where each chapter is a separate PDF.
+        </p>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>Add Page Numbers on iPhone and Android</h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>
+          Doclair works in mobile Safari and Chrome. Upload your PDF from the Files app, configure numbering, and download the numbered PDF directly to your device.
+        </p>
+      </div>
+
       {/* FAQ */}
       <FAQ faqs={FAQS} />
     </ToolPageLayout>

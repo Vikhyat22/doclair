@@ -306,6 +306,29 @@ export default function AddPagesToPDFPage() {
           onDownload={handleDownload} onReset={handleReset} />
       )}
 
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+          How to Add Pages to a PDF — Step by Step
+        </h2>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          Need to insert pages from another PDF into an existing document? Doclair lets you add any number of pages from a second PDF into your main document at any position.
+        </p>
+        <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Upload your base PDF.</strong> This is the document pages will be inserted into.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Upload the PDF containing the pages you want to insert.</strong> Optionally specify a page range.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Choose the insertion position.</strong> Set it to 0 for the beginning or the last page number to append at the end.</li>
+          <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Add Pages and download</strong> the merged result.</li>
+        </ol>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>Can I add pages from multiple PDFs?</h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          Each operation adds pages from one source PDF. To add pages from multiple sources, use Add Pages repeatedly — or use Merge PDF to combine several files in one step.
+        </p>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>Add Pages on iPhone and Android</h3>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>
+          Doclair works in Safari and Chrome on mobile. Upload both PDFs from the Files app, configure the merge, and download the updated document.
+        </p>
+      </div>
+
       <FAQ faqs={FAQS} />
     </ToolPageLayout>
   )

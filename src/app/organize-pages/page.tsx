@@ -283,6 +283,49 @@ const FAQS = [
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SEO / JSON-LD
+// ─────────────────────────────────────────────────────────────────────────────
+
+const TOOL_SEO_NAME = 'Organize PDF Pages'
+const TOOL_SLUG = 'organize-pages'
+const TOOL_DESCRIPTION = 'Reorder, rotate, duplicate and delete PDF pages with drag-and-drop. Visual thumbnails. Free, no upload.'
+
+const JSON_LD_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: `${TOOL_SEO_NAME} — Doclair`,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: `https://doclair.in/${TOOL_SLUG}`,
+      description: TOOL_DESCRIPTION,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      featureList: ['Drag-and-drop page reordering', 'Rotate individual pages', 'Duplicate or delete pages', 'Visual thumbnails'],
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ],
+}
+
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: TOOL_SEO_NAME, item: `https://doclair.in/${TOOL_SLUG}` },
+  ],
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main Component
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -675,22 +718,8 @@ export default function OrganizePagesPage() {
       })()}
 
       {/* ── JSON-LD ── */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'WebApplication',
-            name: 'Organize PDF Pages',
-            url: 'https://doclair.in/organize-pages',
-            description:
-              'Reorder, rotate, delete and duplicate PDF pages. Free, no upload, browser-based.',
-            applicationCategory: 'UtilitiesApplication',
-            operatingSystem: 'Any',
-            offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-          }),
-        }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
 
       {/* ── Tool Header ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

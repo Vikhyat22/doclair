@@ -324,6 +324,25 @@ export default function EditPDFMetadataPage() {
           />
         )}
 
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+          <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+            How to Edit PDF Metadata — Step by Step
+          </h2>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+            PDF metadata includes the document title, author name, subject, keywords, and creation/modification dates. Editing metadata makes documents more searchable, ensures correct attribution, and removes sensitive information before sharing.
+          </p>
+          <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Upload your PDF.</strong> Drop your file into the editor — metadata is read and displayed instantly.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Edit the Title, Author, Subject, and Keywords fields.</strong> All standard metadata fields are shown and editable.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Save Metadata.</strong> The updated metadata is written into a new copy of the PDF in your browser.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Download the updated PDF.</strong> The original file is never modified — your download contains the new metadata.</li>
+          </ol>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>Why does PDF metadata matter?</h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>Metadata is indexed by search engines, document management systems, and Windows/macOS search. Correct metadata improves discoverability. Incorrect metadata — like the wrong author name or creation date — can be misleading. Before sharing a confidential document, use Privacy Scanner to check what metadata it contains.</p>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>Edit Metadata on iPhone and Android</h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>Doclair works in mobile Safari and Chrome. Upload your PDF from the Files app, edit the fields, and download the updated PDF.</p>
+        </div>
+
         <FAQ faqs={FAQS} />
       </ToolPageLayout>
     </>

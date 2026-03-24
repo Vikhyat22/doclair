@@ -305,6 +305,25 @@ export default function FlattenPDFPage() {
           />
         )}
 
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+          <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+            How to Flatten a PDF — Step by Step
+          </h2>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+            Flattening a PDF merges all interactive form fields, annotations, and layers into a single non-editable page layer. This prevents further editing of form data and ensures the document looks the same in every PDF viewer.
+          </p>
+          <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Upload your PDF (typically a filled form or annotated document).</strong> Drop your file into the upload area above.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Choose your flatten options.</strong> Select which elements to merge — form fields, annotations, JavaScript, and metadata stripping.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Flatten.</strong> The PDF is processed entirely in your browser with no upload required.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Download the flattened PDF — form fields become static text.</strong> The visual appearance is identical but all interactive elements are permanently merged.</li>
+          </ol>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>When should I flatten a PDF?</h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>Flatten before sharing a completed form to prevent recipients from changing the answers. Flatten annotated PDFs before archiving to ensure annotations are permanently visible. Printers and archival systems often require flattened PDFs for reliable output.</p>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>Flatten PDF on iPhone and Android</h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>Doclair works in mobile Safari and Chrome. Upload your fillable form, flatten it, and download the static PDF directly to your device.</p>
+        </div>
+
         <FAQ faqs={FAQS} />
       </ToolPageLayout>
     </>

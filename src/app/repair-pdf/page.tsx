@@ -54,6 +54,14 @@ const JSON_LD = {
         acceptedAnswer: { '@type': 'Answer', text: f.a },
       })),
     },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'Repair PDF', item: 'https://doclair.in/repair-pdf' },
+      ],
+    },
   ],
 }
 
@@ -181,6 +189,28 @@ export default function RepairPDFPage() {
             onReset={handleReset}
           />
         )}
+
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+          <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+            How to Repair a Corrupted PDF — Step by Step
+          </h2>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+            A corrupted PDF may fail to open, display garbled content, or show an error in your PDF reader. Doclair&apos;s repair tool re-parses the raw PDF stream and attempts to recover a valid document from the remaining data.
+          </p>
+          <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Drop your PDF or click to upload.</strong> Select the corrupted or damaged PDF file from your device.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Doclair parses the raw PDF bytes and reconstructs the structure.</strong> The tool rebuilds the cross-reference table and recovers readable objects from the file.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Download the repaired PDF and try opening it in your PDF reader.</strong> Most structurally damaged PDFs will open normally after repair.</li>
+          </ol>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>What causes a PDF to become corrupted?</h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+            PDFs can become corrupt during a failed download, interrupted email transfer, disk write error, or improper export from another application. Partially downloaded PDFs are the most common case. The repair tool works best on PDFs with structural issues — severely damaged files with missing data may not be fully recoverable.
+          </p>
+          <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>Repair PDF on iPhone and Android</h3>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>
+            Doclair works in Safari and Chrome on mobile. Upload your corrupted PDF from the Files app and download the repaired version directly to your device.
+          </p>
+        </div>
 
         <FAQ faqs={FAQS} />
       </ToolPageLayout>
