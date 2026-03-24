@@ -17,6 +17,50 @@ const FAQS = [
   { q: 'Can I reorder the inserted pages?', a: 'The pages are inserted in the order they appear in the source PDF (or the range you specified). Use the Organize Pages tool to reorder afterwards.' },
 ]
 
+const TOOL_SEO_NAME = 'Add Pages to PDF'
+const TOOL_SLUG = 'add-pages-to-pdf'
+const TOOL_DESCRIPTION = 'Insert pages from another PDF into your document at any position. Pick a page range, choose where to insert. 100% free, no upload, no watermark.'
+
+const JSON_LD_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: `${TOOL_SEO_NAME} — Doclair`,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: `https://doclair.in/${TOOL_SLUG}`,
+      description: TOOL_DESCRIPTION,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      featureList: [
+        'Insert pages from a second PDF at any position',
+        'Page range selection (e.g. 1-3, 5)',
+        'Browser-only processing',
+        'No watermark',
+      ],
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ],
+}
+
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: TOOL_SEO_NAME, item: `https://doclair.in/${TOOL_SLUG}` },
+  ],
+}
+
 function formatBytes(b: number) {
   if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB'
   return (b / (1024 * 1024)).toFixed(2) + ' MB'
@@ -140,6 +184,10 @@ export default function AddPagesToPDFPage() {
 
   return (
     <ToolPageLayout toolName="Add Pages to PDF" sidebar={sidebar}>
+      {/* JSON-LD */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
+
       {/* Header */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '36px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>

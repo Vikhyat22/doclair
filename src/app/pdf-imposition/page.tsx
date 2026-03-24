@@ -24,6 +24,57 @@ const PAGE_SIZES: Record<PageSize, [number, number]> = {
   Letter: [612, 792],
 }
 
+const FAQS = [
+  { q: 'What is PDF imposition?', a: 'Imposition places multiple PDF pages on a single printed sheet (2-up, 4-up, etc.) to save paper and simplify printing.' },
+  { q: 'Are my files uploaded?', a: 'No. Rendering and layout are done with PDF.js and pdf-lib in your browser.' },
+  { q: 'Can I choose sheet size and orientation?', a: 'Yes. Pick A4 or Letter and portrait or landscape before you drop your PDF.' },
+  { q: 'Is imposition free?', a: 'Yes. The downloaded PDF has no Doclair watermark.' },
+]
+
+const TOOL_SEO_NAME = 'PDF Imposition'
+const TOOL_SLUG = 'pdf-imposition'
+const TOOL_DESCRIPTION = 'N-up PDF printing layout — arrange multiple pages on one sheet. 100% free, no upload, no watermark.'
+
+const JSON_LD_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: `${TOOL_SEO_NAME} — Doclair`,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: `https://doclair.in/${TOOL_SLUG}`,
+      description: TOOL_DESCRIPTION,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      featureList: [
+        '2-up, 4-up, 6-up, and 9-up layouts',
+        'A4 or Letter with portrait or landscape',
+        'Local browser processing',
+        'No watermark',
+      ],
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ],
+}
+
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: TOOL_SEO_NAME, item: `https://doclair.in/${TOOL_SLUG}` },
+  ],
+}
+
 export default function PDFImpositionPage() {
   const [nup, setNup] = useState<NUp>('2')
   const [pageSize, setPageSize] = useState<PageSize>('A4')
@@ -99,6 +150,10 @@ export default function PDFImpositionPage() {
 
   return (
     <ToolPageLayout toolName="PDF Imposition" sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}>
+      {/* JSON-LD */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
+
       <div>
         <h1 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(28px, 4vw, 48px)', letterSpacing: '-1px', lineHeight: 1.05, marginBottom: '10px' }}>
           <span style={{ color: 'var(--ink)' }}>PDF Imposition </span>

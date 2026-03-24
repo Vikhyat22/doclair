@@ -33,6 +33,57 @@ interface SignatureOverlay {
 
 type Overlay = TextOverlay | SignatureOverlay
 
+const FAQS = [
+  { q: 'Are my PDF files uploaded to a server?', a: 'No. Editing and signing happen entirely in your browser. Your PDF never leaves your device.' },
+  { q: 'Can I add typed text and a signature?', a: 'Yes. Place text boxes anywhere on the page and create a drawn or typed signature, then download the updated PDF.' },
+  { q: 'Is edit PDF free?', a: 'Yes. Doclair does not add a watermark to your downloaded file.' },
+  { q: 'Can I use this on a phone or tablet?', a: 'Yes. Use a modern mobile browser. Touch works for placing text and drawing signatures.' },
+]
+
+const TOOL_SEO_NAME = 'Edit PDF + Sign'
+const TOOL_SLUG = 'edit-pdf'
+const TOOL_DESCRIPTION = 'Add text and signatures to PDF files free online. Click to place text, draw or type your signature. No upload, no watermark, files stay in your browser.'
+
+const JSON_LD_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: `${TOOL_SEO_NAME} — Doclair`,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: `https://doclair.in/${TOOL_SLUG}`,
+      description: TOOL_DESCRIPTION,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      featureList: [
+        'Click to place editable text',
+        'Draw or type signatures',
+        'Download PDF with overlays',
+        'Browser-only, no upload',
+      ],
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ],
+}
+
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: TOOL_SEO_NAME, item: `https://doclair.in/${TOOL_SLUG}` },
+  ],
+}
+
 // ─── Signature Pad ────────────────────────────────────────────────────────────
 
 function SignaturePad({ onDone, onCancel }: { onDone: (dataUrl: string) => void; onCancel: () => void }) {
@@ -327,6 +378,8 @@ export default function EditPDFPage() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
       <Navbar />
       <main style={{ minHeight: 'calc(100vh - 200px)', padding: '40px 16px' }}>
         <div style={{ maxWidth: 960, margin: '0 auto' }}>

@@ -108,8 +108,15 @@ const nextConfig = {
   async headers() {
     return [
       {
-        // Only apply COEP/COOP to compress-pdf
-        // which is the only page using Ghostscript WASM
+        source: '/(.*)',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options',        value: 'DENY' },
+          { key: 'Referrer-Policy',        value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy',     value: 'camera=(self), microphone=(), geolocation=()' },
+        ],
+      },
+      {
         source: '/compress-pdf',
         headers: [
           { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
@@ -117,7 +124,6 @@ const nextConfig = {
         ],
       },
       {
-        // Apply to the compress-pdf API route used by the compress worker
         source: '/api/compress-pdf(.*)',
         headers: [
           { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },

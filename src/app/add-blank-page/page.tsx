@@ -17,6 +17,50 @@ const FAQS = [
   { q: 'Will the blank page have the same orientation as the rest?', a: 'Yes, when using "Match document" size. The blank page inherits the dimensions of the first page, including landscape or portrait orientation.' },
 ]
 
+const TOOL_SEO_NAME = 'Add Blank Page to PDF'
+const TOOL_SLUG = 'add-blank-page'
+const TOOL_DESCRIPTION = 'Insert a blank page anywhere in a PDF. Choose position and size — A4, US Letter, or match your document. 100% free, no upload, no watermark.'
+
+const JSON_LD_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: `${TOOL_SEO_NAME} — Doclair`,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: `https://doclair.in/${TOOL_SLUG}`,
+      description: TOOL_DESCRIPTION,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      featureList: [
+        'Insert a blank page at any position',
+        'A4, US Letter, or match document size',
+        'Runs entirely in your browser',
+        'No watermark on output',
+      ],
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ],
+}
+
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: TOOL_SEO_NAME, item: `https://doclair.in/${TOOL_SLUG}` },
+  ],
+}
+
 type PageSize = 'match' | 'a4' | 'letter'
 
 function formatBytes(b: number) {
@@ -107,6 +151,10 @@ export default function AddBlankPagePage() {
 
   return (
     <ToolPageLayout toolName="Add Blank Page" sidebar={sidebar}>
+      {/* JSON-LD */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
+
       {/* Header */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '36px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>

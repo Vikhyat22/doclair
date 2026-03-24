@@ -67,6 +67,7 @@ export default function Footer() {
           <div>
             <h4 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '14px', color: 'white', marginBottom: '20px' }}>Company</h4>
             {[
+              { href: '/blog', label: 'Blog' },
               { href: '/about', label: 'About' },
               { href: '/privacy', label: 'Privacy Policy' },
               { href: '/faqs', label: 'FAQs' },

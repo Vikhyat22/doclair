@@ -526,7 +526,7 @@ export const TOOLS: Tool[] = [
     category: 'Convert',
     desc: 'Convert PPTX slides to PDF',
     slug: 'ppt-to-pdf',
-    colorBg: '#FFF0DC',
+    colorBg: '#D1FAE5',
   },
   {
     id: 'pdf-to-ppt',
@@ -535,7 +535,7 @@ export const TOOLS: Tool[] = [
     category: 'Convert',
     desc: 'Convert PDF pages to PPTX slides',
     slug: 'pdf-to-ppt',
-    colorBg: '#FFF0DC',
+    colorBg: '#D1FAE5',
   },
   {
     id: 'scan-to-pdf',

@@ -25,7 +25,7 @@ const FAQS = [
   { q: 'Is PDF24 really free?', a: 'PDF24 offers both a desktop app and a web version. Both are genuinely free with no watermarks. The web version uploads your files to PDF24 servers (in Germany), while the desktop app processes locally. It is a trustworthy alternative if you are comfortable with server-side processing.' },
   { q: 'Can I edit text inside a PDF for free?', a: 'True text editing inside a PDF (changing existing text) requires re-parsing the PDF\'s content streams — this is technically complex. Most free tools, including Doclair, let you add text boxes on top of pages (annotation-based editing) rather than modifying original text. For actual text editing, LibreOffice Draw can open and edit text in simple PDFs.' },
   { q: 'Is Doclair safe for sensitive documents like Aadhaar scans?', a: 'Yes. Doclair processes all files entirely in your browser. Your Aadhaar scan, PAN card, or bank statement never leaves your device. No server receives your files.' },
-  { q: 'What PDF editing features does Doclair offer?', a: 'Doclair offers 55+ PDF tools including: merge, split, compress, rotate, add watermark, add page numbers, encrypt, remove password, OCR, PDF to Word, Word to PDF, edit annotations, redact, and more. All free, all browser-based.' },
+  { q: 'What PDF editing features does Doclair offer?', a: 'Doclair offers 70+ PDF tools including: merge, split, compress, rotate, add watermark, add page numbers, encrypt, remove password, OCR, PDF to Word, Word to PDF, edit annotations, redact, and more. All free, all browser-based.' },
 ]
 
 export default function BestFreePDFEditorArticle() {
@@ -50,7 +50,7 @@ export default function BestFreePDFEditorArticle() {
         <h3>1. Doclair (doclair.in)</h3>
         <p><Link href="/">Doclair</Link> is genuinely watermark-free on every tool, with no usage limits. Key features:</p>
         <ul>
-          <li>55+ PDF and document tools — merge, split, compress, rotate, OCR, Word to PDF, PDF to Word, encrypt, redact, and more</li>
+          <li>70+ PDF and document tools — merge, split, compress, rotate, OCR, Word to PDF, PDF to Word, encrypt, redact, and more</li>
           <li>Zero watermarks on any output — ever</li>
           <li>All processing runs in the browser — no file uploads</li>
           <li>Works on all devices including iPhone, Android, and budget Android phones</li>

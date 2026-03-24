@@ -15,7 +15,7 @@ const FAQ_SCHEMA = {
     { '@type': 'Question', name: 'Are my PDF files private and secure?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. All processing happens in your browser. Files never leave your device. No server, no storage, no access to your content.' } },
     { '@type': 'Question', name: 'Do you store or collect my PDF files?', acceptedAnswer: { '@type': 'Answer', text: 'No. Files exist only in your browser\'s memory while processing. They are cleared when you close the tab.' } },
     { '@type': 'Question', name: 'How does browser-based PDF processing work?', acceptedAnswer: { '@type': 'Answer', text: 'JavaScript libraries run in your browser tab. When you drop a file, it is loaded into browser memory and processed locally. No network request is made for the file.' } },
-    { '@type': 'Question', name: 'Is Doclair really free?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. All 55+ tools are free forever with no daily limits.' } },
+    { '@type': 'Question', name: 'Is Doclair really free?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. All 70+ tools are free forever with no daily limits.' } },
   ]
 }
 
@@ -54,7 +54,7 @@ export default function FAQsPage() {
             { q: 'Are my PDF files private and secure?', a: 'Yes. All processing happens in your browser. Files never leave your device. No server, no storage, no access to your content.' },
             { q: 'Do you store or collect my PDF files?', a: "No. Files exist only in your browser's memory while processing. They are cleared when you close the tab." },
             { q: 'Can you see my files even if you wanted to?', a: 'No. The architecture makes it technically impossible. Files never leave your device.' },
-            { q: 'Do you use cookies or track my activity?', a: 'We use Plausible Analytics for anonymous page view counts only. No file content, no personal data, no advertising trackers.' },
+            { q: 'Do you use cookies or track my activity?', a: 'We use Google Analytics and Microsoft Clarity for anonymous page view and usage statistics. No file content or personal data is collected, and we do not use advertising trackers.' },
             { q: 'Is my data shared with advertisers?', a: 'No. We do not use advertising networks. Doclair is sustained through direct tool sponsorships only.' },
           ]} />
 
@@ -67,7 +67,7 @@ export default function FAQsPage() {
           ]} />
 
           <Section title="Tools &amp; Features" faqs={[
-            { q: 'Is Doclair really free?', a: 'Yes. All 55+ tools are free forever with no daily limits.' },
+            { q: 'Is Doclair really free?', a: 'Yes. All 70+ tools are free forever with no daily limits.' },
             { q: 'Do any tools add a watermark?', a: 'No tool on Doclair ever adds a watermark to any output file.' },
             { q: 'Do I need to create an account?', a: 'No account, no email, no sign-up of any kind is required.' },
             { q: 'Can I use Doclair for commercial purposes?', a: 'Yes. Free for personal and commercial use, no restrictions.' },

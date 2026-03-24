@@ -10,6 +10,57 @@ interface ScannedPage {
   rotation: number // 0, 90, 180, 270
 }
 
+const FAQS = [
+  { q: 'Does Doclair upload my scans?', a: 'No. Camera captures and uploaded images are assembled into a PDF using pdf-lib in your browser. Nothing is sent to a server.' },
+  { q: 'Can I scan without a camera?', a: 'Yes. You can add photos or images from your device and combine them into one PDF.' },
+  { q: 'Can I choose page size?', a: 'Yes. Pick A4, US Letter, or auto sizing before building your PDF.' },
+  { q: 'Is scan to PDF free?', a: 'Yes. Doclair does not add a watermark to your PDF.' },
+]
+
+const TOOL_SEO_NAME = 'Scan to PDF'
+const TOOL_SLUG = 'scan-to-pdf'
+const TOOL_DESCRIPTION = 'Use your device camera to scan documents and convert them to PDF online free. No upload, no watermark, files stay in your browser.'
+
+const JSON_LD_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: `${TOOL_SEO_NAME} — Doclair`,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: `https://doclair.in/${TOOL_SLUG}`,
+      description: TOOL_DESCRIPTION,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      featureList: [
+        'Capture pages with device camera',
+        'Add images and build a multi-page PDF',
+        'A4, Letter, or auto page sizing',
+        'Local processing, no watermark',
+      ],
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ],
+}
+
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: TOOL_SEO_NAME, item: `https://doclair.in/${TOOL_SLUG}` },
+  ],
+}
+
 export default function ScanToPDFPage() {
   const [pages, setPages] = useState<ScannedPage[]>([])
   const [cameraActive, setCameraActive] = useState(false)
@@ -145,6 +196,8 @@ export default function ScanToPDFPage() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
       <Navbar />
       <main style={{ minHeight: 'calc(100vh - 200px)', padding: '40px 16px' }}>
         <div style={{ maxWidth: 960, margin: '0 auto' }}>

@@ -13,7 +13,7 @@ interface ToolSearchFilterProps {
 }
 
 const PLACEHOLDERS = [
-  'Search 55+ tools...',
+  'Search 70+ tools...',
   'Try "compress"...',
   'Try "merge PDF"...',
   'Try "remove background"...',

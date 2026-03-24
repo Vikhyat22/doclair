@@ -28,7 +28,7 @@ export default function AboutPage() {
             },
             {
               title: 'Tech Stack Transparency',
-              body: 'Our tools are powered by open-source libraries: pdf-lib for PDF creation and modification, pdf.js for rendering and text extraction, Tesseract.js for OCR, and the Claude API (via server-side routes) for AI features — where only extracted text is sent, never the file itself.',
+              body: 'Our tools are powered by open-source libraries: pdf-lib for PDF creation and modification, pdf.js for rendering and text extraction, Tesseract.js for OCR, and AI language models (via server-side routes) for AI features — where only extracted text is sent, never the file itself.',
             },
             {
               title: 'Privacy by Architecture',

@@ -24,15 +24,15 @@ export default function PrivacyPage() {
             },
             {
               title: 'What We Collect',
-              body: 'We use Plausible Analytics for anonymous, aggregate page view counts. Plausible does not use cookies, does not track individuals, and is GDPR-compliant by design. We collect no file content, no personal identifiers, and no usage patterns at the file level.',
+              body: 'We use Google Analytics for anonymous, aggregate page view and usage statistics, and Microsoft Clarity for session-replay heatmaps that help us improve the interface. Neither service has access to your files. We collect no file content, no personal identifiers, and no usage patterns at the file level.',
             },
             {
               title: 'Cookies',
-              body: 'We do not set any advertising or tracking cookies. Plausible Analytics is cookieless. The only browser storage we may use is for app preferences (theme, settings) stored locally on your device.',
+              body: 'Google Analytics and Microsoft Clarity may set first-party cookies for anonymous visitor analytics. We do not set any advertising or third-party tracking cookies. The only additional browser storage we use is for app preferences (theme, settings) stored locally on your device.',
             },
             {
               title: 'AI Features',
-              body: 'For AI-powered tools (Chat with PDF, AI Summarizer), only extracted text from your PDF is sent to our API route, which then calls the Claude API. The PDF file itself never leaves your device. Text is not stored beyond the duration of your session.',
+              body: 'For AI-powered tools (Chat with PDF, AI Summarizer), only extracted text from your PDF is sent to our API route, which then calls an AI language model. The PDF file itself never leaves your device. Text is not stored beyond the duration of your session.',
             },
             {
               title: 'Memory Cleared on Exit',

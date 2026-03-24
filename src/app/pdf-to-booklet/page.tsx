@@ -31,6 +31,57 @@ function bookletOrder(total: number): [number, number][] {
   return sheets
 }
 
+const FAQS = [
+  { q: 'What is booklet order for printing?', a: 'Pages are rearranged so that when you print double-sided, fold, and saddle-stitch, the page order reads correctly like a small book.' },
+  { q: 'Does my PDF need a multiple-of-4 page count?', a: 'Doclair pads with blank pages if needed so imposition always works. For best results, start with a page count that is a multiple of 4.' },
+  { q: 'Are files uploaded to a server?', a: 'No. Your PDF is processed with pdf-lib and PDF.js entirely in your browser.' },
+  { q: 'Is PDF to booklet free?', a: 'Yes. There is no watermark added to the downloaded booklet PDF.' },
+]
+
+const TOOL_SEO_NAME = 'PDF to Booklet'
+const TOOL_SLUG = 'pdf-to-booklet'
+const TOOL_DESCRIPTION = 'Rearrange PDF pages in booklet order for saddle-stitch printing. 100% free, no upload, no watermark.'
+
+const JSON_LD_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: `${TOOL_SEO_NAME} — Doclair`,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: `https://doclair.in/${TOOL_SLUG}`,
+      description: TOOL_DESCRIPTION,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      featureList: [
+        'Saddle-stitch booklet page order',
+        'A4 or US Letter landscape output',
+        'Browser-based processing',
+        'No watermark',
+      ],
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ],
+}
+
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: TOOL_SEO_NAME, item: `https://doclair.in/${TOOL_SLUG}` },
+  ],
+}
+
 export default function PDFToBookletPage() {
   const [sheetSize, setSheetSize] = useState<SheetSize>('A4')
   const [saving, setSaving] = useState(false)
@@ -112,6 +163,10 @@ export default function PDFToBookletPage() {
 
   return (
     <ToolPageLayout toolName="PDF to Booklet" sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}>
+      {/* JSON-LD */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
+
       <div>
         <h1 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(28px, 4vw, 48px)', letterSpacing: '-1px', lineHeight: 1.05, marginBottom: '10px' }}>
           <span style={{ color: 'var(--ink)' }}>PDF to Booklet </span>

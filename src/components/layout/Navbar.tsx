@@ -81,7 +81,7 @@ export default function Navbar() {
             }}
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.transform = 'scale(1.04)'}
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.transform = 'scale(1)'}>
-              Browse 55+ Tools →
+              Browse 70+ Tools →
             </Link>
           </div>
 
@@ -127,7 +127,7 @@ export default function Navbar() {
               }}>D</div>
               <span style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: '22px', color: 'var(--ink)', letterSpacing: '-0.5px' }}>Doclair</span>
             </Link>
-            <button onClick={() => setMenuOpen(false)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--ink)' }}>✕</button>
+            <button onClick={() => setMenuOpen(false)} aria-label="Close menu" style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--ink)' }}>✕</button>
           </div>
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
             {[
@@ -159,7 +159,7 @@ export default function Navbar() {
             textDecoration: 'none',
             textAlign: 'center',
             display: 'block',
-          }}>Browse 55+ Tools →</Link>
+          }}>Browse 70+ Tools →</Link>
         </div>
       )}
 

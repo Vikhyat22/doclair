@@ -10,6 +10,57 @@ const SIDEBAR_RELATED = [
   { name: 'PDF to Word',     slug: 'pdf-to-word',     icon: '📄', colorBg: '#DBEAFE', desc: 'Convert to .docx' },
 ]
 
+const FAQS = [
+  { q: 'Will my ePub work on Kindle and Apple Books?', a: 'Yes. The output is a standard ePub package suitable for common eReaders, including Kindle (where supported), Kobo, and Apple Books.' },
+  { q: 'Why is my ePub empty for some PDFs?', a: 'Scanned PDFs are images without extractable text. Use OCR PDF first on image-only documents, then convert to ePub.' },
+  { q: 'Is my PDF uploaded anywhere?', a: 'No. Text extraction and ePub building run entirely in your browser.' },
+  { q: 'Is PDF to ePub free?', a: 'Yes. Doclair does not add a watermark to your ePub file.' },
+]
+
+const TOOL_SEO_NAME = 'PDF to ePub'
+const TOOL_SLUG = 'pdf-to-epub'
+const TOOL_DESCRIPTION = 'Convert PDF files to ePub eBook format for Kindle, Kobo and Apple Books. 100% free, no upload, no watermark.'
+
+const JSON_LD_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: `${TOOL_SEO_NAME} — Doclair`,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: `https://doclair.in/${TOOL_SLUG}`,
+      description: TOOL_DESCRIPTION,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      featureList: [
+        'PDF text extracted into reflowable ePub',
+        'Chapters per page with navigation',
+        'Browser-only conversion',
+        'No watermark',
+      ],
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ],
+}
+
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: TOOL_SEO_NAME, item: `https://doclair.in/${TOOL_SLUG}` },
+  ],
+}
+
 function escapeXml(s: string) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
 }
@@ -134,6 +185,10 @@ ${paragraphs || '<p><em>(No text on this page)</em></p>'}
 
   return (
     <ToolPageLayout toolName="PDF to ePub" sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}>
+      {/* JSON-LD */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
+
       <div>
         <h1 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(28px, 4vw, 48px)', letterSpacing: '-1px', lineHeight: 1.05, marginBottom: '10px' }}>
           <span style={{ color: 'var(--ink)' }}>PDF to ePub </span>

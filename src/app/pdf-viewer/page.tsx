@@ -24,6 +24,50 @@ const FAQS = [
   },
 ]
 
+const TOOL_SEO_NAME = 'PDF Viewer'
+const TOOL_SLUG = 'pdf-viewer'
+const TOOL_DESCRIPTION = 'Open and read any PDF directly in your browser. Zoom, search, navigate pages. No Adobe required. No upload.'
+
+const JSON_LD_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: `${TOOL_SEO_NAME} — Doclair`,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: `https://doclair.in/${TOOL_SLUG}`,
+      description: TOOL_DESCRIPTION,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      featureList: [
+        'Open PDFs locally in the browser',
+        'Zoom, rotate, and keyboard navigation',
+        'In-document text search',
+        'No upload required',
+      ],
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ],
+}
+
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: TOOL_SEO_NAME, item: `https://doclair.in/${TOOL_SLUG}` },
+  ],
+}
+
 const SIDEBAR_RELATED = [
   { name: 'Compress PDF', slug: 'compress-pdf', icon: '📦', colorBg: '#DCFCE7', desc: 'Reduce file size' },
   { name: 'Merge PDF',    slug: 'merge-pdf',    icon: '🔗', colorBg: '#DBEAFE', desc: 'Combine multiple PDFs' },
@@ -191,6 +235,10 @@ export default function PDFViewerPage() {
       toolName="PDF Viewer"
       sidebar={<ToolSidebar reverseActions={[]} relatedTools={SIDEBAR_RELATED} />}
     >
+      {/* JSON-LD */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
+
       {/* Header */}
       <div>
         <h1 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(28px, 4vw, 48px)', letterSpacing: '-1px', lineHeight: 1.05, marginBottom: '10px' }}>

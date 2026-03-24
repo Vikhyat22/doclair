@@ -35,6 +35,50 @@ const FAQS = [
     a: 'Never. Text extraction runs in your browser using PDF.js. Speech synthesis uses your browser\'s built-in engine. No data leaves your device at any point.' },
 ]
 
+const TOOL_SEO_NAME = 'PDF to Audio'
+const TOOL_SLUG = 'pdf-to-audio'
+const TOOL_DESCRIPTION = 'Convert PDF text to spoken audio using text-to-speech. Listen to your documents on the go. 100% free, no upload.'
+
+const JSON_LD_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: `${TOOL_SEO_NAME} — Doclair`,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: `https://doclair.in/${TOOL_SLUG}`,
+      description: TOOL_DESCRIPTION,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      featureList: [
+        'Text-to-speech from PDF in the browser',
+        'Adjustable reading speed and voice selection',
+        'No file upload to servers',
+        'Free to use',
+      ],
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ],
+}
+
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: TOOL_SEO_NAME, item: `https://doclair.in/${TOOL_SLUG}` },
+  ],
+}
+
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2]
 
 function sortVoices(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice[] {
@@ -315,6 +359,9 @@ export default function PDFToAudioPage() {
 
   return (
     <ToolPageLayout toolName="PDF to Audio" sidebar={sidebar}>
+      {/* JSON-LD */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
 
       {/* Header */}
       <div style={{ marginBottom: '28px' }}>

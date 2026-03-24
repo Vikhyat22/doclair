@@ -44,6 +44,57 @@ type Annotation = RectAnnotation | DrawAnnotation | CommentAnnotation
 
 const HIGHLIGHT_COLORS: AnnotationColor[] = ['#FBBF24', '#34D399', '#60A5FA', '#F87171', '#A78BFA']
 
+const FAQS = [
+  { q: 'Are my PDF files uploaded to a server?', a: 'No. Doclair renders and annotates your PDF entirely in your browser. Your file never leaves your device.' },
+  { q: 'What annotation tools are available?', a: 'You can highlight, underline, draw freehand, and place comment pins. Download saves a new PDF with your annotations burned in.' },
+  { q: 'Is annotate PDF free?', a: 'Yes. Doclair is free to use with no watermark added to your downloaded PDF.' },
+  { q: 'Does it work on mobile?', a: 'Yes. Use a modern mobile browser. Touch and mouse both work for drawing and placing annotations.' },
+]
+
+const TOOL_SEO_NAME = 'Annotate PDF'
+const TOOL_SLUG = 'annotate-pdf'
+const TOOL_DESCRIPTION = 'Highlight, underline, and draw on PDF files free online. Add comments and annotations. No upload, no watermark, files stay in your browser.'
+
+const JSON_LD_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: `${TOOL_SEO_NAME} — Doclair`,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: `https://doclair.in/${TOOL_SLUG}`,
+      description: TOOL_DESCRIPTION,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      featureList: [
+        'Highlight, underline, and freehand draw',
+        'Comment pins on the page',
+        'Download annotated PDF locally',
+        'No server upload',
+      ],
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ],
+}
+
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: TOOL_SEO_NAME, item: `https://doclair.in/${TOOL_SLUG}` },
+  ],
+}
+
 export default function AnnotatePDFPage() {
   const [canvasUrls, setCanvasUrls] = useState<string[]>([])
   const [pageCount, setPageCount] = useState(0)
@@ -264,6 +315,8 @@ export default function AnnotatePDFPage() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
       <Navbar />
       <main style={{ minHeight: 'calc(100vh - 200px)', padding: '40px 16px' }}>
         <div style={{ maxWidth: 960, margin: '0 auto' }}>

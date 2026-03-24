@@ -4,6 +4,57 @@ import { useState, useCallback } from 'react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 
+const FAQS = [
+  { q: 'How does PDF to PowerPoint work?', a: 'Each PDF page is rendered as a high-resolution image and placed on its own slide. You can edit layout and add content in PowerPoint.' },
+  { q: 'Will text be editable in PowerPoint?', a: 'Text on slides is part of the page image. For selectable text, use PDF to Text or PDF to Word on doclair.in first.' },
+  { q: 'Are files uploaded to a server?', a: 'No. Rendering and PPTX creation run entirely in your browser.' },
+  { q: 'Is PDF to PowerPoint free?', a: 'Yes. Doclair does not add a watermark to your presentation file.' },
+]
+
+const TOOL_SEO_NAME = 'PDF to PowerPoint'
+const TOOL_SLUG = 'pdf-to-ppt'
+const TOOL_DESCRIPTION = 'Convert PDF to PowerPoint PPTX free online. Each PDF page becomes an editable slide. No upload, no watermark, files stay in your browser.'
+
+const JSON_LD_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: `${TOOL_SEO_NAME} — Doclair`,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: `https://doclair.in/${TOOL_SLUG}`,
+      description: TOOL_DESCRIPTION,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      featureList: [
+        'One PDF page per slide as high-res image',
+        'Custom slide size from first page aspect ratio',
+        'Browser-only conversion',
+        'No watermark',
+      ],
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ],
+}
+
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: TOOL_SEO_NAME, item: `https://doclair.in/${TOOL_SLUG}` },
+  ],
+}
+
 export default function PdfToPptPage() {
   const [progress, setProgress] = useState('')
   const [saving, setSaving] = useState(false)
@@ -70,6 +121,8 @@ export default function PdfToPptPage() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
       <Navbar />
       <main style={{ minHeight: 'calc(100vh - 200px)', padding: '40px 16px' }}>
         <div style={{ maxWidth: 860, margin: '0 auto' }}>

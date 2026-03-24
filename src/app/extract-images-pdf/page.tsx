@@ -13,6 +13,57 @@ interface ExtractedImage {
   format: string
 }
 
+const FAQS = [
+  { q: 'Are my PDF files uploaded to a server?', a: 'No. Doclair scans your PDF for embedded images using PDF.js in your browser. Nothing is sent to a server.' },
+  { q: 'What image formats can I download?', a: 'Raster images embedded in the PDF are extracted and offered as PNG downloads. You can download individually or in sequence.' },
+  { q: 'Will every PDF have extractable images?', a: 'Only embedded raster images appear. Vector graphics or text rendered as paths may not show as separate image files.' },
+  { q: 'Is this tool free?', a: 'Yes. Doclair is free to use with no watermark on extracted images.' },
+]
+
+const TOOL_SEO_NAME = 'Extract Images from PDF'
+const TOOL_SLUG = 'extract-images-pdf'
+const TOOL_DESCRIPTION = 'Extract all images from a PDF file online free. Download as ZIP or individually. No upload, no watermark, files stay in your browser.'
+
+const JSON_LD_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: `${TOOL_SEO_NAME} — Doclair`,
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: `https://doclair.in/${TOOL_SLUG}`,
+      description: TOOL_DESCRIPTION,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      featureList: [
+        'Extract embedded raster images',
+        'PNG downloads per image',
+        'Runs locally in the browser',
+        'No watermark',
+      ],
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
+    },
+  ],
+}
+
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: TOOL_SEO_NAME, item: `https://doclair.in/${TOOL_SLUG}` },
+  ],
+}
+
 export default function ExtractImagesPDFPage() {
   const [images, setImages] = useState<ExtractedImage[]>([])
   const [loading, setLoading] = useState(false)
@@ -146,6 +197,8 @@ export default function ExtractImagesPDFPage() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
       <Navbar />
       <main style={{ minHeight: 'calc(100vh - 200px)', padding: '40px 16px' }}>
         <div style={{ maxWidth: 960, margin: '0 auto' }}>
