@@ -257,7 +257,7 @@ export default function AddWatermarkPage() {
         { name: 'Redact PDF',        slug: 'redact-pdf',          icon: '⬛', colorBg: '#1A1612', desc: 'Permanently remove sensitive text' },
         { name: 'Edit PDF Metadata', slug: 'edit-pdf-metadata',       icon: '🏷️', colorBg: '#FFF0DC', desc: 'Change title, author and more' },
       ]}
-      blogPost={{ slug: 'how-to-add-watermark-to-pdf', title: 'How to Add a Watermark to PDF Free — Text or Image' }}
+      blogPost={{ slug: 'how-to-add-watermark-to-pdf', title: 'How to Add a Watermark to PDF Free' }}
     />
   )
 

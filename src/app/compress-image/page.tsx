@@ -145,7 +145,7 @@ export default function CompressImagePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <ToolPageLayout
         toolName="Compress Image"
-        sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} blogPost={{ slug: 'how-to-compress-image-free', title: 'How to Compress an Image Free — Reduce File Size Without Losing Quality' }} />}
+        sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} blogPost={{ slug: 'how-to-compress-image-free', title: 'How to Compress an Image Free Without Losing Quality' }} />}
       >
         <div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Navbar from './Navbar'
 import Footer from './Footer'
+import FeedbackWidget from '@/components/ui/FeedbackWidget'
 
 interface ToolPageLayoutProps {
   toolName: string
@@ -54,6 +55,7 @@ export default function ToolPageLayout({
         {/* Main content */}
         <div className="tool-content" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {children}
+          <FeedbackWidget />
         </div>
 
         {/* Sidebar — desktop only */}

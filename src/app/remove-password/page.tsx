@@ -193,7 +193,7 @@ export default function RemovePasswordPage() {
         { name: 'Edit PDF Metadata', slug: 'edit-pdf-metadata',    icon: '✏️', colorBg: '#FFF0DC', desc: 'Edit title, author and more' },
         { name: 'Add Page Numbers',  slug: 'add-page-numbers', icon: '🔢', colorBg: '#FEE2E2', desc: 'Stamp page numbers on a PDF' },
       ]}
-      blogPost={{ slug: 'how-to-remove-password-from-pdf', title: 'How to Remove Password From PDF Free — Unlock Instantly' }}
+      blogPost={{ slug: 'how-to-remove-password-from-pdf', title: 'How to Remove Password From PDF Free' }}
     />
   )
 

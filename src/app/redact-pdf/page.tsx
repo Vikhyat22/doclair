@@ -286,7 +286,7 @@ const addFile = useCallback(async (files: File[]) => {
         { name: 'Fingerprint PDF',     slug: 'fingerprint-pdf',  icon: '🪪', colorBg: '#FFF0DC', desc: 'Add invisible tracking marks' },
         { name: 'Compress PDF',        slug: 'compress-pdf',     icon: '📦', colorBg: '#DCFCE7', desc: 'Reduce file size' },
       ]}
-      blogPost={{ slug: 'how-to-redact-pdf', title: 'How to Redact a PDF Free — Permanently Black Out Sensitive Text' }}
+      blogPost={{ slug: 'how-to-redact-pdf', title: 'How to Redact a PDF Free — Black Out Sensitive Text' }}
     />
   )
 
