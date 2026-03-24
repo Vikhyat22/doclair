@@ -46,7 +46,8 @@ export async function POST(req: NextRequest) {
                     ?? ''
 
     return NextResponse.json({ translated, pageNum })
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
