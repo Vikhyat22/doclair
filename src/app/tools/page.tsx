@@ -24,7 +24,7 @@ export default function ToolsPage() {
           <div style={{
             fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px',
             color: 'var(--amber)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '14px',
-          }}>55+ Free Tools</div>
+          }}>70+ Free Tools</div>
           <h1 style={{
             fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800,
             fontSize: 'clamp(32px, 4vw, 52px)', letterSpacing: '-2px', color: 'var(--ink)',

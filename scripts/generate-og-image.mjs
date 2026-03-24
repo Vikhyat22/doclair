@@ -87,7 +87,7 @@ const svg = `
   <!-- Mono label -->
   <text x="72" y="192"
         font-family="'Courier New', Courier, monospace"
-        font-size="13" fill="#F59E0B" letter-spacing="3" opacity="0.9">// 55+ FREE BROWSER-BASED TOOLS</text>
+        font-size="13" fill="#F59E0B" letter-spacing="3" opacity="0.9">// 70+ FREE BROWSER-BASED TOOLS</text>
 
   <!-- Headline line 1 -->
   <text x="72" y="268"
@@ -139,7 +139,7 @@ const svg = `
   <text x="959" y="463"
         font-family="Arial, Helvetica, sans-serif"
         font-size="14" fill="#F59E0B" text-anchor="middle" font-weight="700"
-        letter-spacing="0.3">+ 47 more free tools</text>
+        letter-spacing="0.3">+ 55+ more free tools</text>
   <text x="959" y="485"
         font-family="Arial, Helvetica, sans-serif"
         font-size="12" fill="#FFFFFF" text-anchor="middle" opacity="0.40">100% browser-based · Zero server upload</text>

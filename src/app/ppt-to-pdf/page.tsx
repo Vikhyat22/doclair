@@ -4,6 +4,37 @@ import { useState, useCallback } from 'react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 
+const JSON_LD = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: 'PowerPoint to PDF — Doclair',
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: 'https://doclair.in/ppt-to-pdf',
+      description: 'Convert PowerPoint PPTX files to PDF online free. Text and structure extracted. No upload, no watermark.',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: [
+        { '@type': 'Question', name: 'Is my PowerPoint file uploaded to a server?', acceptedAnswer: { '@type': 'Answer', text: 'Never. The conversion happens entirely in your browser using JavaScript. Your .pptx file is never uploaded to any server.' } },
+        { '@type': 'Question', name: 'Will my slide images and design be preserved?', acceptedAnswer: { '@type': 'Answer', text: 'Doclair extracts text content from each slide and recreates a clean PDF. Images and complex design elements from the original theme are not preserved. For pixel-perfect output, use PowerPoint\'s built-in "Export to PDF" feature.' } },
+        { '@type': 'Question', name: 'What file formats are supported?', acceptedAnswer: { '@type': 'Answer', text: 'The tool supports .pptx (PowerPoint 2007 and later) format. Legacy .ppt files are not currently supported.' } },
+      ],
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'PowerPoint to PDF', item: 'https://doclair.in/ppt-to-pdf' },
+      ],
+    },
+  ],
+}
+
 // PPTX is a ZIP. We parse slides via JSZip + DOMParser to extract text and build a basic PDF.
 // Each slide becomes a page with text rendered in pdf-lib.
 
@@ -143,6 +174,7 @@ export default function PptToPdfPage() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <Navbar />
       <main style={{ minHeight: 'calc(100vh - 200px)', padding: '40px 16px' }}>
         <div style={{ maxWidth: 860, margin: '0 auto' }}>

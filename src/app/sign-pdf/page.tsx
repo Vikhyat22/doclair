@@ -4,6 +4,38 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 
+const JSON_LD = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Sign PDF — Doclair',
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: 'https://doclair.in/sign-pdf',
+      description: 'Sign PDF documents online free. Draw, type or upload your signature and place it anywhere. No upload, no watermark.',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: [
+        { '@type': 'Question', name: 'Is my PDF uploaded to a server when I sign it?', acceptedAnswer: { '@type': 'Answer', text: 'Never. Doclair signs PDFs entirely in your browser. Your document is never transmitted to any server.' } },
+        { '@type': 'Question', name: 'Can I draw my signature with a mouse or stylus?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Switch to Draw mode in the signature panel and draw directly on the canvas using your mouse, trackpad, or stylus.' } },
+        { '@type': 'Question', name: 'How do I place my signature on a specific page?', acceptedAnswer: { '@type': 'Answer', text: 'Navigate to the desired page using the page controls, then click the "Add Signature" button and click anywhere on the page to place it.' } },
+        { '@type': 'Question', name: 'Can I resize my signature after placing it?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Drag the amber handle in the bottom-right corner of your placed signature to resize it proportionally.' } },
+      ],
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'Sign PDF', item: 'https://doclair.in/sign-pdf' },
+      ],
+    },
+  ],
+}
+
 // ─── Signature Pad ────────────────────────────────────────────────────────────
 
 type SigMode = 'draw' | 'type' | 'upload'
@@ -318,6 +350,7 @@ export default function SignPDFPage() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <Navbar />
       <main style={{ minHeight: 'calc(100vh - 200px)', padding: '40px 16px' }}>
         <div style={{ maxWidth: 960, margin: '0 auto' }}>

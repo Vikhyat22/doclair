@@ -107,7 +107,7 @@ export default function HomePage() {
             animation: 'fadeUp 0.6s ease both',
             animationDelay: '0.18s',
           }}>
-            55+ professional PDF, image &amp; document tools — all running privately in your browser.
+            70+ professional PDF, image &amp; document tools — all running privately in your browser.
             Nothing leaves your device. No watermarks. No sign-up. Forever free.
           </p>
 
@@ -156,7 +156,7 @@ export default function HomePage() {
             animationDelay: '0.32s',
           }}>
             {[
-              { num: '55+', label: 'Free tools' },
+              { num: '70+', label: 'Free tools' },
               { num: '0 KB', label: 'Uploaded to servers' },
               { num: '∞', label: 'No file size limits' },
             ].map((s, i) => (
@@ -294,7 +294,7 @@ export default function HomePage() {
           <div style={{
             fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px',
             color: 'var(--amber)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '14px',
-          }}>// 55+ tools</div>
+          }}>// 70+ tools</div>
           <h2 style={{
             fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800,
             fontSize: 'clamp(32px, 4vw, 48px)', letterSpacing: '-1.5px', color: 'var(--ink)',
@@ -398,7 +398,7 @@ export default function HomePage() {
             display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0, position: 'relative',
           }} className="steps-grid">
             {[
-              { num: '01', icon: '📂', name: 'Pick a tool & drop your file', desc: 'Choose from 55+ tools. Drag your file in — no account, no waiting, no limit.' },
+              { num: '01', icon: '📂', name: 'Pick a tool & drop your file', desc: 'Choose from 70+ tools. Drag your file in — no account, no waiting, no limit.' },
               { num: '02', icon: '⚙️', name: 'Browser does the work', desc: 'WebAssembly runs the processing locally on your CPU. Your file never moves.' },
               { num: '03', icon: '⬇️', name: 'Download instantly', desc: 'Your processed file downloads directly. Memory clears when you close the tab.' },
             ].map((step, i) => (

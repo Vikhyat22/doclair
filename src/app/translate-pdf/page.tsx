@@ -4,6 +4,38 @@ import { useState, useCallback } from 'react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 
+const JSON_LD = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Translate PDF — Doclair',
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: 'https://doclair.in/translate-pdf',
+      description: 'Translate PDF documents to any language online free using AI. Supports 26 languages. No upload, no watermark.',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: [
+        { '@type': 'Question', name: 'How does PDF translation work?', acceptedAnswer: { '@type': 'Answer', text: 'Text is extracted from your PDF in the browser using PDF.js, then sent to our AI API for translation. The original PDF file is never uploaded — only the extracted text is processed.' } },
+        { '@type': 'Question', name: 'Which languages are supported?', acceptedAnswer: { '@type': 'Answer', text: 'Over 26 languages including Spanish, French, German, Portuguese, Chinese, Japanese, Korean, Arabic, Hindi, and more.' } },
+        { '@type': 'Question', name: 'Will images in the PDF be translated?', acceptedAnswer: { '@type': 'Answer', text: 'Only text content is translated. Images, charts, and graphics are not modified. For scanned PDFs, use OCR PDF first to make the text extractable.' } },
+        { '@type': 'Question', name: 'Can I download the translated text?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. After translation is complete, click "Download TXT" to save the translated content as a plain text file.' } },
+      ],
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'Translate PDF', item: 'https://doclair.in/translate-pdf' },
+      ],
+    },
+  ],
+}
+
 const LANGUAGES = [
   'Spanish', 'French', 'German', 'Portuguese', 'Italian', 'Dutch',
   'Russian', 'Chinese (Simplified)', 'Chinese (Traditional)', 'Japanese',
@@ -76,6 +108,7 @@ export default function TranslatePDFPage() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
       <Navbar />
       <main style={{ minHeight: 'calc(100vh - 200px)', padding: '40px 16px' }}>
         <div style={{ maxWidth: 960, margin: '0 auto' }}>
