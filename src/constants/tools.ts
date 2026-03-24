@@ -500,6 +500,35 @@ export const TOOLS: Tool[] = [
     slug: 'heif-to-pdf',
     colorBg: '#D1FAE5',
   },
+  {
+    id: 'tiff-to-pdf',
+    name: 'TIFF → PDF',
+    icon: '🖼️',
+    category: 'Convert',
+    desc: 'Convert TIFF/TIF images to PDF',
+    slug: 'tiff-to-pdf',
+    colorBg: '#D1FAE5',
+  },
+
+  {
+    id: 'scan-to-pdf',
+    name: 'Scan to PDF',
+    icon: '📷',
+    category: 'Convert',
+    desc: 'Use your camera to scan documents to PDF',
+    slug: 'scan-to-pdf',
+    colorBg: '#D1FAE5',
+  },
+
+  {
+    id: 'extract-images-pdf',
+    name: 'Extract Images',
+    icon: '🖼️',
+    category: 'Convert',
+    desc: 'Extract all images from a PDF file',
+    slug: 'extract-images-pdf',
+    colorBg: '#D1FAE5',
+  },
 
   // ── AI Tools ────────────────────────────────────────────────────────────────
   {

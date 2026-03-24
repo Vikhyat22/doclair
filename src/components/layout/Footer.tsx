@@ -1,7 +1,48 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
 import { TOOLS } from '@/constants/tools'
+
+function NewsletterForm() {
+  const [email, setEmail] = useState('')
+  const [status, setStatus] = useState<'idle' | 'done'>('idle')
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email.includes('@')) return
+    // In production wire this to an email service (Mailchimp, Resend, etc.)
+    setStatus('done')
+  }
+
+  if (status === 'done') {
+    return <p style={{ color: 'var(--amber)', fontWeight: 600, fontSize: 14 }}>Thanks! We&apos;ll keep you posted.</p>
+  }
+
+  return (
+    <form onSubmit={submit} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <input
+        type="email"
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+        placeholder="your@email.com"
+        required
+        style={{
+          flex: 1, minWidth: 200, padding: '10px 14px', borderRadius: 8,
+          border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.07)',
+          color: 'white', fontSize: 14, outline: 'none',
+        }}
+      />
+      <button type="submit" style={{
+        padding: '10px 20px', borderRadius: 8, border: 'none',
+        background: 'var(--amber)', color: 'var(--ink)',
+        fontWeight: 700, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap',
+      }}>
+        Subscribe
+      </button>
+    </form>
+  )
+}
 
 export default function Footer() {
   const year = new Date().getFullYear()
@@ -80,6 +121,26 @@ export default function Footer() {
                 {link.label}
               </Link>
             ))}
+          </div>
+        </div>
+
+        {/* Newsletter */}
+        <div style={{
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          paddingTop: '40px',
+          marginBottom: '32px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '20px',
+        }}>
+          <div>
+            <p style={{ fontFamily: 'var(--font-syne)', fontWeight: 700, fontSize: 15, color: 'white', margin: '0 0 4px' }}>Stay in the loop</p>
+            <small style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>New tools, tips, and updates. No spam — ever.</small>
+          </div>
+          <div style={{ flex: 1, maxWidth: 420 }}>
+            <NewsletterForm />
           </div>
         </div>
 
