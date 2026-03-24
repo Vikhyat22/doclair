@@ -123,6 +123,15 @@ export const TOOLS: Tool[] = [
 
   // ── Edit & Organize ─────────────────────────────────────────────────────────
   {
+    id: 'sign-pdf',
+    name: 'Sign PDF',
+    icon: '✍️',
+    category: 'Edit & Organize',
+    desc: 'Draw, type or upload your signature',
+    slug: 'sign-pdf',
+    colorBg: '#DBEAFE',
+  },
+  {
     id: 'edit-pdf',
     name: 'Edit PDF + Sign',
     icon: '✍️',
@@ -511,6 +520,24 @@ export const TOOLS: Tool[] = [
   },
 
   {
+    id: 'ppt-to-pdf',
+    name: 'PowerPoint → PDF',
+    icon: '📊',
+    category: 'Convert',
+    desc: 'Convert PPTX slides to PDF',
+    slug: 'ppt-to-pdf',
+    colorBg: '#FFF0DC',
+  },
+  {
+    id: 'pdf-to-ppt',
+    name: 'PDF → PowerPoint',
+    icon: '📊',
+    category: 'Convert',
+    desc: 'Convert PDF pages to PPTX slides',
+    slug: 'pdf-to-ppt',
+    colorBg: '#FFF0DC',
+  },
+  {
     id: 'scan-to-pdf',
     name: 'Scan to PDF',
     icon: '📷',
@@ -558,6 +585,16 @@ export const TOOLS: Tool[] = [
     category: 'AI Tools',
     desc: 'Get key points instantly',
     slug: 'ai-summarizer',
+    colorBg: '#EDE9FE',
+    ai: true,
+  },
+  {
+    id: 'translate-pdf',
+    name: 'Translate PDF',
+    icon: '🌐',
+    category: 'AI Tools',
+    desc: 'Translate to any language with AI',
+    slug: 'translate-pdf',
     colorBg: '#EDE9FE',
     ai: true,
   },

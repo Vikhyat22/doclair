@@ -1,7 +1,9 @@
 'use client'
 
+import { useState, useCallback } from 'react'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import { rgb } from '@cantoo/pdf-lib'
 
 const SIDEBAR_RELATED = [
   { name: 'Cut PDF',          slug: 'cut-pdf',          icon: '✂️', colorBg: '#DBEAFE', desc: 'Split pages in half' },
@@ -9,31 +11,153 @@ const SIDEBAR_RELATED = [
   { name: 'Organize Pages',   slug: 'organize-pages',   icon: '📋', colorBg: '#EDE9FE', desc: 'Reorder PDF pages' },
 ]
 
+type SheetSize = 'A4' | 'Letter'
+
+// Booklet imposition order: for N sheets, the page order on each sheet is:
+// Sheet 1 front: [N, 1], Sheet 1 back: [2, N-1]
+// Sheet 2 front: [N-2, 3], Sheet 2 back: [4, N-3] ...
+function bookletOrder(total: number): [number, number][] {
+  // total must be multiple of 4 — pad with blank pages
+  const padded = Math.ceil(total / 4) * 4
+  const pages = Array.from({ length: padded }, (_, i) => i) // 0-indexed; >= total = blank
+  const sheets: [number, number][] = []
+  let l = 0, r = padded - 1
+  while (l < r) {
+    sheets.push([r, l])     // front left = last, front right = first
+    l++; r--
+    sheets.push([l, r])     // back left = second, back right = second-to-last
+    l++; r--
+  }
+  return sheets
+}
+
 export default function PDFToBookletPage() {
+  const [sheetSize, setSheetSize] = useState<SheetSize>('A4')
+  const [saving, setSaving] = useState(false)
+  const [done, setDone] = useState(false)
+
+  const process = useCallback(async (file: File) => {
+    setSaving(true); setDone(false)
+    try {
+      const { PDFDocument } = await import('@cantoo/pdf-lib')
+      const pdfjsLib = (await import('pdfjs-dist')).default ?? await import('pdfjs-dist')
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+      const src = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise
+      const total = src.numPages
+
+      // Render source pages to images
+      const pageImgs: (string | null)[] = [] // null = blank
+      for (let i = 1; i <= total; i++) {
+        const page = await src.getPage(i)
+        const vp = page.getViewport({ scale: 1.5 })
+        const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (page.render as any)({ canvasContext: c.getContext('2d'), viewport: vp }).promise
+        pageImgs.push(c.toDataURL('image/jpeg', 0.88))
+      }
+
+      // Sheet dimensions: landscape for booklet printing
+      const SIZES: Record<SheetSize, [number, number]> = { A4: [842, 595], Letter: [792, 612] }
+      const [sheetW, sheetH] = SIZES[sheetSize]
+      const margin = 10
+      const cellW = (sheetW - margin * 3) / 2
+      const cellH = sheetH - margin * 2
+
+      const out = await PDFDocument.create()
+      const order = bookletOrder(total)
+
+      for (const [leftIdx, rightIdx] of order) {
+        const sheet = out.addPage([sheetW, sheetH])
+
+        const drawCell = async (idx: number, x: number) => {
+          if (idx >= total) return // blank page
+          const imgEl = new Image()
+          await new Promise<void>(r => { imgEl.onload = () => r(); imgEl.src = pageImgs[idx]! })
+          const buf = await new Promise<ArrayBuffer>(r => {
+            const oc = document.createElement('canvas'); oc.width = imgEl.naturalWidth; oc.height = imgEl.naturalHeight
+            oc.getContext('2d')!.drawImage(imgEl, 0, 0)
+            oc.toBlob(async b => r(await b!.arrayBuffer()), 'image/jpeg', 0.88)
+          })
+          const pdfImg = await out.embedJpg(buf)
+          const ratio = pdfImg.width / pdfImg.height
+          let dw = cellW, dh = cellH
+          if (cellW / cellH > ratio) dw = cellH * ratio; else dh = cellW / ratio
+          const dx = x + (cellW - dw) / 2
+          const dy = margin + (cellH - dh) / 2
+          sheet.drawImage(pdfImg, { x: dx, y: dy, width: dw, height: dh })
+        }
+
+        await drawCell(leftIdx, margin)
+        await drawCell(rightIdx, margin * 2 + cellW)
+
+        // Center fold line
+        sheet.drawLine({ start: { x: sheetW / 2, y: 0 }, end: { x: sheetW / 2, y: sheetH }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) })
+        // Page numbers
+        const font = await out.embedFont('Helvetica' as unknown as Parameters<typeof out.embedFont>[0])
+        const leftPg = leftIdx < total ? String(leftIdx + 1) : ''
+        const rightPg = rightIdx < total ? String(rightIdx + 1) : ''
+        if (leftPg) sheet.drawText(leftPg, { x: margin + 4, y: 4, size: 7, font, color: rgb(0.6, 0.6, 0.6) })
+        if (rightPg) sheet.drawText(rightPg, { x: margin * 2 + cellW + 4, y: 4, size: 7, font, color: rgb(0.6, 0.6, 0.6) })
+      }
+
+      const bytes = await out.save()
+      const blob = new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a'); a.href = url
+      a.download = file.name.replace(/\.pdf$/i, '-booklet.pdf'); a.click()
+      URL.revokeObjectURL(url)
+      setDone(true)
+    } finally { setSaving(false) }
+  }, [sheetSize])
+
   return (
-    <ToolPageLayout
-      toolName="PDF to Booklet"
-      sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
-    >
+    <ToolPageLayout toolName="PDF to Booklet" sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}>
       <div>
         <h1 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(28px, 4vw, 48px)', letterSpacing: '-1px', lineHeight: 1.05, marginBottom: '10px' }}>
           <span style={{ color: 'var(--ink)' }}>PDF to Booklet </span>
-          <span style={{ color: 'var(--amber)' }}>Arrange for Booklet Printing</span>
+          <span style={{ color: 'var(--amber)' }}>Saddle-Stitch Print Order</span>
         </h1>
-        <p style={{ color: 'var(--muted)', fontSize: '16px', lineHeight: 1.6, maxWidth: '640px', marginBottom: '16px' }}>
-          Rearrange PDF pages in booklet (saddle-stitch) order for printing folded A5 booklets from A4 sheets.
+        <p style={{ color: 'var(--muted)', fontSize: '16px', lineHeight: 1.6, maxWidth: '640px', marginBottom: '24px' }}>
+          Rearrange pages into booklet (saddle-stitch) order. Print double-sided, fold in half, and staple to create a booklet.
         </p>
+        <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#1e40af', marginBottom: 24, maxWidth: 560 }}>
+          <strong>Tip:</strong> For best results, use a PDF with a page count that&apos;s a multiple of 4. Pages will be padded with blanks if needed.
+        </div>
       </div>
 
-      <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '16px', padding: '32px', textAlign: 'center' }}>
-        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📚</div>
-        <div style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '20px', color: 'var(--ink)', marginBottom: '10px' }}>Coming Soon</div>
-        <p style={{ color: 'var(--muted)', fontSize: '15px', lineHeight: 1.6, maxWidth: '400px', margin: '0 auto 20px' }}>
-          Booklet imposition requires complex page reordering and scaling. Full implementation in progress.
-        </p>
-        <p style={{ color: 'var(--muted)', fontSize: '14px' }}>
-          Try <a href="/cut-pdf" style={{ color: 'var(--amber)', textDecoration: 'underline' }}>Cut PDF</a> to split double-page scans, or <a href="/organize-pages" style={{ color: 'var(--amber)', textDecoration: 'underline' }}>Organize Pages</a> to reorder manually.
-        </p>
+      {/* Sheet size */}
+      <div style={{ marginBottom: 24 }}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 8 }}>Output sheet size</label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {(['A4', 'Letter'] as SheetSize[]).map(s => (
+            <button key={s} onClick={() => setSheetSize(s)} style={{
+              padding: '8px 20px', borderRadius: 8, border: '1.5px solid',
+              borderColor: sheetSize === s ? '#F59E0B' : '#e5e7eb',
+              background: sheetSize === s ? '#FFF8EC' : '#fff',
+              fontWeight: 700, fontSize: 14, cursor: 'pointer',
+            }}>{s} landscape</button>
+          ))}
+        </div>
+      </div>
+
+      <div
+        onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f?.type === 'application/pdf') process(f) }}
+        onDragOver={e => e.preventDefault()}
+        style={{ border: '3px dashed #e5e7eb', borderRadius: 16, padding: 64, textAlign: 'center', background: '#fafafa' }}>
+        {saving ? (
+          <><div style={{ fontSize: 40, marginBottom: 12 }}>⏳</div><p style={{ fontWeight: 600, color: '#374151' }}>Creating booklet…</p></>
+        ) : (
+          <>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>📚</div>
+            <p style={{ fontWeight: 600, fontSize: 16, marginBottom: 8, color: '#374151' }}>Drop PDF here</p>
+            <p style={{ color: '#9ca3af', marginBottom: 20 }}>Pages reordered for folded booklet printing on {sheetSize}</p>
+            <label style={{ padding: '12px 28px', borderRadius: 10, background: '#F59E0B', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 15 }}>
+              Choose PDF
+              <input type="file" accept="application/pdf" onChange={e => { const f = e.target.files?.[0]; if (f) process(f) }} style={{ display: 'none' }} />
+            </label>
+            {done && <p style={{ color: '#10b981', fontWeight: 600, marginTop: 16, fontSize: 13 }}>✓ Booklet PDF downloaded!</p>}
+          </>
+        )}
       </div>
     </ToolPageLayout>
   )

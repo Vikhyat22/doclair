@@ -21,9 +21,13 @@ const nextConfig = {
       'node:path': './src/lib/empty.js',
       'node:url': './src/lib/empty.js',
       'node:fs': './src/lib/empty.js',
+      'node:https': './src/lib/empty.js',
+      'node:http': './src/lib/empty.js',
+      'node:os': './src/lib/empty.js',
+      'node:crypto': './src/lib/empty.js',
     },
   },
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     // Mirror the Turbopack resolveAlias stubs so webpack builds work identically.
     // canvas and Node built-ins are imported conditionally by ghostpdl-wasm;
     // webpack must also stub them out to avoid bundle-time resolution errors.
@@ -35,7 +39,34 @@ const nextConfig = {
       'node:path': require('path').resolve(__dirname, './src/lib/empty.js'),
       'node:url': require('path').resolve(__dirname, './src/lib/empty.js'),
       'node:fs': require('path').resolve(__dirname, './src/lib/empty.js'),
+      'node:https': require('path').resolve(__dirname, './src/lib/empty.js'),
+      'node:http': require('path').resolve(__dirname, './src/lib/empty.js'),
+      'node:os': require('path').resolve(__dirname, './src/lib/empty.js'),
+      'node:crypto': require('path').resolve(__dirname, './src/lib/empty.js'),
     }
+    // For client bundles, provide fallbacks for Node.js built-ins used by pptxgenjs
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        https: false,
+        http: false,
+        os: false,
+        crypto: false,
+        path: false,
+        url: false,
+      }
+    }
+    // Replace node: scheme imports (used by pptxgenjs) with empty stubs
+    const webpack = require('webpack')
+    config.plugins.push(
+      new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
+        const mod = resource.request.replace(/^node:/, '')
+        const empty = require('path').resolve(__dirname, './src/lib/empty.js')
+        resource.request = empty
+        resource.request = empty + '?' + mod
+      })
+    )
     // Enable WASM as async modules so the 15MB gs.wasm loads correctly
     config.experiments = {
       ...config.experiments,
