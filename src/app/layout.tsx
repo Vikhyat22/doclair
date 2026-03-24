@@ -41,9 +41,6 @@ export const metadata: Metadata = {
     images: ['https://doclair.in/og-image.png'],
   },
   robots: { index: true, follow: true },
-  verification: {
-    google: process.env.NEXT_PUBLIC_GSC_VERIFICATION ?? '',
-  },
   // favicon.ico, icon.png and apple-icon.png are in src/app/ —
   // Next.js App Router picks them up automatically (no metadata.icons needed)
 }
