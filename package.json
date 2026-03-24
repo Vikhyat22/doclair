@@ -7,6 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "generate-og": "node scripts/generate-og-images.mjs",
     "postinstall": "cp node_modules/@okathira/ghostpdl-wasm/dist/gs.wasm public/gs.wasm && node scripts/download-imgly-models.mjs"
   },
   "dependencies": {
@@ -37,6 +38,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@resvg/resvg-wasm": "^2.6.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/papaparse": "^5.5.2",
@@ -44,6 +46,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
+    "satori": "^0.26.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
