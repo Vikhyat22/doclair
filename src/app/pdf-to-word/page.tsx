@@ -286,10 +286,17 @@ export default function PDFToWordPage() {
           )}
 
           <DownloadCard
-            filename="doclair-converted.docx"
+            filename={`${file?.name.replace(/\.pdf$/i, '') ?? 'document'}.docx`}
             description={`${result.pageCount} page${result.pageCount !== 1 ? 's' : ''} · ${result.wordCount.toLocaleString()} words`}
             onDownload={handleDownload}
             onReset={handleReset}
+            title="Converted to Word!"
+            resetLabel="Convert another →"
+            nextSteps={[
+              { slug: 'word-to-pdf',  name: 'Word to PDF',    icon: '📄' },
+              { slug: 'compress-pdf', name: 'Compress PDF',   icon: '🗜️' },
+              { slug: 'merge-pdf',    name: 'Merge PDFs',     icon: '🔗' },
+            ]}
           />
         </div>
       )}

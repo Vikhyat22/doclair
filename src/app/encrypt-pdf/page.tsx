@@ -384,10 +384,17 @@ export default function EncryptPDFPage() {
       {toolState === 'done' && resultBytes && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <DownloadCard
-            filename="doclair-encrypted.pdf"
+            filename={`${file?.name.replace(/\.pdf$/i, '') ?? 'document'}_encrypted.pdf`}
             description={`${pageCount} page${pageCount !== 1 ? 's' : ''} · AES-256 Encrypted`}
             onDownload={handleDownload}
             onReset={handleReset}
+            title="PDF encrypted!"
+            resetLabel="Encrypt another →"
+            nextSteps={[
+              { slug: 'add-watermark', name: 'Add Watermark', icon: '💧' },
+              { slug: 'compress-pdf',  name: 'Compress PDF',  icon: '🗜️' },
+              { slug: 'merge-pdf',     name: 'Merge PDFs',    icon: '🔗' },
+            ]}
           />
           {/* Stats row */}
           <div style={{

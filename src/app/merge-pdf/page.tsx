@@ -263,10 +263,17 @@ export default function MergePDFPage() {
       {/* State: done */}
       {toolState === 'done' && (
         <DownloadCard
-          filename="doclair-merged.pdf"
+          filename={`${files[0]?.name.replace(/\.pdf$/i, '') ?? 'document'}_merged.pdf`}
           description={`${files.length} files merged · No watermark added`}
           onDownload={handleDownload}
           onReset={handleReset}
+          title="PDFs merged successfully!"
+          resetLabel="Merge more files →"
+          nextSteps={[
+            { slug: 'compress-pdf',   name: 'Compress PDF',   icon: '🗜️' },
+            { slug: 'add-watermark',  name: 'Add Watermark',  icon: '💧' },
+            { slug: 'encrypt-pdf',    name: 'Encrypt PDF',    icon: '🔒' },
+          ]}
         />
       )}
 

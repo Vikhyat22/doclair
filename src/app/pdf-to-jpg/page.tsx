@@ -411,6 +411,13 @@ export default function PdfToJpgPage() {
           description={`${results[0].width}×${results[0].height}px · ${formatBytes(results[0].sizeBytes)}`}
           onDownload={handleSingleDownload}
           onReset={handleReset}
+          title="PDF exported as image!"
+          resetLabel="Convert another →"
+          nextSteps={[
+            { slug: 'compress-image', name: 'Compress Image', icon: '🗜️' },
+            { slug: 'image-to-pdf',   name: 'Image to PDF',   icon: '📄' },
+            { slug: 'merge-pdf',      name: 'Merge PDFs',     icon: '🔗' },
+          ]}
         />
       )}
 

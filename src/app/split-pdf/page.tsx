@@ -531,6 +531,13 @@ export default function SplitPDFPage() {
           description={results[0].pageRange + ' · ' + fmtBytes(results[0].bytes.byteLength)}
           onDownload={() => handleDownloadOne(results[0])}
           onReset={handleReset}
+          title="PDF split successfully!"
+          resetLabel="Split another →"
+          nextSteps={[
+            { slug: 'merge-pdf',       name: 'Merge PDFs',      icon: '🔗' },
+            { slug: 'compress-pdf',    name: 'Compress PDF',    icon: '🗜️' },
+            { slug: 'organize-pages',  name: 'Organize Pages',  icon: '📄' },
+          ]}
         />
       )}
 

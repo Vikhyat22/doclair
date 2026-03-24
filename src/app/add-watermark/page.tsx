@@ -726,10 +726,17 @@ export default function AddWatermarkPage() {
       {/* Done state */}
       {toolState === 'done' && file && (
         <DownloadCard
-          filename={file.name.replace('.pdf', '-watermarked.pdf')}
+          filename={file.name.replace(/\.pdf$/i, '-watermarked.pdf')}
           description={`${watermarkType} watermark · ${pageCount} page${pageCount !== 1 ? 's' : ''}`}
           onDownload={handleDownload}
           onReset={handleReset}
+          title="Watermark added!"
+          resetLabel="Watermark another →"
+          nextSteps={[
+            { slug: 'encrypt-pdf',  name: 'Encrypt PDF',   icon: '🔒' },
+            { slug: 'compress-pdf', name: 'Compress PDF',  icon: '🗜️' },
+            { slug: 'merge-pdf',    name: 'Merge PDFs',    icon: '🔗' },
+          ]}
         />
       )}
 

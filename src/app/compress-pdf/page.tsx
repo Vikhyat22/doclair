@@ -435,7 +435,7 @@ export default function CompressPDFPage() {
             </div>
           )}
           <DownloadCard
-            filename="doclair-compressed.pdf"
+            filename={`${file?.name.replace(/\.pdf$/i, '') ?? 'document'}_compressed.pdf`}
             description={
               resultKind === 'minimal'
                 ? `${formatBytes(originalSize)} → ${formatBytes(compressedSize)}${reduction > 0 ? ` · ${reduction}% smaller` : ' · minimal change'}`
@@ -443,6 +443,13 @@ export default function CompressPDFPage() {
             }
             onDownload={handleDownload}
             onReset={handleReset}
+            title="PDF compressed!"
+            resetLabel="Compress another →"
+            nextSteps={[
+              { slug: 'merge-pdf',    name: 'Merge PDFs',    icon: '🔗' },
+              { slug: 'pdf-to-word',  name: 'PDF to Word',   icon: '📝' },
+              { slug: 'add-watermark', name: 'Add Watermark', icon: '💧' },
+            ]}
           />
         </>
       )}
