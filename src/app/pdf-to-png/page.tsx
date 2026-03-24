@@ -6,6 +6,7 @@ import DropZone from '@/components/ui/DropZone'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import DownloadCard from '@/components/ui/DownloadCard'
+import ErrorCard from '@/components/ui/ErrorCard'
 import { pdfToImages, imagesToZip, formatBytes } from '@/lib/image/pdfToImages'
 import type { ImageDPI, ImageResult } from '@/lib/image/pdfToImages'
 import type { ToolState } from '@/types'
@@ -66,6 +67,7 @@ export default function PdfToPngPage() {
   const [previewUrls, setPreviewUrls] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(0)
   const [progress, setProgress]       = useState(0)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const addFile = useCallback(async (files: File[]) => {
     const f = files[0]
@@ -90,7 +92,7 @@ export default function PdfToPngPage() {
       })
       const urls = imageResults.map(r => URL.createObjectURL(r.blob))
       setPreviewUrls(urls); setResults(imageResults); setToolState('done'); setProgress(100)
-    } catch (err) { setToolState('idle'); alert('Conversion failed: ' + (err instanceof Error ? err.message : 'Unknown')) }
+    } catch (err) { const message = err instanceof Error ? err.message : 'Unknown error'; setErrorMessage(message); setToolState('error') }
   }
 
   function handleDownloadImage(result: ImageResult) {
@@ -108,7 +110,7 @@ export default function PdfToPngPage() {
 
   function handleReset() {
     previewUrls.forEach(URL.revokeObjectURL); setFile(null); setTotalPages(0); setResults([]); setPreviewUrls([])
-    setToolState('idle'); setProgress(0); setCurrentPage(0)
+    setToolState('idle'); setProgress(0); setCurrentPage(0); setErrorMessage('')
   }
 
   const totalSize = results.reduce((acc, r) => acc + r.sizeBytes, 0)
@@ -206,6 +208,8 @@ export default function PdfToPngPage() {
           </div>
         </div>
       )}
+
+      {toolState === 'error' && <ErrorCard message={errorMessage} onReset={handleReset} />}
 
       {toolState === 'done' && results.length === 1 && (
         <DownloadCard

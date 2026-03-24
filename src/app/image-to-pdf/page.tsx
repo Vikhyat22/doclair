@@ -22,6 +22,7 @@ import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 import { imagesToPDF, generateThumb } from '@/lib/image/imagesToPdf'
 import type { ImageItem, PageSize, Orientation } from '@/lib/image/imagesToPdf'
 import type { ToolState } from '@/types'
@@ -114,6 +115,7 @@ export default function ImageToPdfPage() {
   const [resultBytes, setResultBytes]   = useState<Uint8Array | null>(null)
   const [progress, setProgress]         = useState(0)
   const [progressLabel, setProgressLabel] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -142,7 +144,7 @@ export default function ImageToPdfPage() {
       setProgress(20); setProgressLabel(`Converting ${items.length} image${items.length > 1 ? 's' : ''}…`)
       const bytes = await imagesToPDF(items, pageSize, orientation)
       setProgress(95); setProgressLabel('Finalising…'); setResultBytes(bytes); setToolState('done'); setProgress(100)
-    } catch (err) { setToolState('idle'); alert('Conversion failed: ' + (err instanceof Error ? err.message : 'Unknown')) }
+    } catch (err) { const message = err instanceof Error ? err.message : 'Unknown error'; setErrorMessage(message); setToolState('error') }
   }
 
   function handleDownload() {
@@ -152,7 +154,7 @@ export default function ImageToPdfPage() {
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   }
 
-  function handleReset() { items.forEach(i => { if (i.thumbUrl) URL.revokeObjectURL(i.thumbUrl) }); setItems([]); setResultBytes(null); setToolState('idle'); setProgress(0) }
+  function handleReset() { items.forEach(i => { if (i.thumbUrl) URL.revokeObjectURL(i.thumbUrl) }); setItems([]); setResultBytes(null); setToolState('idle'); setProgress(0); setErrorMessage('') }
 
   const sidebar = (
     <ToolSidebar
@@ -268,6 +270,8 @@ export default function ImageToPdfPage() {
           ]}
         />
       )}
+
+      {toolState === 'error' && <ErrorCard message={errorMessage} onReset={handleReset} />}
 
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
         <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>Convert Any Image Format to PDF — Free</h2>

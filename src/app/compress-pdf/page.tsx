@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
+import ErrorCard from '@/components/ui/ErrorCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import { compressPDF } from '@/lib/pdf/compress'
@@ -107,6 +108,7 @@ export default function CompressPDFPage() {
   const [originalSize, setOriginalSize]       = useState(0)
   const [compressedSize, setCompressedSize]   = useState(0)
   const [isFirstLoad, setIsFirstLoad]         = useState(false)
+  const [errorMessage, setErrorMessage]       = useState('')
 
   useEffect(() => {
     try {
@@ -136,8 +138,8 @@ export default function CompressPDFPage() {
       setIsFirstLoad(false)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error'
-      alert('Compression failed: ' + message)
-      setToolState('idle')
+      setErrorMessage(message)
+      setToolState('error')
     }
   }
 
@@ -158,6 +160,7 @@ export default function CompressPDFPage() {
     setProgress(0)
     setOriginalSize(0)
     setCompressedSize(0)
+    setErrorMessage('')
     setToolState('idle')
   }
 
@@ -453,6 +456,8 @@ export default function CompressPDFPage() {
           />
         </>
       )}
+
+      {toolState === 'error' && <ErrorCard message={errorMessage} onReset={handleReset} />}
 
       {/* SEO Content */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>

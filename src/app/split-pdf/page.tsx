@@ -5,6 +5,7 @@ import { PDFDocument } from '@cantoo/pdf-lib'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
+import ErrorCard from '@/components/ui/ErrorCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import { splitPDF, bundleAsZip, parseRangePreview } from '@/lib/pdf/split'
@@ -70,6 +71,7 @@ export default function SplitPDFPage() {
   const [toolState, setToolState] = useState<ToolState>('idle')
   const [results, setResults] = useState<SplitResult[]>([])
   const [progress, setProgress] = useState(0)
+  const [errorMessage, setErrorMessage] = useState('')
   const thumbUrlsRef = useRef<string[]>([])
 
   async function generateThumbnails(fileBytes: ArrayBuffer, pageCount: number) {
@@ -149,8 +151,9 @@ export default function SplitPDFPage() {
       setProgress(100)
     } catch (err) {
       console.error(err)
-      setToolState('idle')
-      alert('Split failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setErrorMessage(message)
+      setToolState('error')
     }
   }
 
@@ -185,6 +188,7 @@ export default function SplitPDFPage() {
     setProgress(0)
     setRangeInput('')
     setIntervalValue(2)
+    setErrorMessage('')
   }
 
   const rangePreview = parseRangePreview(rangeInput, totalPages)
@@ -625,6 +629,8 @@ export default function SplitPDFPage() {
           >Split another PDF →</button>
         </div>
       )}
+
+      {toolState === 'error' && <ErrorCard message={errorMessage} onReset={handleReset} />}
 
       {/* SEO Content */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>

@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
+import ErrorCard from '@/components/ui/ErrorCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import type { ToolState } from '@/types'
@@ -81,6 +82,7 @@ export default function AddBlankPagePage() {
   const [pageSize, setPageSize]   = useState<PageSize>('match')
   const [toolState, setToolState] = useState<ToolState>('idle')
   const [resultBytes, setResultBytes] = useState<Uint8Array | null>(null)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const addFile = useCallback(async (files: File[]) => {
     const f = files[0]; if (!f) return
@@ -116,8 +118,8 @@ export default function AddBlankPagePage() {
       setResultBytes(await doc.save())
       setToolState('done')
     } catch (err) {
-      setToolState('idle')
-      alert('Failed: ' + (err instanceof Error ? err.message : 'Unknown'))
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setErrorMessage(message); setToolState('error')
     }
   }
 
@@ -130,7 +132,7 @@ export default function AddBlankPagePage() {
 
   function handleReset() {
     setFile(null); setTotalPages(0); setInsertAfter(1)
-    setPageSize('match'); setResultBytes(null); setToolState('idle')
+    setPageSize('match'); setResultBytes(null); setToolState('idle'); setErrorMessage('')
   }
 
   const sidebar = (
@@ -262,6 +264,8 @@ export default function AddBlankPagePage() {
           ]}
         />
       )}
+
+      {toolState === 'error' && <ErrorCard message={errorMessage} onReset={handleReset} />}
 
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
         <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>

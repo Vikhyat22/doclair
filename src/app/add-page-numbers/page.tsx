@@ -7,6 +7,7 @@ import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 import { pageNumbersPDF } from '@/lib/pdf/pageNumbers'
 import type { PageNumberPosition, PageNumberFormat } from '@/lib/pdf/pageNumbers'
 import type { ToolState } from '@/types'
@@ -91,6 +92,7 @@ export default function AddPageNumbersPage() {
   const [margin, setMargin]           = useState(28)
   const [skipFirst, setSkipFirst]     = useState(false)
   const [pageRange, setPageRange]     = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
 
   const addFile = useCallback(async (files: File[]) => {
     const f = files[0]
@@ -119,8 +121,8 @@ export default function AddPageNumbersPage() {
       setResultBytes(result)
       setToolState('done')
     } catch (err) {
-      setToolState('idle')
-      alert('Failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setErrorMessage(message); setToolState('error')
     }
   }
 
@@ -145,6 +147,7 @@ export default function AddPageNumbersPage() {
     setMargin(28)
     setSkipFirst(false)
     setPageRange('')
+    setErrorMessage('')
   }
 
   const sidebar = (
@@ -459,6 +462,8 @@ export default function AddPageNumbersPage() {
           ]}
         />
       )}
+
+      {toolState === 'error' && <ErrorCard message={errorMessage} onReset={handleReset} />}
 
       {/* SEO Section */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>

@@ -7,6 +7,7 @@ import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 import { addWatermark } from '@/lib/pdf/watermark'
 import type { WatermarkOptions, WatermarkPosition, WatermarkType } from '@/lib/pdf/watermark'
 
@@ -99,6 +100,7 @@ export default function AddWatermarkPage() {
   const [color, setColor]                     = useState('#000000')
   const [scale, setScale]                     = useState(0.3)
   const [toolState, setToolState]             = useState<ToolState>('idle')
+  const [errorMessage, setErrorMessage]       = useState('')
   const [resultBytes, setResultBytes]         = useState<Uint8Array | null>(null)
   const [progress, setProgress]               = useState({ n: 0, total: 0 })
 
@@ -147,6 +149,8 @@ export default function AddWatermarkPage() {
       setToolState('ready')
     } catch (err) {
       console.error('Failed to load PDF:', err)
+      const message = err instanceof Error ? err.message : 'Failed to load PDF.'
+      setErrorMessage(message)
       setToolState('error')
     }
   }, [])
@@ -196,6 +200,8 @@ export default function AddWatermarkPage() {
       setToolState('done')
     } catch (err) {
       console.error('Watermark failed:', err)
+      const message = err instanceof Error ? err.message : 'Watermark could not be applied.'
+      setErrorMessage(message)
       setToolState('error')
     }
   }
@@ -228,6 +234,7 @@ export default function AddWatermarkPage() {
     setColor('#000000')
     setScale(0.3)
     setToolState('idle')
+    setErrorMessage('')
     setResultBytes(null)
     setProgress({ n: 0, total: 0 })
   }
@@ -741,29 +748,7 @@ export default function AddWatermarkPage() {
       )}
 
       {/* Error state */}
-      {toolState === 'error' && (
-        <div style={{
-          background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '16px',
-          padding: '32px', textAlign: 'center',
-        }}>
-          <div style={{ fontSize: '32px', marginBottom: '12px' }}>⚠️</div>
-          <div style={{
-            fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700,
-            fontSize: '18px', color: 'var(--red)', marginBottom: '8px',
-          }}>Something went wrong</div>
-          <div style={{ fontSize: '13px', color: 'var(--ink)', opacity: 0.65, marginBottom: '20px' }}>
-            The PDF could not be processed. Try a different file.
-          </div>
-          <button
-            onClick={handleReset}
-            style={{
-              padding: '10px 24px', borderRadius: '100px', border: '1px solid var(--border)',
-              background: 'white', cursor: 'pointer', fontSize: '13px',
-              fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif', fontWeight: 500,
-            }}
-          >Try again</button>
-        </div>
-      )}
+      {toolState === 'error' && <ErrorCard message={errorMessage || 'The PDF could not be processed.'} onReset={handleReset} />}
 
       {/* SEO Content */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>

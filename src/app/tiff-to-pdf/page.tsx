@@ -20,6 +20,7 @@ import { CSS } from '@dnd-kit/utilities'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
+import ErrorCard from '@/components/ui/ErrorCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import { imagesToPDF, generateThumb } from '@/lib/image/imagesToPdf'
@@ -114,6 +115,7 @@ export default function TiffToPdfPage() {
   const [resultBytes, setResultBytes] = useState<Uint8Array | null>(null)
   const [progress, setProgress]       = useState(0)
   const [progressLabel, setProgressLabel] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -154,8 +156,8 @@ export default function TiffToPdfPage() {
       setProgress(95); setProgressLabel('Finalising…')
       setResultBytes(bytes); setToolState('done'); setProgress(100)
     } catch (err) {
-      setToolState('idle')
-      alert('Conversion failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setErrorMessage(message); setToolState('error')
     }
   }
 
@@ -170,7 +172,7 @@ export default function TiffToPdfPage() {
 
   function handleReset() {
     items.forEach(i => { if (i.thumbUrl) URL.revokeObjectURL(i.thumbUrl) })
-    setItems([]); setResultBytes(null); setToolState('idle'); setProgress(0)
+    setItems([]); setResultBytes(null); setToolState('idle'); setProgress(0); setErrorMessage('')
   }
 
   const sidebar = (
@@ -307,6 +309,8 @@ export default function TiffToPdfPage() {
           ]}
         />
       )}
+
+      {toolState === 'error' && <ErrorCard message={errorMessage} onReset={handleReset} />}
 
       {/* SEO block */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>

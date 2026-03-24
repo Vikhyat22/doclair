@@ -6,6 +6,7 @@ import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 import type { ToolState } from '@/types'
 
 const FAQS = [
@@ -94,6 +95,7 @@ export default function AddPagesToPDFPage() {
   const [toolState, setToolState]     = useState<ToolState>('idle')
   const [resultBytes, setResultBytes] = useState<Uint8Array | null>(null)
   const [resultPageCount, setResultPageCount] = useState(0)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const addBase = useCallback(async (files: File[]) => {
     const f = files[0]; if (!f) return
@@ -148,8 +150,8 @@ export default function AddPagesToPDFPage() {
       setResultPageCount(baseDoc.getPageCount())
       setToolState('done')
     } catch (err) {
-      setToolState('idle')
-      alert('Failed: ' + (err instanceof Error ? err.message : 'Unknown'))
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setErrorMessage(message); setToolState('error')
     }
   }
 
@@ -163,7 +165,7 @@ export default function AddPagesToPDFPage() {
   function handleReset() {
     setBaseFile(null); setBasePages(0); setSourceFile(null); setSourcePages(0)
     setInsertAfter(0); setPageRange(''); setRangeError('')
-    setResultBytes(null); setToolState('idle')
+    setResultBytes(null); setToolState('idle'); setErrorMessage('')
   }
 
   const sidebar = (
@@ -315,6 +317,8 @@ export default function AddPagesToPDFPage() {
           ]}
         />
       )}
+
+      {toolState === 'error' && <ErrorCard message={errorMessage} onReset={handleReset} />}
 
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
         <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>

@@ -5,6 +5,7 @@ import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 import { wordToHTML } from '@/lib/pdf/wordToPdf'
 import type { WordConversionResult } from '@/lib/pdf/wordToPdf'
 
@@ -55,6 +56,7 @@ export default function WordToPDFPage() {
   const [toolState, setToolState] = useState<ConvertState>('idle')
   const [showWarnings, setShowWarnings] = useState(false)
   const [convertStatus, setConvertStatus] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
 
   async function handleConvert(f?: File) {
     const target = f ?? file
@@ -71,9 +73,9 @@ export default function WordToPDFPage() {
       setConversionResult(result)
       setToolState('preview')
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setErrorMessage(message)
       setToolState('error')
-      alert('Conversion failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
-      setToolState('idle')
     }
   }
 
@@ -94,7 +96,7 @@ export default function WordToPDFPage() {
 
     const printWindow = window.open('', '_blank', 'width=800,height=600')
     if (!printWindow) {
-      alert('Please allow popups for this site to save as PDF')
+      setErrorMessage('Please allow popups for this site to save as PDF')
       return
     }
 
@@ -143,6 +145,7 @@ export default function WordToPDFPage() {
     setConversionResult(null)
     setToolState('idle')
     setShowWarnings(false)
+    setErrorMessage('')
   }
 
   const estimatedPages = conversionResult
@@ -229,6 +232,9 @@ export default function WordToPDFPage() {
           }}>{convertStatus}</div>
         </div>
       )}
+
+      {/* State: error */}
+      {toolState === 'error' && <ErrorCard message={errorMessage} onReset={handleReset} />}
 
       {/* State: preview */}
       {toolState === 'preview' && conversionResult && (

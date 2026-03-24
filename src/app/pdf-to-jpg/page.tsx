@@ -6,6 +6,7 @@ import DropZone from '@/components/ui/DropZone'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import DownloadCard from '@/components/ui/DownloadCard'
+import ErrorCard from '@/components/ui/ErrorCard'
 import { pdfToImages, imagesToZip, formatBytes } from '@/lib/image/pdfToImages'
 import type { ImageFormat, ImageDPI, ImageResult } from '@/lib/image/pdfToImages'
 import type { ToolState } from '@/types'
@@ -68,6 +69,7 @@ export default function PdfToJpgPage() {
   const [format, setFormat]           = useState<ImageFormat>('jpg')
   const [dpi, setDpi]                 = useState<ImageDPI>(150)
   const [toolState, setToolState]     = useState<ToolState>('idle')
+  const [errorMessage, setErrorMessage] = useState('')
   const [results, setResults]         = useState<ImageResult[]>([])
   const [previewUrls, setPreviewUrls] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(0)
@@ -106,8 +108,9 @@ export default function PdfToJpgPage() {
       setToolState('done')
       setProgress(100)
     } catch (err) {
-      setToolState('idle')
-      alert('Conversion failed: ' + (err instanceof Error ? err.message : 'Unknown'))
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setErrorMessage(message)
+      setToolState('error')
     }
   }
 
@@ -140,6 +143,7 @@ export default function PdfToJpgPage() {
     setToolState('idle')
     setProgress(0)
     setCurrentPage(0)
+    setErrorMessage('')
   }
 
   function handleSingleDownload() {
@@ -499,6 +503,9 @@ export default function PdfToJpgPage() {
           >Convert another PDF →</button>
         </div>
       )}
+
+      {/* State: error */}
+      {toolState === 'error' && <ErrorCard message={errorMessage} onReset={handleReset} />}
 
       {/* SEO Content */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>

@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from 'react'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
+import ErrorCard from '@/components/ui/ErrorCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import type { ToolState } from '@/types'
@@ -69,6 +70,7 @@ export default function RemovePagesPage() {
   const [selected, setSelected]       = useState<Set<number>>(new Set())
   const [toolState, setToolState]     = useState<ToolState>('idle')
   const [resultBytes, setResultBytes] = useState<Uint8Array | null>(null)
+  const [errorMessage, setErrorMessage] = useState('')
   const thumbUrlsRef                  = useRef<string[]>([])
   const fileBufferRef                 = useRef<ArrayBuffer | null>(null)
 
@@ -126,8 +128,8 @@ export default function RemovePagesPage() {
       setResultBytes(await doc.save())
       setToolState('done')
     } catch (err) {
-      setToolState('idle')
-      alert('Failed: ' + (err instanceof Error ? err.message : 'Unknown'))
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setErrorMessage(message); setToolState('error')
     }
   }
 
@@ -142,7 +144,7 @@ export default function RemovePagesPage() {
     thumbUrlsRef.current.forEach(URL.revokeObjectURL); thumbUrlsRef.current = []
     fileBufferRef.current = null
     setFile(null); setTotalPages(0); setThumbnails([]); setSelected(new Set())
-    setResultBytes(null); setToolState('idle')
+    setResultBytes(null); setToolState('idle'); setErrorMessage('')
   }
 
   const remaining = totalPages - selected.size
@@ -278,6 +280,8 @@ export default function RemovePagesPage() {
           ]}
         />
       )}
+
+      {toolState === 'error' && <ErrorCard message={errorMessage} onReset={handleReset} />}
 
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
         <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>

@@ -6,6 +6,7 @@ import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 import { pdfToWord } from '@/lib/pdf/pdfToWord'
 import type { ToolState } from '@/types'
 
@@ -67,6 +68,7 @@ function formatBytes(b: number) {
 export default function PDFToWordPage() {
   const [file, setFile]           = useState<File | null>(null)
   const [toolState, setToolState] = useState<ToolState>('idle')
+  const [errorMessage, setErrorMessage] = useState('')
   const [progress, setProgress]   = useState<{ current: number; total: number }>({ current: 0, total: 0 })
   const [result, setResult]       = useState<{ blob: Blob; pageCount: number; wordCount: number; warnings: string[] } | null>(null)
 
@@ -88,8 +90,9 @@ export default function PDFToWordPage() {
       setResult(res)
       setToolState('done')
     } catch (err) {
-      setToolState('idle')
-      alert('Conversion failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setErrorMessage(message)
+      setToolState('error')
     }
   }
 
@@ -106,6 +109,7 @@ export default function PDFToWordPage() {
     setResult(null)
     setToolState('idle')
     setProgress({ current: 0, total: 0 })
+    setErrorMessage('')
   }
 
   const progressPct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0
@@ -300,6 +304,9 @@ export default function PDFToWordPage() {
           />
         </div>
       )}
+
+      {/* State: error */}
+      {toolState === 'error' && <ErrorCard message={errorMessage} onReset={handleReset} />}
 
       {/* SEO Content */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>

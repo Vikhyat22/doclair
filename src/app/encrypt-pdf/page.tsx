@@ -7,6 +7,7 @@ import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 import type { ToolState } from '@/types'
 
 const FAQS = [
@@ -69,6 +70,7 @@ export default function EncryptPDFPage() {
   const [file, setFile]                       = useState<File | null>(null)
   const [pageCount, setPageCount]             = useState(0)
   const [toolState, setToolState]             = useState<ToolState>('idle')
+  const [errorMessage, setErrorMessage]       = useState('')
   const [resultBytes, setResultBytes]         = useState<Uint8Array | null>(null)
   const [userPassword, setUserPassword]       = useState('')
   const [ownerPassword, setOwnerPassword]     = useState('')
@@ -104,8 +106,9 @@ export default function EncryptPDFPage() {
       setResultBytes(bytes)
       setToolState('done')
     } catch (err) {
-      setToolState('idle')
-      alert('Failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setErrorMessage(message)
+      setToolState('error')
     }
   }
 
@@ -131,6 +134,7 @@ export default function EncryptPDFPage() {
     setAllowCopying(true)
     setAllowEditing(false)
     setAllowAnnotating(true)
+    setErrorMessage('')
   }
 
   const isEncryptDisabled = !userPassword || !file
@@ -412,6 +416,9 @@ export default function EncryptPDFPage() {
           </div>
         </div>
       )}
+
+      {/* State: error */}
+      {toolState === 'error' && <ErrorCard message={errorMessage} onReset={handleReset} />}
 
       {/* SEO */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>

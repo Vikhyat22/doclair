@@ -6,6 +6,7 @@ import DropZone from '@/components/ui/DropZone'
 import FileList from '@/components/ui/FileList'
 import ProgressCard from '@/components/ui/ProgressCard'
 import DownloadCard from '@/components/ui/DownloadCard'
+import ErrorCard from '@/components/ui/ErrorCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import type { FileItem, ToolState } from '@/types'
@@ -64,6 +65,7 @@ export default function MergePDFPage() {
   const [toolState, setToolState] = useState<ToolState>('idle')
   const [progress, setProgress] = useState(0)
   const [mergedBytes, setMergedBytes] = useState<Uint8Array | null>(null)
+  const [errorMessage, setErrorMessage] = useState('')
   const addMoreRef = useRef<HTMLInputElement>(null)
 
   const addFiles = useCallback((rawFiles: File[]) => {
@@ -76,7 +78,7 @@ export default function MergePDFPage() {
 
   async function handleMerge() {
     if (files.length < 2) {
-      alert('Please add at least 2 PDF files to merge.')
+      setErrorMessage('Please add at least 2 PDF files to merge.')
       return
     }
     setToolState('merging')
@@ -91,10 +93,9 @@ export default function MergePDFPage() {
       setMergedBytes(bytes)
       setToolState('done')
     } catch (err: unknown) {
-      setToolState('error')
       const message = err instanceof Error ? err.message : 'Unknown error'
-      alert('Merge failed: ' + message)
-      setToolState('idle')
+      setErrorMessage(message)
+      setToolState('error')
     }
   }
 
@@ -114,6 +115,7 @@ export default function MergePDFPage() {
     fileMapRef.current.clear()
     setMergedBytes(null)
     setProgress(0)
+    setErrorMessage('')
     setToolState('idle')
   }
 
@@ -276,6 +278,8 @@ export default function MergePDFPage() {
           ]}
         />
       )}
+
+      {toolState === 'error' && <ErrorCard message={errorMessage} onReset={handleReset} />}
 
       {/* SEO Content */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
