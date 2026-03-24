@@ -13,12 +13,12 @@ import { useRef } from 'react'
 import type { ToolState } from '@/types'
 
 const FAQS = [
-  { q: 'Does Doclair crack or bypass PDF passwords?', a: 'No. If you provide the correct password, Doclair decrypts the file using it — the same way Adobe Reader would. For PDFs with only owner-password / permissions restrictions (the type that open without a password), no password is needed at all.' },
-  { q: 'What is an owner password vs a user password?', a: 'A user password prevents the PDF from opening at all. An owner (permissions) password allows the file to open freely but restricts editing, printing or copying. Doclair handles both: owner-password restrictions are removed automatically; user-password PDFs are decrypted once you supply the correct password.' },
+  { q: 'Does Doclair crack or bypass PDF passwords?', a: 'No. If you provide the correct password, Doclair decrypts the file using it — the same way Adobe Reader would. For PDFs that only have permission locks (print/copy/edit) but still open without a password, Doclair removes those locks in one click with no password.' },
+  { q: 'What is the difference between “user” and “owner” in a PDF?', a: 'In the PDF standard, the document-open password is stored as the “user” password — you must enter it before the file can be opened (typical bank or statement PDFs). “Owner” settings control permissions (printing, copying). Many files open without typing anything but still have owner restrictions; those are removed here without a password. If your file asks for a password when you open it in any reader, that is the document-open password and you must enter it in Doclair.' },
   { q: 'The output PDF text is not selectable — why?', a: 'When a PDF is decrypted using the password path, each page is rendered to an image in your browser and assembled into a new PDF. This is the only way to decrypt such files without a server. The result is fully printable and shareable, but text is not selectable. If you need selectable text, use the PDF → Text tool on the original file before unlocking.' },
   { q: 'Are my files uploaded?', a: 'Never. Decryption runs entirely in your browser using PDF.js and pdf-lib. Your password and your file never leave your device.' },
   { q: 'What if the PDF is not actually encrypted?', a: 'Doclair detects this and lets you download a clean copy directly.' },
-  { q: 'Will the unlocked PDF lose any content?', a: 'For owner-password PDFs: no — only the restrictions flag is removed, all content is intact. For user-password PDFs: all pages are preserved, but as images rather than native PDF content.' },
+  { q: 'Will the unlocked PDF lose any content?', a: 'For permission-only PDFs (no open password): no — only restrictions are removed; text stays selectable. For password-to-open PDFs decrypted via the password path: all pages are preserved as images, so text is not selectable in the output.' },
 ]
 
 const JSON_LD_SCHEMA = {
@@ -97,9 +97,9 @@ export default function RemovePasswordPage() {
     setPasswordError(null)
     setRenderProgress(null)
 
-    const { encrypted: enc, needsOpenPassword } = await analyzePdfForUnlock(f)
+    const { encrypted: enc, needsDocumentOpenPassword } = await analyzePdfForUnlock(f)
     setEncrypted(enc)
-    if (needsOpenPassword) {
+    if (needsDocumentOpenPassword) {
       setNeedsPassword(true)
       setTimeout(() => passwordInputRef.current?.focus(), 100)
     }
@@ -225,7 +225,7 @@ export default function RemovePasswordPage() {
           fontSize: '16px', fontWeight: 300, color: 'var(--ink)', opacity: 0.65,
           maxWidth: '560px', marginTop: '12px', lineHeight: 1.6,
         }}>
-          Remove owner-password restrictions, or decrypt a password-protected PDF using your own password. Entirely in your browser — nothing uploaded, nothing sent.
+          Two cases: <strong>permission-only</strong> PDFs (open without a password but printing or copying may be locked) are unlocked in one click — no password. <strong>Password-to-open</strong> PDFs (e.g. bank statements) require the same password you use in your PDF reader. Everything runs in your browser.
         </p>
       </div>
 
@@ -259,7 +259,7 @@ export default function RemovePasswordPage() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.name}</div>
               <div style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>
-                {formatBytes(file.size)} · {encrypted === null ? 'Checking…' : encrypted ? '🔒 Restrictions detected' : '✓ No restrictions'}
+                {formatBytes(file.size)} · {encrypted === null ? 'Checking…' : encrypted ? (needsPassword ? '🔐 Password required to open' : '🔓 Permission locks only — no open password') : '✓ No encryption'}
               </div>
             </div>
             <button
@@ -305,7 +305,7 @@ export default function RemovePasswordPage() {
             </div>
           )}
 
-          {/* Encrypted — owner-password action panel */}
+          {/* Permissions-only — opens without password; strip locks (PDF “owner” restrictions) */}
           {encrypted === true && !needsPassword && (
             <div style={{
               background: 'white', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px',
@@ -314,10 +314,10 @@ export default function RemovePasswordPage() {
               <div style={{
                 fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '10px',
                 color: 'var(--amber)', letterSpacing: '0.1em', textTransform: 'uppercase',
-              }}>// Remove Restrictions</div>
+              }}>// Permission locks only</div>
 
               <p style={{ fontSize: '13px', color: 'var(--ink)', opacity: 0.7, lineHeight: 1.65, margin: 0 }}>
-                This PDF has owner-password restrictions (locked for printing, editing or copying). Click below to remove them and generate an unrestricted copy.
+                This file opens in any PDF reader <strong>without</strong> typing a password, but printing, copying or editing may be restricted. That is what PDFs call <strong>owner / permissions</strong> security. Click below to remove those restrictions — <strong>no password needed</strong>.
               </p>
 
               {/* Error message */}
@@ -340,7 +340,7 @@ export default function RemovePasswordPage() {
             </div>
           )}
 
-          {/* User-password encrypted — password input panel */}
+          {/* Document-open password (PDF “user” password) — must enter password */}
           {encrypted === true && needsPassword && (
             <div style={{
               background: 'white', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px',
@@ -354,7 +354,7 @@ export default function RemovePasswordPage() {
                     fontSize: '15px', color: 'var(--ink)', marginBottom: '4px',
                   }}>Password required to open this PDF</div>
                   <div style={{ fontSize: '13px', color: 'var(--ink)', opacity: 0.6, lineHeight: 1.6 }}>
-                    Enter the same password you use in Adobe or your bank app (often sent by SMS or email). Doclair decrypts every page in your browser — nothing is uploaded.
+                    In PDF terms this is the <strong>document-open (“user”) password</strong> — not permission-only locks. Enter the same password you use in Adobe, Chrome, or your bank app. Doclair decrypts every page in your browser; nothing is uploaded.
                   </div>
                 </div>
               </div>
