@@ -2,7 +2,8 @@ import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import satori from 'satori'
-import { Resvg } from '@resvg/resvg-wasm'
+import { Resvg, initWasm } from '@resvg/resvg-wasm'
+import { createRequire } from 'module'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
@@ -335,6 +336,11 @@ const TOOLS = [
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
+  // Initialize resvg WASM binary
+  const require = createRequire(import.meta.url)
+  const wasmBinary = readFileSync(require.resolve('@resvg/resvg-wasm/index_bg.wasm'))
+  await initWasm(wasmBinary)
+
   console.log('Loading fonts…')
   const fonts = await loadFonts()
   console.log('Fonts ready.\n')
