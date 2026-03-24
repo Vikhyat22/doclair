@@ -2,20 +2,23 @@
 
 import { useState, useCallback } from 'react'
 import { decryptPDF, isEncrypted } from '@/lib/pdf/decrypt'
+import { decryptWithPassword } from '@/lib/pdf/decryptWithPassword'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import ErrorCard from '@/components/ui/ErrorCard'
+import { useRef } from 'react'
 import type { ToolState } from '@/types'
 
 const FAQS = [
-  { q: 'Does Doclair crack or bypass PDF passwords?', a: 'No. Doclair removes owner-password / permissions restrictions from PDFs that you can already open without a password. For user-password encrypted PDFs (those that ask for a password when opening), browser-based removal is not possible without the encryption key.' },
-  { q: 'What is an owner password vs a user password?', a: 'A user password prevents the PDF from opening at all. An owner (permissions) password allows the file to open freely but restricts editing, printing or copying. Doclair removes owner-password restrictions, which is the most common type of "locked" PDF.' },
-  { q: 'Are my files uploaded?', a: 'Never. pdf-lib runs entirely in your browser. No data leaves your device.' },
+  { q: 'Does Doclair crack or bypass PDF passwords?', a: 'No. If you provide the correct password, Doclair decrypts the file using it — the same way Adobe Reader would. For PDFs with only owner-password / permissions restrictions (the type that open without a password), no password is needed at all.' },
+  { q: 'What is an owner password vs a user password?', a: 'A user password prevents the PDF from opening at all. An owner (permissions) password allows the file to open freely but restricts editing, printing or copying. Doclair handles both: owner-password restrictions are removed automatically; user-password PDFs are decrypted once you supply the correct password.' },
+  { q: 'The output PDF text is not selectable — why?', a: 'When a PDF is decrypted using the password path, each page is rendered to an image in your browser and assembled into a new PDF. This is the only way to decrypt such files without a server. The result is fully printable and shareable, but text is not selectable. If you need selectable text, use the PDF → Text tool on the original file before unlocking.' },
+  { q: 'Are my files uploaded?', a: 'Never. Decryption runs entirely in your browser using PDF.js and pdf-lib. Your password and your file never leave your device.' },
   { q: 'What if the PDF is not actually encrypted?', a: 'Doclair detects this and lets you download a clean copy directly.' },
-  { q: 'Will the unlocked PDF lose any content?', a: 'No. Only the permissions restrictions are removed. All text, images, annotations and formatting are preserved exactly.' },
+  { q: 'Will the unlocked PDF lose any content?', a: 'For owner-password PDFs: no — only the restrictions flag is removed, all content is intact. For user-password PDFs: all pages are preserved, but as images rather than native PDF content.' },
 ]
 
 const JSON_LD_SCHEMA = {
@@ -73,6 +76,14 @@ export default function RemovePasswordPage() {
   const [errorMsg, setErrorMsg]       = useState<string | null>(null)
   const [encrypted, setEncrypted]     = useState<boolean | null>(null)
 
+  // Password-decryption state
+  const [needsPassword, setNeedsPassword]   = useState(false)
+  const [password, setPassword]             = useState('')
+  const [showPassword, setShowPassword]     = useState(false)
+  const [passwordError, setPasswordError]   = useState<string | null>(null)
+  const [renderProgress, setRenderProgress] = useState<{ current: number; total: number } | null>(null)
+  const passwordInputRef = useRef<HTMLInputElement>(null)
+
   const addFile = useCallback(async (files: File[]) => {
     const f = files[0]
     if (!f) return
@@ -81,6 +92,10 @@ export default function RemovePasswordPage() {
     setErrorMsg(null)
     setToolState('idle')
     setEncrypted(null)
+    setNeedsPassword(false)
+    setPassword('')
+    setPasswordError(null)
+    setRenderProgress(null)
 
     const enc = await isEncrypted(f)
     setEncrypted(enc)
@@ -98,13 +113,40 @@ export default function RemovePasswordPage() {
       setPageCount(result.pageCount)
       setToolState('done')
     } else if (result.reason === 'user-password-required') {
-      setErrorMsg(
-        'This PDF requires a user password to open, which prevents browser-based unlocking. ' +
-        'Only owner-password / permissions restrictions can be removed without the encryption key.'
-      )
+      // Switch to password input mode instead of showing an error
+      setNeedsPassword(true)
       setToolState('idle')
+      setTimeout(() => passwordInputRef.current?.focus(), 50)
     } else {
       setErrorMsg('This PDF file appears to be corrupted or uses an unsupported format.')
+      setToolState('idle')
+    }
+  }
+
+  async function handleDecryptWithPassword() {
+    if (!file || !password.trim()) return
+    setToolState('merging')
+    setPasswordError(null)
+    setRenderProgress(null)
+
+    const result = await decryptWithPassword(
+      file,
+      password,
+      2, // 144 dpi — good balance of quality and file size
+      (p) => setRenderProgress(p),
+    )
+
+    if (result.ok) {
+      setResultBytes(result.bytes)
+      setPageCount(result.pageCount)
+      setRenderProgress(null)
+      setToolState('done')
+    } else if (result.reason === 'wrong-password') {
+      setPasswordError('Incorrect password. Please try again.')
+      setToolState('idle')
+      setTimeout(() => passwordInputRef.current?.focus(), 50)
+    } else {
+      setPasswordError('This PDF appears to be corrupted or uses an unsupported format.')
       setToolState('idle')
     }
   }
@@ -133,6 +175,10 @@ export default function RemovePasswordPage() {
     setPageCount(0)
     setErrorMsg(null)
     setEncrypted(null)
+    setNeedsPassword(false)
+    setPassword('')
+    setPasswordError(null)
+    setRenderProgress(null)
   }
 
   const sidebar = (
@@ -147,6 +193,7 @@ export default function RemovePasswordPage() {
         { name: 'Edit PDF Metadata', slug: 'edit-metadata',    icon: '✏️', colorBg: '#FFF0DC', desc: 'Edit title, author and more' },
         { name: 'Add Page Numbers',  slug: 'add-page-numbers', icon: '🔢', colorBg: '#FEE2E2', desc: 'Stamp page numbers on a PDF' },
       ]}
+      blogPost={{ slug: 'how-to-remove-password-from-pdf', title: 'How to Remove Password From PDF Free — Unlock Instantly' }}
     />
   )
 
@@ -168,13 +215,13 @@ export default function RemovePasswordPage() {
           fontSize: 'clamp(32px, 4vw, 52px)', lineHeight: 1.05, letterSpacing: '-1.5px',
         }}>
           <span style={{ color: 'var(--ink)' }}>Remove PDF Password </span>
-          <span style={{ color: 'var(--amber)' }}>Unlock Restrictions</span>
+          <span style={{ color: 'var(--amber)' }}>& Decrypt</span>
         </h1>
         <p style={{
           fontSize: '16px', fontWeight: 300, color: 'var(--ink)', opacity: 0.65,
           maxWidth: '560px', marginTop: '12px', lineHeight: 1.6,
         }}>
-          Remove owner-password / permissions restrictions from a PDF. Files that are locked for editing, printing or copying are unlocked instantly. No upload.
+          Remove owner-password restrictions, or decrypt a password-protected PDF using your own password. Entirely in your browser — nothing uploaded, nothing sent.
         </p>
       </div>
 
@@ -254,8 +301,8 @@ export default function RemovePasswordPage() {
             </div>
           )}
 
-          {/* Encrypted — action panel */}
-          {encrypted === true && (
+          {/* Encrypted — owner-password action panel */}
+          {encrypted === true && !needsPassword && (
             <div style={{
               background: 'white', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px',
               display: 'flex', flexDirection: 'column', gap: '16px',
@@ -288,6 +335,116 @@ export default function RemovePasswordPage() {
               </button>
             </div>
           )}
+
+          {/* User-password encrypted — password input panel */}
+          {encrypted === true && needsPassword && (
+            <div style={{
+              background: 'white', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px',
+              display: 'flex', flexDirection: 'column', gap: '16px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                <span style={{ fontSize: '22px', flexShrink: 0, marginTop: '1px' }}>🔐</span>
+                <div>
+                  <div style={{
+                    fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700,
+                    fontSize: '15px', color: 'var(--ink)', marginBottom: '4px',
+                  }}>This PDF requires a password to open</div>
+                  <div style={{ fontSize: '13px', color: 'var(--ink)', opacity: 0.6, lineHeight: 1.6 }}>
+                    Enter the password and Doclair will decrypt all pages in your browser. Nothing leaves your device.
+                  </div>
+                </div>
+              </div>
+
+              {/* Password input */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                border: `1.5px solid ${passwordError ? 'var(--red)' : 'var(--border)'}`,
+                borderRadius: '10px', padding: '10px 14px',
+                background: passwordError ? '#FEF2F2' : 'white',
+                transition: 'border-color 0.2s',
+              }}>
+                <span style={{ fontSize: '16px', flexShrink: 0 }}>🔑</span>
+                <input
+                  ref={passwordInputRef}
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => { setPassword(e.target.value); setPasswordError(null) }}
+                  onKeyDown={e => { if (e.key === 'Enter' && password.trim()) handleDecryptWithPassword() }}
+                  placeholder="Enter PDF password"
+                  style={{
+                    flex: 1, border: 'none', outline: 'none', background: 'transparent',
+                    fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif',
+                    fontSize: '15px', color: 'var(--ink)',
+                  }}
+                  autoComplete="current-password"
+                />
+                <button
+                  onClick={() => setShowPassword(s => !s)}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                  style={{
+                    border: 'none', background: 'none', cursor: 'pointer',
+                    padding: '2px', color: 'var(--muted)', fontSize: '16px', flexShrink: 0,
+                  }}
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
+
+              {/* Inline password error */}
+              {passwordError && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  background: '#FEF2F2', border: '1px solid #FECACA',
+                  borderRadius: '8px', padding: '10px 14px',
+                }}>
+                  <span style={{ fontSize: '14px' }}>❌</span>
+                  <span style={{ fontSize: '13px', color: 'var(--red)', fontWeight: 500 }}>{passwordError}</span>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={handleDecryptWithPassword}
+                  disabled={!password.trim()}
+                  style={{
+                    flex: 1, background: password.trim() ? 'var(--ink)' : 'var(--border)',
+                    color: password.trim() ? 'white' : 'var(--muted)',
+                    padding: '14px 24px', borderRadius: '100px',
+                    fontFamily: 'var(--font-syne), Syne, sans-serif',
+                    fontWeight: 700, fontSize: '16px', border: 'none',
+                    cursor: password.trim() ? 'pointer' : 'not-allowed',
+                    transition: 'all 0.15s',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  }}
+                  onMouseEnter={e => { if (password.trim()) e.currentTarget.style.transform = 'scale(1.02)' }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
+                >
+                  🔓 Decrypt PDF
+                </button>
+                <button
+                  onClick={handleReset}
+                  style={{
+                    padding: '14px 18px', borderRadius: '100px',
+                    border: '1px solid var(--border)', background: 'white',
+                    fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif',
+                    fontSize: '14px', color: 'var(--muted)', cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.color = 'var(--ink)' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)' }}
+                >
+                  Cancel
+                </button>
+              </div>
+
+              <div style={{
+                fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '10px',
+                color: 'var(--muted)', opacity: 0.6, textAlign: 'center',
+              }}>
+                Your password is used only in your browser and never sent anywhere.
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -301,14 +458,41 @@ export default function RemovePasswordPage() {
             borderTopColor: 'var(--amber)', borderRadius: '50%',
             animation: 'spin 0.8s linear infinite', margin: '0 auto 24px',
           }} />
-          <div style={{
-            fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700,
-            fontSize: '24px', color: 'white', marginBottom: '6px',
-          }}>Removing restrictions…</div>
-          <div style={{
-            fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '12px',
-            color: 'rgba(255,255,255,0.45)',
-          }}>Stripping encryption and saving unrestricted PDF</div>
+          {renderProgress ? (
+            <>
+              <div style={{
+                fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700,
+                fontSize: '24px', color: 'white', marginBottom: '10px',
+              }}>Decrypting PDF…</div>
+              <div style={{
+                width: '200px', height: '4px', background: 'rgba(255,255,255,0.1)',
+                borderRadius: '2px', margin: '0 auto 12px', overflow: 'hidden',
+              }}>
+                <div style={{
+                  height: '100%', background: 'var(--amber)', borderRadius: '2px',
+                  width: `${Math.round((renderProgress.current / renderProgress.total) * 100)}%`,
+                  transition: 'width 0.2s ease',
+                }} />
+              </div>
+              <div style={{
+                fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '12px',
+                color: 'rgba(255,255,255,0.45)',
+              }}>
+                Rendering page {renderProgress.current} of {renderProgress.total}
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{
+                fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700,
+                fontSize: '24px', color: 'white', marginBottom: '6px',
+              }}>Removing restrictions…</div>
+              <div style={{
+                fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '12px',
+                color: 'rgba(255,255,255,0.45)',
+              }}>Stripping encryption and saving unrestricted PDF</div>
+            </>
+          )}
         </div>
       )}
 
@@ -317,11 +501,11 @@ export default function RemovePasswordPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <DownloadCard
             filename={`${file?.name.replace(/\.pdf$/i, '') ?? 'document'}_unlocked.pdf`}
-            description={`${pageCount} page${pageCount !== 1 ? 's' : ''} · Restrictions Removed`}
+            description={`${pageCount} page${pageCount !== 1 ? 's' : ''} · ${needsPassword ? 'Decrypted' : 'Restrictions Removed'}`}
             onDownload={handleDownloadResult}
             onReset={handleReset}
-            title="Password removed!"
-            resetLabel="Remove from another →"
+            title={needsPassword ? 'PDF decrypted!' : 'Password removed!'}
+            resetLabel="Unlock another →"
             nextSteps={[
               { slug: 'encrypt-pdf', name: 'Encrypt PDF', icon: '🔐' },
               { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
@@ -347,16 +531,17 @@ export default function RemovePasswordPage() {
       {/* SEO Content */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
         <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
-          How to Remove PDF Password Restrictions — Free
+          How to Remove PDF Password — Free, No Upload
         </h2>
         <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
-          Many PDFs are "locked" with owner passwords that restrict printing, copying or editing — even though you can open them freely. Doclair removes these restrictions instantly in your browser.
+          Doclair handles both types of locked PDFs: owner-password restrictions (PDFs that open freely but can&apos;t be printed or edited) and user-password encrypted PDFs (those that ask for a password when opening).
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
           {[
-            'Upload your PDF by clicking <strong>Drop your PDF here</strong> or dragging it in.',
-            'Doclair automatically detects whether the file has restrictions.',
-            'Click <strong>Remove Restrictions</strong> and download your fully unlocked PDF.',
+            'Drop your PDF onto the tool — Doclair detects the encryption type automatically.',
+            'If the PDF has <strong>owner-password restrictions</strong>, click <strong>Remove Restrictions</strong> — done instantly.',
+            'If the PDF asks for a <strong>user password</strong>, a password field appears. Enter your password and click <strong>Decrypt PDF</strong>.',
+            'Download the fully unlocked PDF. Your password never leaves your device.',
           ].map((step, i) => (
             <div key={i} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
               <div style={{
@@ -370,17 +555,17 @@ export default function RemovePasswordPage() {
         </div>
 
         <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px', marginTop: '28px' }}>
-          What kind of PDFs can Doclair unlock?
+          Owner password vs user password
         </h3>
         <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
-          Doclair removes <em>owner-password</em> restrictions — the most common type. These are PDFs that open without asking for a password, but have printing, copying or editing disabled. User-password encrypted PDFs (that show a password prompt when opening) require the encryption key and cannot be unlocked in the browser.
+          An <strong>owner password</strong> restricts what you can do with a PDF — printing, copying, or editing — but the file still opens without a password. An <strong>user password</strong> encrypts the entire file so it cannot be opened at all without the key. Doclair handles both automatically.
         </p>
 
         <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
-          Why is the PDF still restricted after unlocking?
+          Why is the decrypted PDF image-based?
         </h3>
         <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>
-          If the error "user-password-required" appears, the PDF is encrypted with a user password that requires the secret key to decrypt — this is beyond what browser-based tools can handle. In all other cases, the output PDF is fully unrestricted.
+          When decrypting a user-password PDF, Doclair renders each page to a high-resolution image in your browser — the same way a printer would. The output is fully printable and shareable. If you need selectable text from the original, run the <strong>PDF → Text</strong> tool on it before unlocking.
         </p>
       </div>
 
