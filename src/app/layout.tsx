@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Syne, DM_Sans, DM_Mono } from 'next/font/google'
+import { GoogleAnalytics } from '@next/third-parties/google'
 import './globals.css'
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration'
 
@@ -39,6 +40,9 @@ export const metadata: Metadata = {
     images: ['https://doclair.in/og-image.png'],
   },
   robots: { index: true, follow: true },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GSC_VERIFICATION ?? '',
+  },
   // favicon.ico, icon.png and apple-icon.png are in src/app/ —
   // Next.js App Router picks them up automatically (no metadata.icons needed)
 }
@@ -54,25 +58,6 @@ export default function RootLayout({
       className={`${syne.variable} ${dmSans.variable} ${dmMono.variable}`}
     >
       <head>
-        {/* Google Analytics 4 */}
-        {process.env.NEXT_PUBLIC_GA_ID && (
-          <>
-            <script
-              async
-              src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
-            />
-            <script
-              dangerouslySetInnerHTML={{
-                __html: `
-                  window.dataLayer = window.dataLayer || [];
-                  function gtag(){dataLayer.push(arguments);}
-                  gtag('js', new Date());
-                  gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}');
-                `,
-              }}
-            />
-          </>
-        )}
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#1A1612" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -81,6 +66,9 @@ export default function RootLayout({
       <body>
         <ServiceWorkerRegistration />
         {children}
+        {process.env.NEXT_PUBLIC_GA_ID && (
+          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
+        )}
       </body>
     </html>
   )
