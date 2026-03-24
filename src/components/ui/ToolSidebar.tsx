@@ -8,9 +8,10 @@ interface SidebarTool {
   desc?: string
 }
 
-interface ToolSidebarProps {
+export interface ToolSidebarProps {
   reverseActions?: SidebarTool[]
   relatedTools: SidebarTool[]
+  blogPost?: { slug: string; title: string }
 }
 
 function SidebarCard({ label, tools, showDesc }: { label: string; tools: SidebarTool[]; showDesc?: boolean }) {
@@ -66,17 +67,41 @@ function SidebarCard({ label, tools, showDesc }: { label: string; tools: Sidebar
   )
 }
 
-export default function ToolSidebar({ reverseActions, relatedTools }: ToolSidebarProps) {
+export default function ToolSidebar({ reverseActions, relatedTools, blogPost }: ToolSidebarProps) {
   return (
     <>
       <style>{`
         .sidebar-link:hover { background: white !important; border-color: var(--border) !important; }
         .sidebar-link:hover .sidebar-icon { transform: scale(1.08); }
+        .blog-guide-card:hover { background: #FDEBC8 !important; border-color: rgba(232,130,12,0.4) !important; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(232,130,12,0.12); }
       `}</style>
       {reverseActions && reverseActions.length > 0 && (
         <SidebarCard label="// Reverse Actions" tools={reverseActions} />
       )}
       <SidebarCard label="// Related Tools" tools={relatedTools} showDesc />
+      {blogPost && (
+        <Link href={`/blog/${blogPost.slug}`} className="blog-guide-card" style={{
+          display: 'block',
+          background: 'var(--amber-light)',
+          border: '1px solid rgba(232,130,12,0.25)',
+          borderRadius: '14px',
+          padding: '16px 18px',
+          textDecoration: 'none',
+          transition: 'all 0.18s',
+        }}>
+          <div style={{
+            fontFamily: 'var(--font-dm-mono), DM Mono, monospace',
+            fontSize: '10px',
+            color: 'var(--amber)',
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            fontWeight: 500,
+            marginBottom: '8px',
+          }}>// Read the Guide</div>
+          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.35, marginBottom: '10px' }}>{blogPost.title}</div>
+          <div style={{ fontSize: '12px', color: 'var(--amber)', fontWeight: 500 }}>Read article →</div>
+        </Link>
+      )}
       <div style={{
         background: 'var(--ink)',
         borderRadius: '14px',
