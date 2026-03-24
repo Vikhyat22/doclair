@@ -3,6 +3,7 @@ import { Syne, DM_Sans, DM_Mono } from 'next/font/google'
 import { GoogleAnalytics } from '@next/third-parties/google'
 import './globals.css'
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration'
+import ClarityScript from '@/components/ClarityScript'
 
 const syne = Syne({
   subsets: ['latin'],
@@ -68,6 +69,9 @@ export default function RootLayout({
         {children}
         {process.env.NEXT_PUBLIC_GA_ID && (
           <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
+        )}
+        {process.env.NEXT_PUBLIC_CLARITY_ID && (
+          <ClarityScript clarityId={process.env.NEXT_PUBLIC_CLARITY_ID} />
         )}
       </body>
     </html>
