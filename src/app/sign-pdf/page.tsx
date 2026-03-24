@@ -1,10 +1,20 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import Navbar from '@/components/layout/Navbar'
-import Footer from '@/components/layout/Footer'
+import ToolPageLayout from '@/components/layout/ToolPageLayout'
+import FAQ from '@/components/ui/FAQ'
+import ToolSidebar from '@/components/ui/ToolSidebar'
 
-const JSON_LD = {
+const FAQS = [
+  { q: 'Is my PDF uploaded to a server when I sign it?', a: 'Never. Doclair signs PDFs entirely in your browser. Your document is never transmitted to any server.' },
+  { q: 'Can I draw my signature with a mouse or stylus?', a: 'Yes. Switch to Draw mode in the signature panel and draw directly on the canvas using your mouse, trackpad, or stylus.' },
+  { q: 'How do I place my signature on a specific page?', a: 'Navigate to the desired page using the page controls, then click the "Add Signature" button and click anywhere on the page to place it.' },
+  { q: 'Can I resize my signature after placing it?', a: 'Yes. Drag the amber handle in the bottom-right corner of your placed signature to resize it proportionally.' },
+  { q: 'Can I sign PDF on iPhone or Android?', a: 'Yes. Doclair works in mobile Safari and Chrome. Touch works for drawing signatures and placing them on the page.' },
+  { q: 'Will the signed PDF have a watermark?', a: 'Never. Doclair adds zero watermarks to any output. The signed PDF downloads exactly as-is.' },
+]
+
+const JSON_LD_SCHEMA = {
   '@context': 'https://schema.org',
   '@graph': [
     {
@@ -18,21 +28,22 @@ const JSON_LD = {
     },
     {
       '@type': 'FAQPage',
-      mainEntity: [
-        { '@type': 'Question', name: 'Is my PDF uploaded to a server when I sign it?', acceptedAnswer: { '@type': 'Answer', text: 'Never. Doclair signs PDFs entirely in your browser. Your document is never transmitted to any server.' } },
-        { '@type': 'Question', name: 'Can I draw my signature with a mouse or stylus?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Switch to Draw mode in the signature panel and draw directly on the canvas using your mouse, trackpad, or stylus.' } },
-        { '@type': 'Question', name: 'How do I place my signature on a specific page?', acceptedAnswer: { '@type': 'Answer', text: 'Navigate to the desired page using the page controls, then click the "Add Signature" button and click anywhere on the page to place it.' } },
-        { '@type': 'Question', name: 'Can I resize my signature after placing it?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. Drag the amber handle in the bottom-right corner of your placed signature to resize it proportionally.' } },
-      ],
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
     },
-    {
-      '@type': 'BreadcrumbList',
-      itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
-        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
-        { '@type': 'ListItem', position: 3, name: 'Sign PDF', item: 'https://doclair.in/sign-pdf' },
-      ],
-    },
+  ],
+}
+
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: 'Sign PDF', item: 'https://doclair.in/sign-pdf' },
   ],
 }
 
@@ -251,8 +262,6 @@ export default function SignPDFPage() {
     const fx = (e.clientX - rect.left) / rect.width
     const fy = (e.clientY - rect.top) / rect.height
     // Scale signature to reasonable size on the page
-    const imgW = new Image()
-    imgW.src = pageUrls[currentPage]
     const scaledW = Math.min(pendingSig.w, rect.width * 0.35)
     const scaledH = (pendingSig.h / pendingSig.w) * scaledW
     setFields(prev => [...prev, {
@@ -348,110 +357,132 @@ export default function SignPDFPage() {
   const pageFields = fields.filter(f => f.pageIndex === currentPage)
   const hasFile = pageUrls.length > 0
 
+  const sidebar = (
+    <ToolSidebar
+      reverseActions={[]}
+      relatedTools={[
+        { name: 'Edit PDF', slug: 'edit-pdf', icon: '✍️', colorBg: '#DBEAFE', desc: 'Add text and signatures' },
+        { name: 'Annotate PDF', slug: 'annotate-pdf', icon: '💬', colorBg: '#DBEAFE', desc: 'Highlight and comment' },
+        { name: 'Redact PDF', slug: 'redact-pdf', icon: '⬛', colorBg: '#DBEAFE', desc: 'Permanently remove content' },
+        { name: 'Encrypt PDF', slug: 'encrypt-pdf', icon: '🔐', colorBg: '#FEE2E2', desc: 'Add password protection' },
+        { name: 'PDF Viewer', slug: 'pdf-viewer', icon: '👓', colorBg: '#F3F4F6', desc: 'View PDFs in browser' },
+      ]}
+    />
+  )
+
   return (
-    <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <Navbar />
-      <main style={{ minHeight: 'calc(100vh - 200px)', padding: '40px 16px' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto' }}>
-          <h1 style={{ fontFamily: 'var(--font-syne)', fontWeight: 800, fontSize: 'clamp(28px,4vw,44px)', letterSpacing: '-1px', marginBottom: 8 }}>Sign PDF</h1>
-          <p style={{ color: 'var(--muted)', fontSize: 16, marginBottom: 32 }}>
-            Draw, type, or upload your signature and place it anywhere on the PDF. Fully private — nothing leaves your browser.
-          </p>
+    <ToolPageLayout toolName="Sign PDF" sidebar={sidebar}>
+      {/* JSON-LD */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
 
-          {/* Toolbar */}
-          {hasFile && (
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 20, padding: '12px 16px', background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb' }}>
-              <button onClick={() => setShowModal(true)} style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px',
-                borderRadius: 10, border: '1.5px solid #F59E0B',
-                background: '#FFF8EC', fontWeight: 700, fontSize: 14, cursor: 'pointer', color: '#92400e',
-              }}>
-                ✍️ Add Signature
-              </button>
-              {placing && (
-                <span style={{ fontSize: 13, color: '#F59E0B', fontWeight: 600 }}>
-                  ↖ Click on the document to place your signature
-                </span>
-              )}
-              <div style={{ flex: 1 }} />
-              {fields.length > 0 && (
-                <span style={{ fontSize: 13, color: '#6b7280' }}>{fields.length} signature{fields.length !== 1 ? 's' : ''} placed</span>
-              )}
-              <button onClick={savePDF} disabled={saving} style={{
-                padding: '10px 28px', borderRadius: 10, border: 'none',
-                background: saving ? '#fcd34d' : '#F59E0B', color: '#fff',
-                fontWeight: 700, fontSize: 14, cursor: saving ? 'not-allowed' : 'pointer',
-              }}>{saving ? 'Saving…' : 'Download Signed PDF'}</button>
-            </div>
+      {/* Tool Header */}
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '36px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#DCFCE7', color: '#166534', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✓ 100% Free</span>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#FFF0DC', color: '#92400E', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>🔒 Files Stay On Device</span>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#EDE9FE', color: '#6B21A8', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✦ No Watermark</span>
+        </div>
+        <h1 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(32px, 4vw, 52px)', lineHeight: 1.05, letterSpacing: '-1.5px' }}>
+          <span style={{ color: 'var(--ink)' }}>Sign PDF </span>
+          <span style={{ color: 'var(--amber)' }}>Online Free</span>
+        </h1>
+        <p style={{ fontSize: '16px', fontWeight: 300, color: 'var(--ink)', opacity: 0.65, maxWidth: '520px', marginTop: '12px', lineHeight: 1.6 }}>
+          Draw, type, or upload your signature and place it anywhere on the PDF. Fully private — nothing leaves your browser.
+        </p>
+      </div>
+
+      {/* Toolbar */}
+      {hasFile && (
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 20, padding: '12px 16px', background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb' }}>
+          <button onClick={() => setShowModal(true)} style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px',
+            borderRadius: 10, border: '1.5px solid #F59E0B',
+            background: '#FFF8EC', fontWeight: 700, fontSize: 14, cursor: 'pointer', color: '#92400e',
+          }}>
+            ✍️ Add Signature
+          </button>
+          {placing && (
+            <span style={{ fontSize: 13, color: '#F59E0B', fontWeight: 600 }}>
+              ↖ Click on the document to place your signature
+            </span>
           )}
-
-          {/* Page nav */}
-          {hasFile && pageCount > 1 && (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-              <button onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={currentPage === 0}
-                style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer' }}>←</button>
-              <span style={{ fontSize: 13, color: '#6b7280' }}>Page {currentPage + 1} / {pageCount}</span>
-              <button onClick={() => setCurrentPage(p => Math.min(pageCount - 1, p + 1))} disabled={currentPage === pageCount - 1}
-                style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer' }}>→</button>
-            </div>
+          <div style={{ flex: 1 }} />
+          {fields.length > 0 && (
+            <span style={{ fontSize: 13, color: '#6b7280' }}>{fields.length} signature{fields.length !== 1 ? 's' : ''} placed</span>
           )}
+          <button onClick={savePDF} disabled={saving} style={{
+            padding: '10px 28px', borderRadius: 10, border: 'none',
+            background: saving ? '#fcd34d' : '#F59E0B', color: '#fff',
+            fontWeight: 700, fontSize: 14, cursor: saving ? 'not-allowed' : 'pointer',
+          }}>{saving ? 'Saving…' : 'Download Signed PDF'}</button>
+        </div>
+      )}
 
-          {/* Drop zone or PDF view */}
-          {!hasFile ? (
-            <div onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f?.type === 'application/pdf') handleFile(f) }}
-              onDragOver={e => e.preventDefault()}
-              style={{ border: '3px dashed #e5e7eb', borderRadius: 16, padding: 80, textAlign: 'center', background: '#fafafa' }}>
-              <div style={{ fontSize: 52, marginBottom: 16 }}>✍️</div>
-              <p style={{ fontWeight: 700, fontSize: 20, marginBottom: 8 }}>Drop your PDF here to sign</p>
-              <p style={{ color: '#9ca3af', marginBottom: 28 }}>or</p>
-              <label style={{ padding: '14px 32px', borderRadius: 12, background: '#F59E0B', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 16 }}>
-                Choose PDF
-                <input type="file" accept="application/pdf" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} style={{ display: 'none' }} />
-              </label>
-              <div style={{ marginTop: 28, display: 'flex', gap: 24, justifyContent: 'center', flexWrap: 'wrap' }}>
-                {['No uploads — browser only', 'Free forever', 'Draw, type or upload sig'].map(t => (
-                  <span key={t} style={{ fontSize: 13, color: '#6b7280' }}>✓ {t}</span>
-                ))}
+      {/* Page nav */}
+      {hasFile && pageCount > 1 && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
+          <button onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={currentPage === 0}
+            style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer' }}>←</button>
+          <span style={{ fontSize: 13, color: '#6b7280' }}>Page {currentPage + 1} / {pageCount}</span>
+          <button onClick={() => setCurrentPage(p => Math.min(pageCount - 1, p + 1))} disabled={currentPage === pageCount - 1}
+            style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer' }}>→</button>
+        </div>
+      )}
+
+      {/* Drop zone or PDF view */}
+      {!hasFile ? (
+        <div onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f?.type === 'application/pdf') handleFile(f) }}
+          onDragOver={e => e.preventDefault()}
+          style={{ border: '3px dashed #e5e7eb', borderRadius: 16, padding: 80, textAlign: 'center', background: '#fafafa' }}>
+          <div style={{ fontSize: 52, marginBottom: 16 }}>✍️</div>
+          <p style={{ fontWeight: 700, fontSize: 20, marginBottom: 8 }}>Drop your PDF here to sign</p>
+          <p style={{ color: '#9ca3af', marginBottom: 28 }}>or</p>
+          <label style={{ padding: '14px 32px', borderRadius: 12, background: '#F59E0B', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 16 }}>
+            Choose PDF
+            <input type="file" accept="application/pdf" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} style={{ display: 'none' }} />
+          </label>
+          <div style={{ marginTop: 28, display: 'flex', gap: 24, justifyContent: 'center', flexWrap: 'wrap' }}>
+            {['No uploads — browser only', 'Free forever', 'Draw, type or upload sig'].map(t => (
+              <span key={t} style={{ fontSize: 13, color: '#6b7280' }}>✓ {t}</span>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div ref={containerRef}
+          onClick={handleCanvasClick}
+          style={{ position: 'relative', display: 'inline-block', width: '100%', cursor: placing ? 'crosshair' : 'default' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={pageUrls[currentPage]} alt={`Page ${currentPage + 1}`}
+            style={{ width: '100%', display: 'block', borderRadius: 4, boxShadow: '0 4px 24px rgba(0,0,0,0.1)' }} draggable={false} />
+          {pageFields.map(f => (
+            <div key={f.id} style={{ position: 'absolute', left: `${f.x * 100}%`, top: `${f.y * 100}%`, cursor: 'move', userSelect: 'none' }}
+              onMouseDown={e => startDrag(e, f.id)}>
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={f.dataUrl} alt="signature" style={{ width: f.w, height: f.h, display: 'block', pointerEvents: 'none' }} draggable={false} />
+                {/* Delete */}
+                <button onClick={e => { e.stopPropagation(); deleteField(f.id) }} style={{
+                  position: 'absolute', top: -10, right: -10, background: '#ef4444', color: '#fff',
+                  border: 'none', borderRadius: '50%', width: 20, height: 20, fontSize: 12,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>×</button>
+                {/* Resize handle */}
+                <div onMouseDown={e => startResize(e, f.id)} style={{
+                  position: 'absolute', bottom: -6, right: -6, width: 14, height: 14,
+                  background: '#F59E0B', borderRadius: 3, cursor: 'se-resize',
+                }} />
               </div>
             </div>
-          ) : (
-            <div ref={containerRef}
-              onClick={handleCanvasClick}
-              style={{ position: 'relative', display: 'inline-block', width: '100%', cursor: placing ? 'crosshair' : 'default' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={pageUrls[currentPage]} alt={`Page ${currentPage + 1}`}
-                style={{ width: '100%', display: 'block', borderRadius: 4, boxShadow: '0 4px 24px rgba(0,0,0,0.1)' }} draggable={false} />
-              {pageFields.map(f => (
-                <div key={f.id} style={{ position: 'absolute', left: `${f.x * 100}%`, top: `${f.y * 100}%`, cursor: 'move', userSelect: 'none' }}
-                  onMouseDown={e => startDrag(e, f.id)}>
-                  <div style={{ position: 'relative', display: 'inline-block' }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={f.dataUrl} alt="signature" style={{ width: f.w, height: f.h, display: 'block', pointerEvents: 'none' }} draggable={false} />
-                    {/* Delete */}
-                    <button onClick={e => { e.stopPropagation(); deleteField(f.id) }} style={{
-                      position: 'absolute', top: -10, right: -10, background: '#ef4444', color: '#fff',
-                      border: 'none', borderRadius: '50%', width: 20, height: 20, fontSize: 12,
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>×</button>
-                    {/* Resize handle */}
-                    <div onMouseDown={e => startResize(e, f.id)} style={{
-                      position: 'absolute', bottom: -6, right: -6, width: 14, height: 14,
-                      background: '#F59E0B', borderRadius: 3, cursor: 'se-resize',
-                    }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {hasFile && (
-            <p style={{ color: '#9ca3af', fontSize: 13, marginTop: 12, textAlign: 'center' }}>
-              {placing ? 'Click anywhere on the page to place your signature' : 'Drag signatures to reposition · Resize with the amber handle · Click × to delete'}
-            </p>
-          )}
+          ))}
         </div>
-      </main>
+      )}
+
+      {hasFile && (
+        <p style={{ color: '#9ca3af', fontSize: 13, marginTop: 12, textAlign: 'center' }}>
+          {placing ? 'Click anywhere on the page to place your signature' : 'Drag signatures to reposition · Resize with the amber handle · Click × to delete'}
+        </p>
+      )}
 
       {showModal && (
         <SignatureModal
@@ -460,7 +491,47 @@ export default function SignPDFPage() {
         />
       )}
 
-      <Footer />
-    </>
+      {/* SEO Content */}
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+          How to Sign a PDF Online — Free
+        </h2>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          Adding your signature to a PDF takes seconds with Doclair. Here&apos;s how:
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
+          {[
+            'Open the tool and drop your PDF into the upload area above.',
+            'Click <strong>Add Signature</strong> — draw with your mouse or stylus, type your name, or upload a signature image.',
+            'Click on the page to place your signature. Drag to reposition it anywhere you like.',
+            'Click <strong>Download Signed PDF</strong> to save your document. No watermark, no upload.',
+          ].map((step, i) => (
+            <div key={i} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+              <div style={{
+                width: '30px', height: '30px', borderRadius: '50%', background: 'var(--amber)', color: 'white',
+                fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '13px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px',
+              }}>{i + 1}</div>
+              <p style={{ fontSize: '14px', lineHeight: 1.65, color: 'var(--ink)', opacity: 0.65 }} dangerouslySetInnerHTML={{ __html: step }} />
+            </div>
+          ))}
+        </div>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '6px', marginTop: '4px' }}>
+          Is it safe to sign confidential PDFs online?
+        </h3>
+        <p style={{ fontSize: '14px', lineHeight: 1.65, color: 'var(--ink)', opacity: 0.65, marginBottom: '20px' }}>
+          Completely safe. Doclair processes everything in your browser using JavaScript — your PDF is never uploaded to any server. Legal contracts, medical forms, and business documents stay 100% on your device.
+        </p>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '6px', marginTop: '4px' }}>
+          Sign PDF on iPhone and Android
+        </h3>
+        <p style={{ fontSize: '14px', lineHeight: 1.65, color: 'var(--ink)', opacity: 0.65 }}>
+          Doclair works in mobile Safari and Chrome. Touch support lets you draw your signature directly with your finger or stylus and tap the page to place it — no app download required.
+        </p>
+      </div>
+
+      {/* FAQ */}
+      <FAQ faqs={FAQS} />
+    </ToolPageLayout>
   )
 }

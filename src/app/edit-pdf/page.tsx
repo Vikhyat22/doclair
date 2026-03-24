@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import Navbar from '@/components/layout/Navbar'
-import Footer from '@/components/layout/Footer'
+import ToolPageLayout from '@/components/layout/ToolPageLayout'
+import FAQ from '@/components/ui/FAQ'
+import ToolSidebar from '@/components/ui/ToolSidebar'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -376,150 +377,171 @@ export default function EditPDFPage() {
     </button>
   )
 
+  const sidebar = (
+    <ToolSidebar
+      reverseActions={[]}
+      relatedTools={[
+        { name: 'Sign PDF', slug: 'sign-pdf', icon: '✍️', colorBg: '#DBEAFE', desc: 'Draw or type your signature' },
+        { name: 'Annotate PDF', slug: 'annotate-pdf', icon: '💬', colorBg: '#DBEAFE', desc: 'Highlight and comment' },
+        { name: 'Redact PDF', slug: 'redact-pdf', icon: '⬛', colorBg: '#DBEAFE', desc: 'Permanently remove content' },
+        { name: 'Add Watermark', slug: 'add-watermark', icon: '💧', colorBg: '#DBEAFE', desc: 'Stamp text or image watermark' },
+        { name: 'Merge PDF', slug: 'merge-pdf', icon: '🔀', colorBg: '#FFF0DC', desc: 'Combine multiple PDFs' },
+      ]}
+    />
+  )
+
   return (
-    <>
+    <ToolPageLayout toolName="Edit PDF + Sign" sidebar={sidebar}>
+      {/* JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
-      <Navbar />
-      <main style={{ minHeight: 'calc(100vh - 200px)', padding: '40px 16px' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto' }}>
-          <h1 style={{ fontFamily: 'var(--font-syne)', fontWeight: 800, fontSize: 'clamp(28px,4vw,44px)', letterSpacing: '-1px', marginBottom: 8 }}>Edit PDF + Sign</h1>
-          <p style={{ color: 'var(--muted)', fontSize: 16, marginBottom: 32 }}>
-            Add text and signatures to any PDF. No upload — everything runs in your browser.
-          </p>
 
-          {/* Toolbar */}
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 20, padding: '12px 16px', background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb' }}>
-            {toolBtn('select', 'Select', '↖')}
-            {toolBtn('text', 'Text', 'T')}
-            <button onClick={() => setShowSigPad(true)}
-              title="Signature"
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-                padding: '10px 12px', borderRadius: 10, border: '1.5px solid',
-                borderColor: tool === 'signature' ? '#F59E0B' : '#e5e7eb',
-                background: tool === 'signature' ? '#FFF8EC' : '#fff',
-                cursor: 'pointer', fontSize: 11, fontWeight: 600, color: tool === 'signature' ? '#92400e' : '#374151', minWidth: 60,
-              }}>
-              <span style={{ fontSize: 22 }}>✍</span>Sign
-            </button>
-
-            <div style={{ width: 1, height: 40, background: '#e5e7eb', margin: '0 4px' }} />
-
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#6b7280' }}>Size</label>
-            <select value={fontSize} onChange={e => setFontSize(Number(e.target.value))}
-              style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 13 }}>
-              {[10, 12, 14, 16, 18, 20, 24, 28, 32, 40].map(s => <option key={s}>{s}</option>)}
-            </select>
-
-            <input type="color" value={fontColor} onChange={e => setFontColor(e.target.value)}
-              title="Text color"
-              style={{ width: 36, height: 36, borderRadius: 8, border: '1px solid #e5e7eb', cursor: 'pointer', padding: 2 }} />
-
-            <div style={{ flex: 1 }} />
-
-            {hasFile && (
-              <button onClick={savePDF} disabled={saving} style={{
-                padding: '10px 24px', borderRadius: 10, border: 'none',
-                background: saving ? '#fcd34d' : '#F59E0B', color: '#fff',
-                fontWeight: 700, fontSize: 14, cursor: saving ? 'not-allowed' : 'pointer',
-              }}>{saving ? 'Saving…' : 'Download PDF'}</button>
-            )}
-          </div>
-
-          {/* Page navigation */}
-          {hasFile && pageCount > 1 && (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-              <button onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={currentPage === 0}
-                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer' }}>←</button>
-              <span style={{ fontSize: 13, color: '#6b7280' }}>Page {currentPage + 1} of {pageCount}</span>
-              <button onClick={() => setCurrentPage(p => Math.min(pageCount - 1, p + 1))} disabled={currentPage === pageCount - 1}
-                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer' }}>→</button>
-            </div>
-          )}
-
-          {/* Drop zone or canvas */}
-          {!hasFile ? (
-            <div onDrop={handleDrop} onDragOver={e => e.preventDefault()}
-              style={{ border: '3px dashed #e5e7eb', borderRadius: 16, padding: 80, textAlign: 'center', cursor: 'pointer', background: '#fafafa' }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
-              <p style={{ fontWeight: 700, fontSize: 18, marginBottom: 8 }}>Drop your PDF here</p>
-              <p style={{ color: '#9ca3af', marginBottom: 24 }}>or</p>
-              <label style={{ padding: '12px 28px', borderRadius: 10, background: '#F59E0B', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 15 }}>
-                Choose PDF
-                <input type="file" accept="application/pdf" onChange={handleFileInput} style={{ display: 'none' }} />
-              </label>
-            </div>
-          ) : (
-            <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
-              <div ref={containerRef}
-                onClick={handleCanvasClick}
-                style={{ position: 'relative', cursor: tool === 'text' ? 'text' : tool === 'signature' ? 'crosshair' : 'default', display: 'inline-block', width: '100%' }}>
-                {/* Base page image */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={canvasDataUrls[currentPage]} alt={`Page ${currentPage + 1}`}
-                  style={{ width: '100%', display: 'block', borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} draggable={false} />
-
-                {/* Overlays */}
-                {currentOverlays.map(ov => (
-                  <div key={ov.id}
-                    onMouseDown={e => startDrag(e, ov.id)}
-                    style={{
-                      position: 'absolute',
-                      left: `${ov.x * 100}%`,
-                      top: `${ov.y * 100}%`,
-                      cursor: tool === 'select' ? 'move' : 'default',
-                      userSelect: 'none',
-                    }}>
-                    {ov.type === 'text' ? (
-                      <div style={{ position: 'relative' }}>
-                        {editingId === ov.id ? (
-                          <input
-                            autoFocus
-                            value={ov.text}
-                            onChange={e => updateTextOverlay(ov.id, e.target.value)}
-                            onBlur={() => setEditingId(null)}
-                            onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditingId(null) }}
-                            style={{
-                              fontSize: `${ov.fontSize}px`, color: ov.color,
-                              border: '1px dashed #F59E0B', background: 'rgba(255,255,255,0.85)',
-                              padding: '2px 4px', borderRadius: 4, minWidth: 60, outline: 'none',
-                            }}
-                          />
-                        ) : (
-                          <span onDoubleClick={e => { e.stopPropagation(); setEditingId(ov.id) }}
-                            style={{ fontSize: `${ov.fontSize}px`, color: ov.color, display: 'block', whiteSpace: 'nowrap', padding: '2px 4px', borderRadius: 4, outline: '1px dashed transparent' }}>
-                            {ov.text || <span style={{ color: '#ccc' }}>double-click to type</span>}
-                          </span>
-                        )}
-                        <button onClick={e => { e.stopPropagation(); deleteOverlay(ov.id) }}
-                          style={{ position: 'absolute', top: -8, right: -8, background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>×</button>
-                      </div>
-                    ) : (
-                      <div style={{ position: 'relative' }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={ov.dataUrl} alt="signature"
-                          style={{ width: ov.width, height: ov.height, display: 'block' }} draggable={false} />
-                        <button onClick={e => { e.stopPropagation(); deleteOverlay(ov.id) }}
-                          style={{ position: 'absolute', top: -8, right: -8, background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>×</button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Hint */}
-          {hasFile && (
-            <p style={{ color: '#9ca3af', fontSize: 13, marginTop: 16, textAlign: 'center' }}>
-              {tool === 'text' && 'Click anywhere on the page to add text. Double-click to edit.'}
-              {tool === 'signature' && sigPlacing && 'Click anywhere on the page to place your signature.'}
-              {tool === 'select' && 'Drag overlays to reposition. Click × to delete.'}
-            </p>
-          )}
+      {/* Tool Header */}
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '36px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#DCFCE7', color: '#166534', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✓ 100% Free</span>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#FFF0DC', color: '#92400E', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>🔒 Files Stay On Device</span>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#EDE9FE', color: '#6B21A8', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✦ No Watermark</span>
         </div>
-      </main>
+        <h1 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(32px, 4vw, 52px)', lineHeight: 1.05, letterSpacing: '-1.5px' }}>
+          <span style={{ color: 'var(--ink)' }}>Edit PDF + Sign </span>
+          <span style={{ color: 'var(--amber)' }}>Online Free</span>
+        </h1>
+        <p style={{ fontSize: '16px', fontWeight: 300, color: 'var(--ink)', opacity: 0.65, maxWidth: '520px', marginTop: '12px', lineHeight: 1.6 }}>
+          Add text and signatures to any PDF. No upload — everything runs in your browser.
+        </p>
+      </div>
+
+      {/* Toolbar */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 20, padding: '12px 16px', background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb' }}>
+        {toolBtn('select', 'Select', '↖')}
+        {toolBtn('text', 'Text', 'T')}
+        <button onClick={() => setShowSigPad(true)}
+          title="Signature"
+          style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+            padding: '10px 12px', borderRadius: 10, border: '1.5px solid',
+            borderColor: tool === 'signature' ? '#F59E0B' : '#e5e7eb',
+            background: tool === 'signature' ? '#FFF8EC' : '#fff',
+            cursor: 'pointer', fontSize: 11, fontWeight: 600, color: tool === 'signature' ? '#92400e' : '#374151', minWidth: 60,
+          }}>
+          <span style={{ fontSize: 22 }}>✍</span>Sign
+        </button>
+
+        <div style={{ width: 1, height: 40, background: '#e5e7eb', margin: '0 4px' }} />
+
+        <label style={{ fontSize: 12, fontWeight: 600, color: '#6b7280' }}>Size</label>
+        <select value={fontSize} onChange={e => setFontSize(Number(e.target.value))}
+          style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 13 }}>
+          {[10, 12, 14, 16, 18, 20, 24, 28, 32, 40].map(s => <option key={s}>{s}</option>)}
+        </select>
+
+        <input type="color" value={fontColor} onChange={e => setFontColor(e.target.value)}
+          title="Text color"
+          style={{ width: 36, height: 36, borderRadius: 8, border: '1px solid #e5e7eb', cursor: 'pointer', padding: 2 }} />
+
+        <div style={{ flex: 1 }} />
+
+        {hasFile && (
+          <button onClick={savePDF} disabled={saving} style={{
+            padding: '10px 24px', borderRadius: 10, border: 'none',
+            background: saving ? '#fcd34d' : '#F59E0B', color: '#fff',
+            fontWeight: 700, fontSize: 14, cursor: saving ? 'not-allowed' : 'pointer',
+          }}>{saving ? 'Saving…' : 'Download PDF'}</button>
+        )}
+      </div>
+
+      {/* Page navigation */}
+      {hasFile && pageCount > 1 && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
+          <button onClick={() => setCurrentPage(p => Math.max(0, p - 1))} disabled={currentPage === 0}
+            style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer' }}>←</button>
+          <span style={{ fontSize: 13, color: '#6b7280' }}>Page {currentPage + 1} of {pageCount}</span>
+          <button onClick={() => setCurrentPage(p => Math.min(pageCount - 1, p + 1))} disabled={currentPage === pageCount - 1}
+            style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer' }}>→</button>
+        </div>
+      )}
+
+      {/* Drop zone or canvas */}
+      {!hasFile ? (
+        <div onDrop={handleDrop} onDragOver={e => e.preventDefault()}
+          style={{ border: '3px dashed #e5e7eb', borderRadius: 16, padding: 80, textAlign: 'center', cursor: 'pointer', background: '#fafafa' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
+          <p style={{ fontWeight: 700, fontSize: 18, marginBottom: 8 }}>Drop your PDF here</p>
+          <p style={{ color: '#9ca3af', marginBottom: 24 }}>or</p>
+          <label style={{ padding: '12px 28px', borderRadius: 10, background: '#F59E0B', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 15 }}>
+            Choose PDF
+            <input type="file" accept="application/pdf" onChange={handleFileInput} style={{ display: 'none' }} />
+          </label>
+        </div>
+      ) : (
+        <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
+          <div ref={containerRef}
+            onClick={handleCanvasClick}
+            style={{ position: 'relative', cursor: tool === 'text' ? 'text' : tool === 'signature' ? 'crosshair' : 'default', display: 'inline-block', width: '100%' }}>
+            {/* Base page image */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={canvasDataUrls[currentPage]} alt={`Page ${currentPage + 1}`}
+              style={{ width: '100%', display: 'block', borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }} draggable={false} />
+
+            {/* Overlays */}
+            {currentOverlays.map(ov => (
+              <div key={ov.id}
+                onMouseDown={e => startDrag(e, ov.id)}
+                style={{
+                  position: 'absolute',
+                  left: `${ov.x * 100}%`,
+                  top: `${ov.y * 100}%`,
+                  cursor: tool === 'select' ? 'move' : 'default',
+                  userSelect: 'none',
+                }}>
+                {ov.type === 'text' ? (
+                  <div style={{ position: 'relative' }}>
+                    {editingId === ov.id ? (
+                      <input
+                        autoFocus
+                        value={ov.text}
+                        onChange={e => updateTextOverlay(ov.id, e.target.value)}
+                        onBlur={() => setEditingId(null)}
+                        onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditingId(null) }}
+                        style={{
+                          fontSize: `${ov.fontSize}px`, color: ov.color,
+                          border: '1px dashed #F59E0B', background: 'rgba(255,255,255,0.85)',
+                          padding: '2px 4px', borderRadius: 4, minWidth: 60, outline: 'none',
+                        }}
+                      />
+                    ) : (
+                      <span onDoubleClick={e => { e.stopPropagation(); setEditingId(ov.id) }}
+                        style={{ fontSize: `${ov.fontSize}px`, color: ov.color, display: 'block', whiteSpace: 'nowrap', padding: '2px 4px', borderRadius: 4, outline: '1px dashed transparent' }}>
+                        {ov.text || <span style={{ color: '#ccc' }}>double-click to type</span>}
+                      </span>
+                    )}
+                    <button onClick={e => { e.stopPropagation(); deleteOverlay(ov.id) }}
+                      style={{ position: 'absolute', top: -8, right: -8, background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>×</button>
+                  </div>
+                ) : (
+                  <div style={{ position: 'relative' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={ov.dataUrl} alt="signature"
+                      style={{ width: ov.width, height: ov.height, display: 'block' }} draggable={false} />
+                    <button onClick={e => { e.stopPropagation(); deleteOverlay(ov.id) }}
+                      style={{ position: 'absolute', top: -8, right: -8, background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>×</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Hint */}
+      {hasFile && (
+        <p style={{ color: '#9ca3af', fontSize: 13, marginTop: 16, textAlign: 'center' }}>
+          {tool === 'text' && 'Click anywhere on the page to add text. Double-click to edit.'}
+          {tool === 'signature' && sigPlacing && 'Click anywhere on the page to place your signature.'}
+          {tool === 'select' && 'Drag overlays to reposition. Click × to delete.'}
+        </p>
+      )}
 
       {showSigPad && (
         <SignaturePad
@@ -528,7 +550,47 @@ export default function EditPDFPage() {
         />
       )}
 
-      <Footer />
-    </>
+      {/* SEO Content */}
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
+          How to Edit a PDF Online — Free
+        </h2>
+        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+          Add text and signatures to any PDF in seconds. Here&apos;s how:
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
+          {[
+            'Drop your PDF into the upload area above or click <strong>Choose PDF</strong>.',
+            'Choose the <strong>Text</strong> tool and click anywhere on the page to add a text box. Double-click to edit.',
+            'Use the <strong>Sign</strong> tool to draw or type your signature, then click on the page to place it.',
+            'Click <strong>Download PDF</strong> to save your edited document. No watermark added.',
+          ].map((step, i) => (
+            <div key={i} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+              <div style={{
+                width: '30px', height: '30px', borderRadius: '50%', background: 'var(--amber)', color: 'white',
+                fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '13px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px',
+              }}>{i + 1}</div>
+              <p style={{ fontSize: '14px', lineHeight: 1.65, color: 'var(--ink)', opacity: 0.65 }} dangerouslySetInnerHTML={{ __html: step }} />
+            </div>
+          ))}
+        </div>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '6px', marginTop: '4px' }}>
+          Can I edit text in my PDF?
+        </h3>
+        <p style={{ fontSize: '14px', lineHeight: 1.65, color: 'var(--ink)', opacity: 0.65, marginBottom: '20px' }}>
+          Doclair is an overlay editor — it adds new text boxes on top of your PDF rather than modifying the original text layer. This works for filling out forms, adding annotations, inserting notes, or signing documents, and requires no server upload.
+        </p>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '6px', marginTop: '4px' }}>
+          Edit PDF on iPhone and Android
+        </h3>
+        <p style={{ fontSize: '14px', lineHeight: 1.65, color: 'var(--ink)', opacity: 0.65 }}>
+          Doclair works in mobile Safari and Chrome. Tap to place text boxes, draw your signature with your finger, and download the finished PDF — all without installing an app.
+        </p>
+      </div>
+
+      {/* FAQ */}
+      <FAQ faqs={FAQS} />
+    </ToolPageLayout>
   )
 }

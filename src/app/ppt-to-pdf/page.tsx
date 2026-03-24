@@ -1,10 +1,18 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import Navbar from '@/components/layout/Navbar'
-import Footer from '@/components/layout/Footer'
+import ToolPageLayout from '@/components/layout/ToolPageLayout'
+import FAQ from '@/components/ui/FAQ'
+import ToolSidebar from '@/components/ui/ToolSidebar'
 
-const JSON_LD = {
+const FAQS = [
+  { q: 'Is my PowerPoint file uploaded to a server?', a: 'Never. The conversion happens entirely in your browser using JavaScript. Your .pptx file is never uploaded to any server.' },
+  { q: 'Will my slide images and design be preserved?', a: "Doclair extracts text content from each slide and recreates a clean PDF. Images and complex design elements from the original theme are not preserved. For pixel-perfect output, use PowerPoint's built-in Export to PDF feature." },
+  { q: 'What file formats are supported?', a: 'The tool supports .pptx (PowerPoint 2007 and later) format. Legacy .ppt files are not currently supported.' },
+  { q: 'Can I convert PowerPoint to PDF on iPhone or Android?', a: 'Yes. Doclair works in Safari and Chrome on mobile. Upload your .pptx from the Files app and download the PDF directly.' },
+]
+
+const JSON_LD_SCHEMA = {
   '@context': 'https://schema.org',
   '@graph': [
     {
@@ -15,25 +23,44 @@ const JSON_LD = {
       url: 'https://doclair.in/ppt-to-pdf',
       description: 'Convert PowerPoint PPTX files to PDF online free. Text and structure extracted. No upload, no watermark.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      featureList: [
+        'Text and structure extracted per slide',
+        'Amber header bar with slide numbers',
+        'Browser-only conversion, no upload',
+        'No watermark',
+      ],
     },
     {
       '@type': 'FAQPage',
-      mainEntity: [
-        { '@type': 'Question', name: 'Is my PowerPoint file uploaded to a server?', acceptedAnswer: { '@type': 'Answer', text: 'Never. The conversion happens entirely in your browser using JavaScript. Your .pptx file is never uploaded to any server.' } },
-        { '@type': 'Question', name: 'Will my slide images and design be preserved?', acceptedAnswer: { '@type': 'Answer', text: 'Doclair extracts text content from each slide and recreates a clean PDF. Images and complex design elements from the original theme are not preserved. For pixel-perfect output, use PowerPoint\'s built-in "Export to PDF" feature.' } },
-        { '@type': 'Question', name: 'What file formats are supported?', acceptedAnswer: { '@type': 'Answer', text: 'The tool supports .pptx (PowerPoint 2007 and later) format. Legacy .ppt files are not currently supported.' } },
-      ],
-    },
-    {
-      '@type': 'BreadcrumbList',
-      itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
-        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
-        { '@type': 'ListItem', position: 3, name: 'PowerPoint to PDF', item: 'https://doclair.in/ppt-to-pdf' },
-      ],
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
     },
   ],
 }
+
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: 'PowerPoint to PDF', item: 'https://doclair.in/ppt-to-pdf' },
+  ],
+}
+
+const sidebar = (
+  <ToolSidebar
+    relatedTools={[
+      { name: 'PDF → PowerPoint', slug: 'pdf-to-ppt', icon: '📊', colorBg: '#D1FAE5', desc: 'Convert PDF pages to slides' },
+      { name: 'Compress PDF', slug: 'compress-pdf', icon: '📦', colorBg: '#FFF0DC', desc: 'Reduce file size safely' },
+      { name: 'Merge PDF', slug: 'merge-pdf', icon: '🔀', colorBg: '#FFF0DC', desc: 'Combine multiple PDFs' },
+      { name: 'PDF to Text', slug: 'pdf-to-text', icon: '📝', colorBg: '#D1FAE5', desc: 'Extract all text from PDF' },
+    ]}
+  />
+)
 
 // PPTX is a ZIP. We parse slides via JSZip + DOMParser to extract text and build a basic PDF.
 // Each slide becomes a page with text rendered in pdf-lib.
@@ -173,72 +200,102 @@ export default function PptToPdfPage() {
   }, [])
 
   return (
-    <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <Navbar />
-      <main style={{ minHeight: 'calc(100vh - 200px)', padding: '40px 16px' }}>
-        <div style={{ maxWidth: 860, margin: '0 auto' }}>
-          <h1 style={{ fontFamily: 'var(--font-syne)', fontWeight: 800, fontSize: 'clamp(28px,4vw,44px)', letterSpacing: '-1px', marginBottom: 8 }}>PowerPoint to PDF</h1>
-          <p style={{ color: 'var(--muted)', fontSize: 16, marginBottom: 12 }}>
-            Convert .pptx files to PDF. Text and structure extracted — all in your browser, nothing uploaded.
-          </p>
-          <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#1e40af', marginBottom: 28, maxWidth: 560 }}>
-            <strong>Note:</strong> Extracts text content. Images and complex formatting from the original slide design are not preserved. For pixel-perfect conversion, use PowerPoint&apos;s built-in Export to PDF.
-          </div>
+    <ToolPageLayout toolName="PowerPoint to PDF" sidebar={sidebar}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
 
-          {!saving && !done && (
-            <div
-              onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) process(f) }}
-              onDragOver={e => e.preventDefault()}
-              style={{ border: '3px dashed #e5e7eb', borderRadius: 16, padding: 72, textAlign: 'center', background: '#fafafa', cursor: 'pointer' }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>📊</div>
-              <p style={{ fontWeight: 700, fontSize: 18, marginBottom: 8 }}>Drop your .pptx file here</p>
-              <p style={{ color: '#9ca3af', marginBottom: 24 }}>Supports .pptx format</p>
-              <label style={{ padding: '12px 28px', borderRadius: 10, background: '#F59E0B', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 15 }}>
-                Choose .pptx
-                <input type="file" accept=".pptx,.ppt,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={e => { const f = e.target.files?.[0]; if (f) process(f) }} style={{ display: 'none' }} />
-              </label>
-            </div>
-          )}
-
-          {saving && (
-            <div style={{ textAlign: 'center', padding: 60 }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
-              <p style={{ fontWeight: 600, color: '#374151' }}>{progress}</p>
-            </div>
-          )}
-
-          {done && !saving && (
-            <div style={{ textAlign: 'center', padding: 48, border: '2px solid #d1fae5', borderRadius: 16, background: '#f0fdf4' }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
-              <p style={{ fontWeight: 700, fontSize: 18, color: '#166534', marginBottom: 16 }}>
-                PDF downloaded — {slides.length} slides converted
-              </p>
-              <label style={{ padding: '12px 28px', borderRadius: 10, background: '#F59E0B', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 15 }}>
-                Convert Another
-                <input type="file" accept=".pptx,.ppt,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={e => { setDone(false); const f = e.target.files?.[0]; if (f) process(f) }} style={{ display: 'none' }} />
-              </label>
-            </div>
-          )}
-
-          {slides.length > 0 && (
-            <div style={{ marginTop: 32 }}>
-              <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 16, color: '#374151' }}>Preview — {slides.length} slides from &ldquo;{fileName}&rdquo;</h3>
-              <div style={{ display: 'grid', gap: 10 }}>
-                {slides.slice(0, 8).map(s => (
-                  <div key={s.index} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 16px', background: '#fff' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', marginRight: 12 }}>Slide {s.index}</span>
-                    <span style={{ fontWeight: 600, fontSize: 14, color: '#374151' }}>{s.title || '(no title)'}</span>
-                    {s.body.length > 0 && <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>{s.body.slice(0, 2).join(' · ')}{s.body.length > 2 ? ` +${s.body.length - 2} more` : ''}</p>}
-                  </div>
-                ))}
-                {slides.length > 8 && <p style={{ fontSize: 13, color: '#9ca3af', textAlign: 'center' }}>+{slides.length - 8} more slides</p>}
-              </div>
-            </div>
-          )}
+      {/* Tool Header Card */}
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '36px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#DCFCE7', color: '#166534', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✓ 100% Free</span>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#FFF0DC', color: '#92400E', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>🔒 Files Stay On Device</span>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#EDE9FE', color: '#6B21A8', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✦ No Watermark</span>
         </div>
-      </main>
-      <Footer />
-    </>
+        <h1 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(32px, 4vw, 52px)', lineHeight: 1.05, letterSpacing: '-1.5px' }}>
+          <span style={{ color: 'var(--ink)' }}>PowerPoint to PDF </span>
+          <span style={{ color: 'var(--amber)' }}>Online Free</span>
+        </h1>
+        <p style={{ fontSize: '16px', fontWeight: 300, color: 'var(--ink)', opacity: 0.65, maxWidth: '520px', marginTop: '12px', lineHeight: 1.6 }}>
+          Convert .pptx slides to PDF in your browser. Text and structure extracted per slide — no upload, no watermark.
+        </p>
+      </div>
+
+      <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#1e40af', maxWidth: 560 }}>
+        <strong>Note:</strong> Extracts text content. Images and complex formatting from the original slide design are not preserved. For pixel-perfect conversion, use PowerPoint&apos;s built-in Export to PDF.
+      </div>
+
+      {!saving && !done && (
+        <div
+          onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) process(f) }}
+          onDragOver={e => e.preventDefault()}
+          style={{ border: '3px dashed #e5e7eb', borderRadius: 16, padding: 72, textAlign: 'center', background: '#fafafa', cursor: 'pointer' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>📊</div>
+          <p style={{ fontWeight: 700, fontSize: 18, marginBottom: 8 }}>Drop your .pptx file here</p>
+          <p style={{ color: '#9ca3af', marginBottom: 24 }}>Supports .pptx format</p>
+          <label style={{ padding: '12px 28px', borderRadius: 10, background: '#F59E0B', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 15 }}>
+            Choose .pptx
+            <input type="file" accept=".pptx,.ppt,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={e => { const f = e.target.files?.[0]; if (f) process(f) }} style={{ display: 'none' }} />
+          </label>
+        </div>
+      )}
+
+      {saving && (
+        <div style={{ textAlign: 'center', padding: 60 }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
+          <p style={{ fontWeight: 600, color: '#374151' }}>{progress}</p>
+        </div>
+      )}
+
+      {done && !saving && (
+        <div style={{ textAlign: 'center', padding: 48, border: '2px solid #d1fae5', borderRadius: 16, background: '#f0fdf4' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
+          <p style={{ fontWeight: 700, fontSize: 18, color: '#166534', marginBottom: 16 }}>
+            PDF downloaded — {slides.length} slides converted
+          </p>
+          <label style={{ padding: '12px 28px', borderRadius: 10, background: '#F59E0B', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 15 }}>
+            Convert Another
+            <input type="file" accept=".pptx,.ppt,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={e => { setDone(false); const f = e.target.files?.[0]; if (f) process(f) }} style={{ display: 'none' }} />
+          </label>
+        </div>
+      )}
+
+      {slides.length > 0 && (
+        <div style={{ marginTop: 32 }}>
+          <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 16, color: '#374151' }}>Preview — {slides.length} slides from &ldquo;{fileName}&rdquo;</h3>
+          <div style={{ display: 'grid', gap: 10 }}>
+            {slides.slice(0, 8).map(s => (
+              <div key={s.index} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 16px', background: '#fff' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', marginRight: 12 }}>Slide {s.index}</span>
+                <span style={{ fontWeight: 600, fontSize: 14, color: '#374151' }}>{s.title || '(no title)'}</span>
+                {s.body.length > 0 && <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>{s.body.slice(0, 2).join(' · ')}{s.body.length > 2 ? ` +${s.body.length - 2} more` : ''}</p>}
+              </div>
+            ))}
+            {slides.length > 8 && <p style={{ fontSize: 13, color: '#9ca3af', textAlign: 'center' }}>+{slides.length - 8} more slides</p>}
+          </div>
+        </div>
+      )}
+
+      {/* SEO Content */}
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '24px', marginBottom: '16px' }}>How to Convert PowerPoint to PDF — Free</h2>
+        <ol style={{ paddingLeft: '20px', lineHeight: 1.8, color: 'var(--ink)', opacity: 0.8 }}>
+          <li>Drop your .pptx file or click to browse.</li>
+          <li>Wait while the browser parses each slide and generates the PDF.</li>
+          <li>A download starts automatically when ready. No sign-up or installation needed.</li>
+        </ol>
+
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '18px', marginTop: '28px', marginBottom: '10px' }}>What content is preserved?</h3>
+        <p style={{ lineHeight: 1.7, color: 'var(--ink)', opacity: 0.75 }}>
+          Text from each slide title and body is extracted and laid out cleanly. Each slide becomes one PDF page with an amber header bar and slide number. Complex backgrounds, images, and theme graphics from the PPTX are not reproduced.
+        </p>
+
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '18px', marginTop: '28px', marginBottom: '10px' }}>Why use browser-based conversion?</h3>
+        <p style={{ lineHeight: 1.7, color: 'var(--ink)', opacity: 0.75 }}>
+          Your PowerPoint file never leaves your device. No cloud service can access your presentation content — ideal for confidential business slides, client proposals, or internal documents.
+        </p>
+      </div>
+
+      <FAQ faqs={FAQS} />
+    </ToolPageLayout>
   )
 }

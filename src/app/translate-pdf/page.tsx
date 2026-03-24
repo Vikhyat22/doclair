@@ -1,10 +1,19 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import Navbar from '@/components/layout/Navbar'
-import Footer from '@/components/layout/Footer'
+import ToolPageLayout from '@/components/layout/ToolPageLayout'
+import FAQ from '@/components/ui/FAQ'
+import ToolSidebar from '@/components/ui/ToolSidebar'
 
-const JSON_LD = {
+const FAQS = [
+  { q: 'How does PDF translation work?', a: 'Text is extracted from your PDF in the browser using PDF.js, then sent to our AI API for translation. The original PDF file is never uploaded — only the extracted text is processed.' },
+  { q: 'Which languages are supported?', a: 'Over 26 languages including Spanish, French, German, Portuguese, Chinese, Japanese, Korean, Arabic, Hindi, and more.' },
+  { q: 'Will images in the PDF be translated?', a: 'Only text content is translated. Images, charts, and graphics are not modified. For scanned PDFs, use OCR PDF first to make the text extractable.' },
+  { q: 'Can I download the translated text?', a: 'Yes. After translation is complete, click "Download TXT" to save the translated content as a plain text file.' },
+  { q: 'Is translate PDF free?', a: 'Yes. Translation is free with no watermark added. AI processing is handled server-side — only extracted text is sent, never the file itself.' },
+]
+
+const JSON_LD_SCHEMA = {
   '@context': 'https://schema.org',
   '@graph': [
     {
@@ -18,21 +27,22 @@ const JSON_LD = {
     },
     {
       '@type': 'FAQPage',
-      mainEntity: [
-        { '@type': 'Question', name: 'How does PDF translation work?', acceptedAnswer: { '@type': 'Answer', text: 'Text is extracted from your PDF in the browser using PDF.js, then sent to our AI API for translation. The original PDF file is never uploaded — only the extracted text is processed.' } },
-        { '@type': 'Question', name: 'Which languages are supported?', acceptedAnswer: { '@type': 'Answer', text: 'Over 26 languages including Spanish, French, German, Portuguese, Chinese, Japanese, Korean, Arabic, Hindi, and more.' } },
-        { '@type': 'Question', name: 'Will images in the PDF be translated?', acceptedAnswer: { '@type': 'Answer', text: 'Only text content is translated. Images, charts, and graphics are not modified. For scanned PDFs, use OCR PDF first to make the text extractable.' } },
-        { '@type': 'Question', name: 'Can I download the translated text?', acceptedAnswer: { '@type': 'Answer', text: 'Yes. After translation is complete, click "Download TXT" to save the translated content as a plain text file.' } },
-      ],
+      mainEntity: FAQS.map(f => ({
+        '@type': 'Question',
+        name: f.q,
+        acceptedAnswer: { '@type': 'Answer', text: f.a },
+      })),
     },
-    {
-      '@type': 'BreadcrumbList',
-      itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
-        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
-        { '@type': 'ListItem', position: 3, name: 'Translate PDF', item: 'https://doclair.in/translate-pdf' },
-      ],
-    },
+  ],
+}
+
+const BREADCRUMB_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+    { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+    { '@type': 'ListItem', position: 3, name: 'Translate PDF', item: 'https://doclair.in/translate-pdf' },
   ],
 }
 
@@ -106,16 +116,37 @@ export default function TranslatePDFPage() {
 
   const hasResults = pages.length > 0
 
+  const sidebar = (
+    <ToolSidebar
+      relatedTools={[
+        { name: 'OCR PDF', slug: 'ocr-pdf', icon: '👁️', colorBg: '#EDE9FE', desc: 'Make scanned text searchable' },
+        { name: 'Chat with PDF', slug: 'chat-with-pdf', icon: '💬', colorBg: '#EDE9FE', desc: 'Ask questions about your doc' },
+        { name: 'AI Summarizer', slug: 'ai-summarizer', icon: '🤖', colorBg: '#EDE9FE', desc: 'Get key points instantly' },
+        { name: 'PDF to Text', slug: 'pdf-to-text', icon: '📝', colorBg: '#D1FAE5', desc: 'Extract all text from PDF' },
+      ]}
+    />
+  )
+
   return (
-    <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <Navbar />
-      <main style={{ minHeight: 'calc(100vh - 200px)', padding: '40px 16px' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto' }}>
-          <h1 style={{ fontFamily: 'var(--font-syne)', fontWeight: 800, fontSize: 'clamp(28px,4vw,44px)', letterSpacing: '-1px', marginBottom: 8 }}>Translate PDF</h1>
-          <p style={{ color: 'var(--muted)', fontSize: 16, marginBottom: 32 }}>
-            Translate PDF documents into any language using AI. Text is extracted in your browser and translated via our AI API.
-          </p>
+    <ToolPageLayout toolName="Translate PDF" sidebar={sidebar}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
+
+      {/* Tool Header Card */}
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '36px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#DCFCE7', color: '#166534', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✓ 100% Free</span>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#FFF0DC', color: '#92400E', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>🔒 Text Only Sent</span>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#EDE9FE', color: '#6B21A8', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>🌐 26 Languages</span>
+        </div>
+        <h1 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(32px, 4vw, 52px)', lineHeight: 1.05, letterSpacing: '-1.5px' }}>
+          <span style={{ color: 'var(--ink)' }}>Translate PDF </span>
+          <span style={{ color: 'var(--amber)' }}>Online Free</span>
+        </h1>
+        <p style={{ fontSize: '16px', fontWeight: 300, color: 'var(--ink)', opacity: 0.65, maxWidth: '520px', marginTop: '12px', lineHeight: 1.6 }}>
+          Translate any PDF to 26+ languages using AI. Text is extracted in your browser — only the content, never the file, is sent for translation.
+        </p>
+      </div>
 
           {/* Config */}
           <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 28 }}>
@@ -206,9 +237,29 @@ export default function TranslatePDFPage() {
               ))}
             </div>
           )}
-        </div>
-      </main>
-      <Footer />
-    </>
+
+      {/* SEO Content */}
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>How to Translate a PDF Online — Free</h2>
+        <ol style={{ paddingLeft: '20px', color: 'var(--ink)', fontSize: '15px', lineHeight: 1.8 }}>
+          <li>Select your target language from the dropdown.</li>
+          <li>Drop your PDF or click to upload.</li>
+          <li>Wait while each page is extracted and translated.</li>
+          <li>Read the translation inline or click Download TXT.</li>
+        </ol>
+
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '17px', color: 'var(--ink)', marginTop: '28px', marginBottom: '8px' }}>Is my PDF safe to translate?</h3>
+        <p style={{ fontSize: '15px', color: 'var(--ink)', opacity: 0.75, lineHeight: 1.7 }}>
+          Your PDF never leaves your device. PDF.js extracts the text locally in your browser, and only that text is sent to the translation API. The file itself stays on your device throughout.
+        </p>
+
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '17px', color: 'var(--ink)', marginTop: '28px', marginBottom: '8px' }}>What happens with scanned PDFs?</h3>
+        <p style={{ fontSize: '15px', color: 'var(--ink)', opacity: 0.75, lineHeight: 1.7 }}>
+          Scanned PDFs contain images, not text. Run OCR PDF first to extract the text layer, then use Translate PDF.
+        </p>
+      </div>
+
+      <FAQ faqs={FAQS} />
+    </ToolPageLayout>
   )
 }

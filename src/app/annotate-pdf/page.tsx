@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import Navbar from '@/components/layout/Navbar'
-import Footer from '@/components/layout/Footer'
+import ToolPageLayout from '@/components/layout/ToolPageLayout'
+import FAQ from '@/components/ui/FAQ'
+import ToolSidebar from '@/components/ui/ToolSidebar'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -299,6 +300,18 @@ export default function AnnotatePDFPage() {
   const pageAnnotations = annotations.filter(a => a.pageIndex === currentPage)
   const hasFile = canvasUrls.length > 0
 
+  const sidebar = (
+    <ToolSidebar
+      relatedTools={[
+        { name: 'Edit PDF + Sign', slug: 'edit-pdf', icon: '✍️', colorBg: '#DBEAFE', desc: 'Add text and signatures' },
+        { name: 'Sign PDF', slug: 'sign-pdf', icon: '✍️', colorBg: '#DBEAFE', desc: 'Draw, type or upload signature' },
+        { name: 'Redact PDF', slug: 'redact-pdf', icon: '⬛', colorBg: '#DBEAFE', desc: 'Permanently hide sensitive info' },
+        { name: 'Add Watermark', slug: 'add-watermark', icon: '💧', colorBg: '#DBEAFE', desc: 'Stamp text or image over PDF' },
+        { name: 'Merge PDF', slug: 'merge-pdf', icon: '🔀', colorBg: '#FFF0DC', desc: 'Combine multiple PDFs' },
+      ]}
+    />
+  )
+
   const toolBtn = (t: AnnotationTool, label: string, icon: string) => (
     <button key={t} onClick={() => setTool(t)} title={label} style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
@@ -314,16 +327,25 @@ export default function AnnotatePDFPage() {
   )
 
   return (
-    <>
+    <ToolPageLayout toolName="Annotate PDF" sidebar={sidebar}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
-      <Navbar />
-      <main style={{ minHeight: 'calc(100vh - 200px)', padding: '40px 16px' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto' }}>
-          <h1 style={{ fontFamily: 'var(--font-syne)', fontWeight: 800, fontSize: 'clamp(28px,4vw,44px)', letterSpacing: '-1px', marginBottom: 8 }}>Annotate PDF</h1>
-          <p style={{ color: 'var(--muted)', fontSize: 16, marginBottom: 32 }}>
-            Highlight, underline, and draw on any PDF. No upload — everything stays in your browser.
-          </p>
+
+      {/* Tool Header Card */}
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '36px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#DCFCE7', color: '#166534', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✓ 100% Free</span>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#FFF0DC', color: '#92400E', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>🔒 Files Stay On Device</span>
+          <span style={{ padding: '5px 12px', borderRadius: '100px', background: '#EDE9FE', color: '#6B21A8', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', fontWeight: 500, letterSpacing: '0.04em' }}>✦ No Watermark</span>
+        </div>
+        <h1 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(32px, 4vw, 52px)', lineHeight: 1.05, letterSpacing: '-1.5px' }}>
+          <span style={{ color: 'var(--ink)' }}>Annotate PDF </span>
+          <span style={{ color: 'var(--amber)' }}>Online Free</span>
+        </h1>
+        <p style={{ fontSize: '16px', fontWeight: 300, color: 'var(--ink)', opacity: 0.65, maxWidth: '520px', marginTop: '12px', lineHeight: 1.6 }}>
+          Highlight, underline, draw and comment on any PDF. No upload — annotations stay in your browser.
+        </p>
+      </div>
 
           {/* Toolbar */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 20, padding: '12px 16px', background: '#f9fafb', borderRadius: 12, border: '1px solid #e5e7eb' }}>
@@ -472,9 +494,29 @@ export default function AnnotatePDFPage() {
               {tool === 'select' && 'Select mode.'}
             </p>
           )}
-        </div>
-      </main>
-      <Footer />
-    </>
+
+      {/* SEO Content */}
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
+        <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>How to Annotate a PDF Online — Free</h2>
+        <ol style={{ paddingLeft: '20px', color: 'var(--ink)', fontSize: '15px', lineHeight: 1.8 }}>
+          <li>Drop your PDF into the upload area.</li>
+          <li>Choose a tool — Highlight, Underline, Draw, or Comment.</li>
+          <li>Click and drag on the page to add annotations.</li>
+          <li>Click Download PDF to save your annotated document.</li>
+        </ol>
+
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '17px', color: 'var(--ink)', marginTop: '28px', marginBottom: '8px' }}>What annotation tools are available?</h3>
+        <p style={{ fontSize: '15px', color: 'var(--ink)', opacity: 0.75, lineHeight: 1.7 }}>
+          Highlight (drag to mark areas), Underline, Freehand Draw with adjustable color and line width, and Comment pins to leave notes.
+        </p>
+
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '17px', color: 'var(--ink)', marginTop: '28px', marginBottom: '8px' }}>Annotate PDF on iPhone and Android</h3>
+        <p style={{ fontSize: '15px', color: 'var(--ink)', opacity: 0.75, lineHeight: 1.7 }}>
+          Works in mobile Safari and Chrome. Touch drawing is supported for highlights and freehand annotations.
+        </p>
+      </div>
+
+      <FAQ faqs={FAQS} />
+    </ToolPageLayout>
   )
 }
