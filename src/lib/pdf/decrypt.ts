@@ -81,17 +81,28 @@ export async function isEncrypted(file: File): Promise<boolean> {
   }
 }
 
-/** One buffer read: whether pdf-lib sees encryption, and whether PDF.js needs an open password (e.g. bank PDFs). */
+/**
+ * One buffer read: classify the file for the unlock UI.
+ *
+ * PDF.js is checked **before** pdf-lib: a document-open password must be
+ * detected even if pdf-lib would mis-load the file. Owner-only PDFs open in
+ * PDF.js with an empty password, then pdf-lib may still fail — we show
+ * “remove restrictions” without asking for a password.
+ */
 export async function analyzePdfForUnlock(file: File): Promise<{
   encrypted: boolean
   needsOpenPassword: boolean
 }> {
   const bytes = new Uint8Array(await file.arrayBuffer())
+
+  if (await pdfRequiresPasswordToOpen(bytes)) {
+    return { encrypted: true, needsOpenPassword: true }
+  }
+
   try {
     await PDFDocument.load(bytes)
     return { encrypted: false, needsOpenPassword: false }
   } catch {
-    const needsOpenPassword = await pdfRequiresPasswordToOpen(bytes)
-    return { encrypted: true, needsOpenPassword }
+    return { encrypted: true, needsOpenPassword: false }
   }
 }
