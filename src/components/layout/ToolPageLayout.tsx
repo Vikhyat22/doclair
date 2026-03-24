@@ -52,7 +52,7 @@ export default function ToolPageLayout({
         zIndex: 1,
       }}>
         {/* Main content */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="tool-content" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {children}
         </div>
 
