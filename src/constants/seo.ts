@@ -16,11 +16,11 @@ export function toolMetadata(
       description,
       url: `https://doclair.in/${slug}`,
       type: 'website',
-      images: [{ url: 'https://doclair.in/og-image.png', width: 1200, height: 630, alt: 'Doclair — Free PDF Tools' }],
+      images: [{ url: `https://doclair.in/og/${slug}.png`, width: 1200, height: 630, alt: `${toolName} — Doclair` }],
     },
     twitter: {
       card: 'summary_large_image',
-      images: ['https://doclair.in/og-image.png'],
+      images: [`https://doclair.in/og/${slug}.png`],
     },
   }
 }

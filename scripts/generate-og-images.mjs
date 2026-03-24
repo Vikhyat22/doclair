@@ -30,11 +30,11 @@ async function fetchFont(name, url) {
 async function loadFonts() {
   const [syne800, dmMono400, dmSans300] = await Promise.all([
     fetchFont('Syne-ExtraBold.ttf',
-      'https://fonts.gstatic.com/s/syne/v22/8vIS7w4qzmVxsWxjBZRjr0FKM_04uQ.ttf'),
+      'https://fonts.gstatic.com/s/syne/v24/8vIS7w4qzmVxsWxjBZRjr0FKM_24vj6k.ttf'),
     fetchFont('DMMono-Regular.ttf',
-      'https://fonts.gstatic.com/s/dmmono/v14/aFTR7PB1QTsUX8KYvrGyIYSnbKX9Rlk.ttf'),
+      'https://fonts.gstatic.com/s/dmmono/v16/aFTU7PB1QTsUX8KYhh0.ttf'),
     fetchFont('DMSans-Light.ttf',
-      'https://fonts.gstatic.com/s/dmsans/v15/rP2tp2ywxg089UriI5-g4vlH9VoD8Cmcqbu6-K6z9mXgjU0.ttf'),
+      'https://fonts.gstatic.com/s/dmsans/v17/rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwA_JxhTg.ttf'),
   ])
   return [
     { name: 'Syne',    data: syne800,   weight: 800, style: 'normal' },
@@ -137,7 +137,7 @@ async function renderToolSvg(tool, fonts) {
                         props: {
                           style: {
                             display: 'flex',
-                            width: 'fit-content',
+                            alignSelf: 'flex-start',
                             padding: '7px 18px',
                             borderRadius: 100,
                             background: 'rgba(232,130,12,0.12)',
