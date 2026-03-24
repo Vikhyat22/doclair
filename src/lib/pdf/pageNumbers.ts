@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+import { PDFDocument, StandardFonts, rgb } from '@cantoo/pdf-lib'
 
 export type PageNumberPosition =
   | 'bottom-center'

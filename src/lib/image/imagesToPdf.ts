@@ -1,4 +1,4 @@
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument } from '@cantoo/pdf-lib'
 
 export type PageSize    = 'fit' | 'a4' | 'letter' | 'legal' | 'a3'
 export type Orientation = 'portrait' | 'landscape'

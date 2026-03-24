@@ -1,5 +1,3 @@
-'use client'
-
 import Link from 'next/link'
 
 interface SidebarTool {
@@ -34,7 +32,7 @@ function SidebarCard({ label, tools, showDesc }: { label: string; tools: Sidebar
         marginBottom: '14px',
       }}>{label}</div>
       {tools.map(tool => (
-        <Link key={tool.slug} href={`/${tool.slug}`} style={{
+        <Link key={tool.slug} href={`/${tool.slug}`} className="sidebar-link" style={{
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
@@ -43,22 +41,7 @@ function SidebarCard({ label, tools, showDesc }: { label: string; tools: Sidebar
           textDecoration: 'none',
           transition: 'all 0.2s',
           border: '1px solid transparent',
-        }}
-          onMouseEnter={e => {
-            const el = e.currentTarget as HTMLElement
-            el.style.background = 'white'
-            el.style.borderColor = 'var(--border)'
-            const icon = el.querySelector('.sidebar-icon') as HTMLElement | null
-            if (icon) icon.style.transform = 'scale(1.08)'
-          }}
-          onMouseLeave={e => {
-            const el = e.currentTarget as HTMLElement
-            el.style.background = 'transparent'
-            el.style.borderColor = 'transparent'
-            const icon = el.querySelector('.sidebar-icon') as HTMLElement | null
-            if (icon) icon.style.transform = 'scale(1)'
-          }}
-        >
+        }}>
           <div className="sidebar-icon" style={{
             width: '38px',
             height: '38px',
@@ -86,6 +69,10 @@ function SidebarCard({ label, tools, showDesc }: { label: string; tools: Sidebar
 export default function ToolSidebar({ reverseActions, relatedTools }: ToolSidebarProps) {
   return (
     <>
+      <style>{`
+        .sidebar-link:hover { background: white !important; border-color: var(--border) !important; }
+        .sidebar-link:hover .sidebar-icon { transform: scale(1.08); }
+      `}</style>
       {reverseActions && reverseActions.length > 0 && (
         <SidebarCard label="// Reverse Actions" tools={reverseActions} />
       )}

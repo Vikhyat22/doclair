@@ -76,7 +76,7 @@ export default function PdfToJpgPage() {
   const addFile = useCallback(async (files: File[]) => {
     const f = files[0]
     if (!f) return
-    const { PDFDocument } = await import('pdf-lib')
+    const { PDFDocument } = await import('@cantoo/pdf-lib')
     const bytes = await f.arrayBuffer()
     const doc = await PDFDocument.load(bytes)
     setFile(f)

@@ -41,7 +41,7 @@ export default function AddBlankPagePage() {
   const addFile = useCallback(async (files: File[]) => {
     const f = files[0]; if (!f) return
     setResultBytes(null); setToolState('idle')
-    const { PDFDocument } = await import('pdf-lib')
+    const { PDFDocument } = await import('@cantoo/pdf-lib')
     const doc = await PDFDocument.load(await f.arrayBuffer())
     const count = doc.getPageCount()
     setFile(f); setTotalPages(count); setInsertAfter(count)
@@ -51,7 +51,7 @@ export default function AddBlankPagePage() {
     if (!file) return
     setToolState('merging')
     try {
-      const { PDFDocument, PageSizes } = await import('pdf-lib')
+      const { PDFDocument, PageSizes } = await import('@cantoo/pdf-lib')
       const doc = await PDFDocument.load(await file.arrayBuffer())
       const pages = doc.getPages()
 

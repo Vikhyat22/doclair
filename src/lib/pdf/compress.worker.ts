@@ -125,7 +125,7 @@ self.onmessage = async (e: MessageEvent<CompressWorkerMessage>) => {
   // ── FALLBACK: pdf-lib structural compression ─────────────────────
   try {
     post({ type: 'progress', pct: 70 })
-    const { PDFDocument } = await import('pdf-lib')
+    const { PDFDocument } = await import('@cantoo/pdf-lib')
     const doc = await PDFDocument.load(fileBytes, { throwOnInvalidObject: false })
     const saved = await doc.save({ useObjectStreams: true, addDefaultPage: false })
     post({ type: 'progress', pct: 100 })

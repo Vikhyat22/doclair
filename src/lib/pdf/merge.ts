@@ -1,4 +1,4 @@
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument } from '@cantoo/pdf-lib'
 
 export async function mergePDFs(files: File[]): Promise<Uint8Array> {
   const merged = await PDFDocument.create()

@@ -66,7 +66,6 @@ export default function RedactPDFPage() {
   const [totalPages, setTotalPages]           = useState(0)
   const [currentPreviewPage, setCurrentPreviewPage] = useState(1)
   const [pageUrls, setPageUrls]               = useState<string[]>([])
-  const [loadingPages, setLoadingPages]       = useState(false)
   const [loadProgress, setLoadProgress]       = useState(0)
   const [boxes, setBoxes]                     = useState<RedactionBox[]>([])
   const [drawing, setDrawing]                 = useState<{
@@ -84,10 +83,7 @@ export default function RedactPDFPage() {
   const overlayRef                            = useRef<HTMLDivElement>(null)
   const pageUrlsRef                           = useRef<string[]>([])
 
-  // Suppress unused variable warnings
-  void loadingPages
-
-  const addFile = useCallback(async (files: File[]) => {
+const addFile = useCallback(async (files: File[]) => {
     const f = files[0]
     if (!f) return
 
@@ -105,7 +101,6 @@ export default function RedactPDFPage() {
     setLoadProgress(0)
     setFile(f)
     setToolState('loadingPages')
-    setLoadingPages(true)
 
     try {
       const pdfjsLib = await import('pdfjs-dist')
@@ -149,7 +144,7 @@ export default function RedactPDFPage() {
       console.error('Page rendering failed:', err)
       setToolState('error')
     } finally {
-      setLoadingPages(false)
+      // loading complete
     }
   }, [])
 
@@ -160,7 +155,6 @@ export default function RedactPDFPage() {
     setTotalPages(0)
     setCurrentPreviewPage(1)
     setPageUrls([])
-    setLoadingPages(false)
     setLoadProgress(0)
     setBoxes([])
     setDrawing(null)

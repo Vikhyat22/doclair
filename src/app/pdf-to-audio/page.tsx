@@ -107,8 +107,6 @@ export default function PDFToAudioPage() {
     return () => { window.speechSynthesis.cancel() }
   }, [])
 
-  useEffect(() => () => { window.speechSynthesis.cancel() }, [])
-
   /* ── Auto-scroll highlighted word into view ──────────────────────────── */
   useEffect(() => {
     const el = wordRefs.current[currentWordIndex]

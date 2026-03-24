@@ -54,14 +54,14 @@ export default function AddPagesToPDFPage() {
   const addBase = useCallback(async (files: File[]) => {
     const f = files[0]; if (!f) return
     setResultBytes(null); setToolState('idle')
-    const { PDFDocument } = await import('pdf-lib')
+    const { PDFDocument } = await import('@cantoo/pdf-lib')
     const doc = await PDFDocument.load(await f.arrayBuffer())
     setBaseFile(f); setBasePages(doc.getPageCount()); setInsertAfter(doc.getPageCount())
   }, [])
 
   const addSource = useCallback(async (files: File[]) => {
     const f = files[0]; if (!f) return
-    const { PDFDocument } = await import('pdf-lib')
+    const { PDFDocument } = await import('@cantoo/pdf-lib')
     const doc = await PDFDocument.load(await f.arrayBuffer())
     setSourceFile(f); setSourcePages(doc.getPageCount()); setPageRange(''); setRangeError('')
   }, [])
@@ -86,7 +86,7 @@ export default function AddPagesToPDFPage() {
 
     setToolState('merging')
     try {
-      const { PDFDocument } = await import('pdf-lib')
+      const { PDFDocument } = await import('@cantoo/pdf-lib')
       const [baseDoc, srcDoc] = await Promise.all([
         PDFDocument.load(await baseFile.arrayBuffer()),
         PDFDocument.load(await sourceFile.arrayBuffer()),

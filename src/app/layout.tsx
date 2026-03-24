@@ -30,6 +30,8 @@ export const metadata: Metadata = {
   openGraph: {
     siteName: 'Doclair',
     type: 'website',
+    url: 'https://doclair.in',
+    locale: 'en_IN',
     images: [{ url: 'https://doclair.in/og-image.png', width: 1200, height: 630, alt: 'Doclair — Free PDF Tools' }],
   },
   twitter: {

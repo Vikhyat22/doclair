@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument } from '@cantoo/pdf-lib'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
@@ -174,7 +174,7 @@ export default function RotatePDFPage() {
     if (!file) return
     setToolState('merging')
     try {
-      const { PDFDocument: PDFDoc, degrees } = await import('pdf-lib')
+      const { PDFDocument: PDFDoc, degrees } = await import('@cantoo/pdf-lib')
       const bytes = await file.arrayBuffer()
       const doc   = await PDFDoc.load(bytes)
       const pages = doc.getPages()

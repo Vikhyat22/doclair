@@ -1,4 +1,4 @@
-import { PDFDocument, degrees } from 'pdf-lib'
+import { PDFDocument, degrees } from '@cantoo/pdf-lib'
 
 export type RotationAngle = 90 | 180 | 270
 

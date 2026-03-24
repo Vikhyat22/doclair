@@ -1,4 +1,4 @@
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument } from '@cantoo/pdf-lib'
 
 export type DecryptResult =
   | { ok: true;  bytes: Uint8Array; pageCount: number; hadRestrictions: boolean }

@@ -64,7 +64,7 @@ export default function RemovePagesPage() {
     setThumbnails([]); setSelected(new Set()); setResultBytes(null); setToolState('idle')
     const bytes = await f.arrayBuffer()
     fileBufferRef.current = bytes
-    const { PDFDocument } = await import('pdf-lib')
+    const { PDFDocument } = await import('@cantoo/pdf-lib')
     const doc = await PDFDocument.load(bytes)
     setFile(f); setTotalPages(doc.getPageCount())
     generateThumbnails(bytes, doc.getPageCount())
@@ -81,7 +81,7 @@ export default function RemovePagesPage() {
     if (!file || selected.size === 0 || selected.size >= totalPages) return
     setToolState('merging')
     try {
-      const { PDFDocument } = await import('pdf-lib')
+      const { PDFDocument } = await import('@cantoo/pdf-lib')
       const doc = await PDFDocument.load(fileBufferRef.current!)
       Array.from(selected).sort((a, b) => b - a).forEach(i => doc.removePage(i))
       setResultBytes(await doc.save())
