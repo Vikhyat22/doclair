@@ -321,6 +321,13 @@ export default function EditPDFMetadataPage() {
             description={`Metadata updated · ${(result.byteLength / 1024 / 1024).toFixed(2)} MB`}
             onDownload={handleDownload}
             onReset={handleReset}
+            title="Metadata updated!"
+            resetLabel="Edit another →"
+            nextSteps={[
+              { slug: 'privacy-scanner', name: 'Privacy Scanner', icon: '🔍' },
+              { slug: 'encrypt-pdf', name: 'Encrypt PDF', icon: '🔐' },
+              { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+            ]}
           />
         )}
 

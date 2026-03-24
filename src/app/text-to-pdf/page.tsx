@@ -192,7 +192,19 @@ export default function TextToPDFPage() {
         )}
 
         {toolState === 'done' && result && (
-          <DownloadCard filename="doclair-text.pdf" description={`${text.split('\n').length} lines converted`} onDownload={handleDownload} onReset={handleReset} />
+          <DownloadCard
+            filename="doclair-text.pdf"
+            description={`${text.split('\n').length} lines converted`}
+            onDownload={handleDownload}
+            onReset={handleReset}
+            title="Text converted to PDF!"
+            resetLabel="Convert another →"
+            nextSteps={[
+              { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+              { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+              { slug: 'add-page-numbers', name: 'Add Page Numbers', icon: '🔢' },
+            ]}
+          />
         )}
 
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>

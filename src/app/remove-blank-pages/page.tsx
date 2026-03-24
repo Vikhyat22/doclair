@@ -288,6 +288,13 @@ export default function RemoveBlankPagesPage() {
             description={`${removed} blank page${removed !== 1 ? 's' : ''} removed · ${totalPages - removed} page${totalPages - removed !== 1 ? 's' : ''} remaining`}
             onDownload={handleDownload}
             onReset={handleReset}
+            title="Blank pages removed!"
+            resetLabel="Clean another →"
+            nextSteps={[
+              { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+              { slug: 'organize-pages', name: 'Organize Pages', icon: '📋' },
+              { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+            ]}
           />
         )}
 

@@ -147,7 +147,7 @@ export default function CompressPDFPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'doclair-compressed.pdf'
+    a.download = `${file?.name.replace(/\.pdf$/i, '') ?? 'document'}_compressed.pdf`
     a.click()
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   }

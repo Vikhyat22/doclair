@@ -135,7 +135,7 @@ export default function RemovePagesPage() {
     if (!resultBytes) return
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([resultBytes as BlobPart], { type: 'application/pdf' }))
-    a.download = 'doclair-pages-removed.pdf'; a.click()
+    a.download = `${file?.name.replace(/\.pdf$/i, '') ?? 'document'}_pages-removed.pdf`; a.click()
   }
 
   function handleReset() {
@@ -264,9 +264,19 @@ export default function RemovePagesPage() {
       )}
 
       {toolState === 'done' && (
-        <DownloadCard filename="doclair-pages-removed.pdf"
+        <DownloadCard
+          filename={`${file?.name.replace(/\.pdf$/i, '') ?? 'document'}_pages-removed.pdf`}
           description={`${selected.size} page${selected.size !== 1 ? 's' : ''} removed · ${remaining} page${remaining !== 1 ? 's' : ''} remaining`}
-          onDownload={handleDownload} onReset={handleReset} />
+          onDownload={handleDownload}
+          onReset={handleReset}
+          title="Pages removed!"
+          resetLabel="Remove from another →"
+          nextSteps={[
+            { slug: 'organize-pages', name: 'Organize Pages', icon: '📋' },
+            { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+            { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+          ]}
+        />
       )}
 
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>

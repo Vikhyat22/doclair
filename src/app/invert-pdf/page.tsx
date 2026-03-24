@@ -244,6 +244,13 @@ export default function InvertPDFPage() {
             description="Colors inverted — dark mode PDF"
             onDownload={handleDownload}
             onReset={handleReset}
+            title="PDF inverted!"
+            resetLabel="Invert another →"
+            nextSteps={[
+              { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+              { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+              { slug: 'pdf-to-jpg', name: 'PDF to JPG', icon: '🖼️' },
+            ]}
           />
         )}
 

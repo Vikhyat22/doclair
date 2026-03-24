@@ -227,7 +227,19 @@ export default function PrivacyScannerPage() {
             )}
 
             {toolState === 'done' && strippedBytes && file && (
-              <DownloadCard filename={file.name.replace(/\.pdf$/i, '-clean.pdf')} description="All metadata stripped — safe to share" onDownload={handleDownload} onReset={handleReset} />
+              <DownloadCard
+                filename={file.name.replace(/\.pdf$/i, '-clean.pdf')}
+                description="All metadata stripped — safe to share"
+                onDownload={handleDownload}
+                onReset={handleReset}
+                title="Metadata stripped!"
+                resetLabel="Scan another →"
+                nextSteps={[
+                  { slug: 'encrypt-pdf', name: 'Encrypt PDF', icon: '🔐' },
+                  { slug: 'redact-pdf', name: 'Redact PDF', icon: '⬛' },
+                  { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+                ]}
+              />
             )}
           </>
         )}

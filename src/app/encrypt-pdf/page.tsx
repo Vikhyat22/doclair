@@ -114,7 +114,7 @@ export default function EncryptPDFPage() {
     const blob = new Blob([resultBytes as BlobPart], { type: 'application/pdf' })
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
-    a.href = url; a.download = 'doclair-encrypted.pdf'; a.click()
+    a.href = url; a.download = `${file?.name.replace(/\.pdf$/i, '') ?? 'document'}_encrypted.pdf`; a.click()
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   }
 

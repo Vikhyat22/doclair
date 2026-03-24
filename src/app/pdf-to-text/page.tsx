@@ -326,6 +326,13 @@ export default function PDFToTextPage() {
             description={`${result.wordCount.toLocaleString()} words · ${result.charCount.toLocaleString()} characters`}
             onDownload={handleDownload}
             onReset={handleReset}
+            title="Text extracted!"
+            resetLabel="Extract from another →"
+            nextSteps={[
+              { slug: 'ocr-pdf', name: 'OCR PDF', icon: '🤖' },
+              { slug: 'pdf-to-word', name: 'PDF to Word', icon: '📝' },
+              { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+            ]}
           />
 
           {/* Text preview card */}

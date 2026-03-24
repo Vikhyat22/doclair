@@ -526,7 +526,7 @@ export default function OrganizePagesPage() {
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
     a.href     = url
-    a.download = 'doclair-organized.pdf'
+    a.download = `${file?.name.replace(/\.pdf$/i, '') ?? 'document'}_organized.pdf`
     a.click()
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   }
@@ -996,10 +996,17 @@ export default function OrganizePagesPage() {
       {/* ── Done ── */}
       {toolState === 'done' && (
         <DownloadCard
-          filename="doclair-organized.pdf"
+          filename={`${file?.name.replace(/\.pdf$/i, '') ?? 'document'}_organized.pdf`}
           description={downloadDesc}
           onDownload={handleDownload}
           onReset={resetAll}
+          title="Pages organized!"
+          resetLabel="Organize another →"
+          nextSteps={[
+            { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+            { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+            { slug: 'split-pdf', name: 'Split PDF', icon: '✂️' },
+          ]}
         />
       )}
 

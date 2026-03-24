@@ -228,6 +228,13 @@ export default function PDFToGrayscalePage() {
             description="Colors removed — black &amp; white PDF"
             onDownload={handleDownload}
             onReset={handleReset}
+            title="Converted to grayscale!"
+            resetLabel="Convert another →"
+            nextSteps={[
+              { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+              { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+              { slug: 'pdf-to-jpg', name: 'PDF to JPG', icon: '🖼️' },
+            ]}
           />
         )}
 

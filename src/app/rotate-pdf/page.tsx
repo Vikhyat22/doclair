@@ -198,7 +198,7 @@ export default function RotatePDFPage() {
     const blob = new Blob([resultBytes as BlobPart], { type: 'application/pdf' })
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
-    a.href = url; a.download = 'doclair-rotated.pdf'; a.click()
+    a.href = url; a.download = `${file?.name.replace(/\.pdf$/i, '') ?? 'document'}_rotated.pdf`; a.click()
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   }
 
@@ -523,10 +523,17 @@ export default function RotatePDFPage() {
       {/* State: done */}
       {toolState === 'done' && (
         <DownloadCard
-          filename="doclair-rotated.pdf"
+          filename={`${file?.name.replace(/\.pdf$/i, '') ?? 'document'}_rotated.pdf`}
           description={`${modifiedCount} page${modifiedCount !== 1 ? 's' : ''} rotated`}
           onDownload={handleDownload}
           onReset={handleReset}
+          title="PDF rotated!"
+          resetLabel="Rotate another →"
+          nextSteps={[
+            { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+            { slug: 'organize-pages', name: 'Organize Pages', icon: '📋' },
+            { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+          ]}
         />
       )}
 

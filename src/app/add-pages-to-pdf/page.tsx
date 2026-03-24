@@ -157,7 +157,7 @@ export default function AddPagesToPDFPage() {
     if (!resultBytes) return
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([resultBytes as BlobPart], { type: 'application/pdf' }))
-    a.download = 'doclair-pages-added.pdf'; a.click()
+    a.download = `${baseFile?.name.replace(/\.pdf$/i, '') ?? 'document'}_pages-added.pdf`; a.click()
   }
 
   function handleReset() {
@@ -301,9 +301,19 @@ export default function AddPagesToPDFPage() {
       )}
 
       {toolState === 'done' && (
-        <DownloadCard filename="doclair-pages-added.pdf"
+        <DownloadCard
+          filename={`${baseFile?.name.replace(/\.pdf$/i, '') ?? 'document'}_pages-added.pdf`}
           description={`Pages inserted · ${resultPageCount} pages total`}
-          onDownload={handleDownload} onReset={handleReset} />
+          onDownload={handleDownload}
+          onReset={handleReset}
+          title="Pages inserted!"
+          resetLabel="Insert into another →"
+          nextSteps={[
+            { slug: 'organize-pages', name: 'Organize Pages', icon: '📋' },
+            { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+            { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+          ]}
+        />
       )}
 
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>

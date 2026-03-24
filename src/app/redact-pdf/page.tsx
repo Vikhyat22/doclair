@@ -646,6 +646,13 @@ const addFile = useCallback(async (files: File[]) => {
           description={`${boxes.length} redaction${boxes.length !== 1 ? 's' : ''} applied · content permanently removed`}
           onDownload={handleDownload}
           onReset={handleReset}
+          title="PDF redacted!"
+          resetLabel="Redact another →"
+          nextSteps={[
+            { slug: 'encrypt-pdf', name: 'Encrypt PDF', icon: '🔐' },
+            { slug: 'privacy-scanner', name: 'Privacy Scanner', icon: '🔍' },
+            { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+          ]}
         />
       )}
 

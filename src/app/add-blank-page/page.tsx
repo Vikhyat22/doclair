@@ -125,7 +125,7 @@ export default function AddBlankPagePage() {
     if (!resultBytes) return
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([resultBytes as BlobPart], { type: 'application/pdf' }))
-    a.download = 'doclair-blank-page-added.pdf'; a.click()
+    a.download = `${file?.name.replace(/\.pdf$/i, '') ?? 'document'}_blank-page-added.pdf`; a.click()
   }
 
   function handleReset() {
@@ -248,9 +248,19 @@ export default function AddBlankPagePage() {
       )}
 
       {toolState === 'done' && (
-        <DownloadCard filename="doclair-blank-page-added.pdf"
+        <DownloadCard
+          filename={`${file?.name.replace(/\.pdf$/i, '') ?? 'document'}_blank-page-added.pdf`}
           description={`Blank page inserted after page ${insertAfter} · ${totalPages + 1} pages total`}
-          onDownload={handleDownload} onReset={handleReset} />
+          onDownload={handleDownload}
+          onReset={handleReset}
+          title="Blank page added!"
+          resetLabel="Add to another →"
+          nextSteps={[
+            { slug: 'organize-pages', name: 'Organize Pages', icon: '📋' },
+            { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+            { slug: 'add-page-numbers', name: 'Add Page Numbers', icon: '🔢' },
+          ]}
+        />
       )}
 
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>

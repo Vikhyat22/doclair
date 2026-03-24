@@ -287,7 +287,19 @@ export default function AddHeaderFooterPage() {
         )}
 
         {toolState === 'done' && result && file && (
-          <DownloadCard filename={file.name.replace(/\.pdf$/i, '-headed.pdf')} description="Header & footer applied to all pages" onDownload={handleDownload} onReset={handleReset} />
+          <DownloadCard
+            filename={file.name.replace(/\.pdf$/i, '-headed.pdf')}
+            description="Header & footer applied to all pages"
+            onDownload={handleDownload}
+            onReset={handleReset}
+            title="Header & footer added!"
+            resetLabel="Add to another →"
+            nextSteps={[
+              { slug: 'add-page-numbers', name: 'Add Page Numbers', icon: '🔢' },
+              { slug: 'add-watermark', name: 'Add Watermark', icon: '💧' },
+              { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+            ]}
+          />
         )}
 
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>

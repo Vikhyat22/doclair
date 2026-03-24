@@ -287,7 +287,7 @@ export default function JpgToPDFPage() {
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
     a.href     = url
-    a.download = 'doclair-images.pdf'
+    a.download = `${items[0]?.file.name.replace(/\.[^.]+$/, '') ?? 'image'}.pdf`
     a.click()
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   }
@@ -553,10 +553,17 @@ export default function JpgToPDFPage() {
       {/* State: done */}
       {toolState === 'done' && (
         <DownloadCard
-          filename="doclair-images.pdf"
+          filename={`${items[0]?.file.name.replace(/\.[^.]+$/, '') ?? 'image'}.pdf`}
           description={`${items.length} image${items.length > 1 ? 's' : ''} · ${pageSize === 'fit' ? 'Fit to image' : pageSize.toUpperCase()}`}
           onDownload={handleDownload}
           onReset={handleReset}
+          title="JPG converted to PDF!"
+          resetLabel="Convert another →"
+          nextSteps={[
+            { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+            { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+            { slug: 'add-watermark', name: 'Add Watermark', icon: '💧' },
+          ]}
         />
       )}
 

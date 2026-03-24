@@ -129,7 +129,7 @@ export default function AddPageNumbersPage() {
     const blob = new Blob([resultBytes as BlobPart], { type: 'application/pdf' })
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
-    a.href = url; a.download = 'doclair-numbered.pdf'; a.click()
+    a.href = url; a.download = `${file?.name.replace(/\.pdf$/i, '') ?? 'document'}_numbered.pdf`; a.click()
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   }
 
@@ -446,10 +446,17 @@ export default function AddPageNumbersPage() {
       {/* State: done */}
       {toolState === 'done' && (
         <DownloadCard
-          filename="doclair-numbered.pdf"
+          filename={`${file?.name.replace(/\.pdf$/i, '') ?? 'document'}_numbered.pdf`}
           description={`${pageCount} pages numbered`}
           onDownload={handleDownload}
           onReset={handleReset}
+          title="Page numbers added!"
+          resetLabel="Add to another →"
+          nextSteps={[
+            { slug: 'add-header-footer', name: 'Add Header/Footer', icon: '📝' },
+            { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+            { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+          ]}
         />
       )}
 

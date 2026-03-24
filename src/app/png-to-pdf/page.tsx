@@ -191,7 +191,7 @@ export default function PngToPdfPage() {
     const blob = new Blob([resultBytes as BlobPart], { type: 'application/pdf' })
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
-    a.href = url; a.download = 'doclair-png.pdf'; a.click()
+    a.href = url; a.download = `${items[0]?.file.name.replace(/\.[^.]+$/, '') ?? 'image'}.pdf`; a.click()
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   }
 
@@ -319,10 +319,17 @@ export default function PngToPdfPage() {
       {/* Done */}
       {toolState === 'done' && (
         <DownloadCard
-          filename="doclair-png.pdf"
+          filename={`${items[0]?.file.name.replace(/\.[^.]+$/, '') ?? 'image'}.pdf`}
           description={`${items.length} image${items.length > 1 ? 's' : ''} · ${pageSize === 'fit' ? 'Fit to image' : pageSize.toUpperCase()}`}
           onDownload={handleDownload}
           onReset={handleReset}
+          title="PNG converted to PDF!"
+          resetLabel="Convert another →"
+          nextSteps={[
+            { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+            { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+            { slug: 'add-watermark', name: 'Add Watermark', icon: '💧' },
+          ]}
         />
       )}
 

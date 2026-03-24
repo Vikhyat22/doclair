@@ -302,6 +302,13 @@ export default function FlattenPDFPage() {
             description={`Flattened · ${(result.byteLength / 1024 / 1024).toFixed(2)} MB`}
             onDownload={handleDownload}
             onReset={handleReset}
+            title="PDF flattened!"
+            resetLabel="Flatten another →"
+            nextSteps={[
+              { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+              { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+              { slug: 'encrypt-pdf', name: 'Encrypt PDF', icon: '🔐' },
+            ]}
           />
         )}
 

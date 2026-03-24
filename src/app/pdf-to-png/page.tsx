@@ -213,6 +213,13 @@ export default function PdfToPngPage() {
           description={`${results[0].width}×${results[0].height}px · ${formatBytes(results[0].sizeBytes)}`}
           onDownload={() => handleDownloadImage(results[0])}
           onReset={handleReset}
+          title="Converted to PNG!"
+          resetLabel="Convert another →"
+          nextSteps={[
+            { slug: 'png-to-pdf', name: 'PNG to PDF', icon: '📄' },
+            { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+            { slug: 'pdf-to-jpg', name: 'PDF to JPG', icon: '🖼️' },
+          ]}
         />
       )}
 

@@ -412,6 +412,13 @@ export default function OcrPDFPage() {
             description={downloadDescription}
             onDownload={handleDownload}
             onReset={handleReset}
+            title="OCR complete!"
+            resetLabel="Process another →"
+            nextSteps={[
+              { slug: 'pdf-to-word', name: 'PDF to Word', icon: '📝' },
+              { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+              { slug: 'pdf-to-text', name: 'Extract Text', icon: '📄' },
+            ]}
           />
 
           {/* Next steps */}

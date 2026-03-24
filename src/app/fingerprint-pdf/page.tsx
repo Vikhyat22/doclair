@@ -220,6 +220,13 @@ export default function FingerprintPDFPage() {
               description={`Fingerprinted for: ${recipientId}`}
               onDownload={handleDownload}
               onReset={handleReset}
+              title="PDF fingerprinted!"
+              resetLabel="Fingerprint another →"
+              nextSteps={[
+                { slug: 'encrypt-pdf', name: 'Encrypt PDF', icon: '🔐' },
+                { slug: 'add-watermark', name: 'Add Watermark', icon: '💧' },
+                { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+              ]}
             />
             <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '12px', padding: '14px 18px', fontSize: '13px', color: '#92400E', lineHeight: 1.6 }}>
               <strong>ℹ️ Verify:</strong> Open the PDF → File → Properties → Keywords field. Look for the <code style={{ background: '#FEF9C3', padding: '1px 5px', borderRadius: '3px' }}>DOCLAIR-FP:</code> tag.

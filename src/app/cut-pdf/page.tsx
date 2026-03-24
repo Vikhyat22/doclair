@@ -201,6 +201,13 @@ export default function CutPDFPage() {
             description={pageCount > 0 ? `${pageCount} pages → ${pageCount * 2} half-pages` : 'Pages split in half'}
             onDownload={handleDownload}
             onReset={handleReset}
+            title="PDF cut!"
+            resetLabel="Cut another →"
+            nextSteps={[
+              { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+              { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+              { slug: 'organize-pages', name: 'Organize Pages', icon: '📋' },
+            ]}
           />
         )}
 

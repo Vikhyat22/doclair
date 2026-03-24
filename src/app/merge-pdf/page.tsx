@@ -104,7 +104,7 @@ export default function MergePDFPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'doclair-merged.pdf'
+    a.download = `${files[0]?.name.replace(/\.pdf$/i, '') ?? 'document'}_merged.pdf`
     a.click()
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   }

@@ -97,7 +97,7 @@ export default function PDFToWordPage() {
     if (!result) return
     const url = URL.createObjectURL(result.blob)
     const a   = document.createElement('a')
-    a.href = url; a.download = 'doclair-converted.docx'; a.click()
+    a.href = url; a.download = `${file?.name.replace(/\.pdf$/i, '') ?? 'document'}.docx`; a.click()
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   }
 

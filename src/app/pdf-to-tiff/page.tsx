@@ -227,6 +227,13 @@ export default function PdfToTiffPage() {
           description={`${results[0].width}×${results[0].height}px · ${formatBytes(results[0].sizeBytes)}`}
           onDownload={() => handleDownloadImage(results[0])}
           onReset={handleReset}
+          title="Converted to TIFF!"
+          resetLabel="Convert another →"
+          nextSteps={[
+            { slug: 'tiff-to-pdf', name: 'TIFF to PDF', icon: '📄' },
+            { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+            { slug: 'pdf-to-png', name: 'PDF to PNG', icon: '🖼️' },
+          ]}
         />
       )}
 

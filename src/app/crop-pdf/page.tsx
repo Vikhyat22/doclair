@@ -222,7 +222,19 @@ export default function CropPDFPage() {
         )}
 
         {toolState === 'done' && result && file && (
-          <DownloadCard filename={file.name.replace(/\.pdf$/i, '-cropped.pdf')} description="Margins cropped from all pages" onDownload={handleDownload} onReset={handleReset} />
+          <DownloadCard
+            filename={file.name.replace(/\.pdf$/i, '-cropped.pdf')}
+            description="Margins cropped from all pages"
+            onDownload={handleDownload}
+            onReset={handleReset}
+            title="PDF cropped!"
+            resetLabel="Crop another →"
+            nextSteps={[
+              { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+              { slug: 'rotate-pdf', name: 'Rotate PDF', icon: '🔄' },
+              { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+            ]}
+          />
         )}
 
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>

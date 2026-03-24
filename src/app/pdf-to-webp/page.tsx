@@ -204,6 +204,13 @@ export default function PdfToWebpPage() {
           description={`${results[0].width}×${results[0].height}px · ${formatBytes(results[0].sizeBytes)}`}
           onDownload={() => handleDownloadImage(results[0])}
           onReset={handleReset}
+          title="Converted to WebP!"
+          resetLabel="Convert another →"
+          nextSteps={[
+            { slug: 'webp-to-pdf', name: 'WebP to PDF', icon: '📄' },
+            { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+            { slug: 'pdf-to-jpg', name: 'PDF to JPG', icon: '🖼️' },
+          ]}
         />
       )}
 

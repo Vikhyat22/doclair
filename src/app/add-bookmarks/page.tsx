@@ -241,6 +241,13 @@ export default function AddBookmarksPage() {
             description={`${bookmarks.length} bookmark${bookmarks.length !== 1 ? 's' : ''} added`}
             onDownload={handleDownload}
             onReset={handleReset}
+            title="Bookmarks added!"
+            resetLabel="Add to another →"
+            nextSteps={[
+              { slug: 'add-page-numbers', name: 'Add Page Numbers', icon: '🔢' },
+              { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+              { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+            ]}
           />
         )}
 

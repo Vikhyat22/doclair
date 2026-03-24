@@ -171,6 +171,13 @@ export default function CSVToPDFPage() {
             description={`${rowCount > 0 ? `${rowCount} rows` : 'Table'} converted to PDF`}
             onDownload={handleDownload}
             onReset={handleReset}
+            title="CSV converted to PDF!"
+            resetLabel="Convert another →"
+            nextSteps={[
+              { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+              { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+              { slug: 'add-watermark', name: 'Add Watermark', icon: '💧' },
+            ]}
           />
         )}
 

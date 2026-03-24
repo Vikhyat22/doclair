@@ -112,7 +112,7 @@ export default function RemovePasswordPage() {
     if (!file) return
     const url = URL.createObjectURL(file)
     const a   = document.createElement('a')
-    a.href = url; a.download = 'doclair-unlocked.pdf'; a.click()
+    a.href = url; a.download = `${file?.name.replace(/\.pdf$/i, '') ?? 'document'}_unlocked.pdf`; a.click()
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   }
 
@@ -121,7 +121,7 @@ export default function RemovePasswordPage() {
     const blob = new Blob([resultBytes as BlobPart], { type: 'application/pdf' })
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
-    a.href = url; a.download = 'doclair-unlocked.pdf'; a.click()
+    a.href = url; a.download = `${file?.name.replace(/\.pdf$/i, '') ?? 'document'}_unlocked.pdf`; a.click()
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   }
 
@@ -323,10 +323,17 @@ export default function RemovePasswordPage() {
       {toolState === 'done' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <DownloadCard
-            filename="doclair-unlocked.pdf"
+            filename={`${file?.name.replace(/\.pdf$/i, '') ?? 'document'}_unlocked.pdf`}
             description={`${pageCount} page${pageCount !== 1 ? 's' : ''} · Restrictions Removed`}
             onDownload={handleDownloadResult}
             onReset={handleReset}
+            title="Password removed!"
+            resetLabel="Remove from another →"
+            nextSteps={[
+              { slug: 'encrypt-pdf', name: 'Encrypt PDF', icon: '🔐' },
+              { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+              { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+            ]}
           />
           <div style={{
             background: 'white', border: '1px solid var(--border)', borderRadius: '12px',

@@ -187,6 +187,13 @@ export default function RepairPDFPage() {
             description="PDF structure rebuilt"
             onDownload={handleDownload}
             onReset={handleReset}
+            title="PDF repaired!"
+            resetLabel="Repair another →"
+            nextSteps={[
+              { slug: 'compress-pdf', name: 'Compress PDF', icon: '🗜️' },
+              { slug: 'merge-pdf', name: 'Merge PDF', icon: '🔗' },
+              { slug: 'encrypt-pdf', name: 'Encrypt PDF', icon: '🔐' },
+            ]}
           />
         )}
 
