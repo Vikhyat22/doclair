@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
+import ErrorCard from '@/components/ui/ErrorCard'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import FAQ from '@/components/ui/FAQ'
 
@@ -82,9 +83,10 @@ export default function PDFImpositionPage() {
   const [landscape, setLandscape] = useState(false)
   const [saving, setSaving] = useState(false)
   const [pdfFile, setPdfFile] = useState<File | null>(null)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const process = useCallback(async (file: File) => {
-    setSaving(true)
+    setSaving(true); setErrorMessage('')
     try {
       const { PDFDocument } = await import('@cantoo/pdf-lib')
       const pdfjsLib = (await import('pdfjs-dist')).default ?? await import('pdfjs-dist')
@@ -144,6 +146,8 @@ export default function PDFImpositionPage() {
       const a = document.createElement('a'); a.href = url
       a.download = file.name.replace(/\.pdf$/i, `-${nup}up.pdf`); a.click()
       URL.revokeObjectURL(url)
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : 'Something went wrong. Try a different file.')
     } finally { setSaving(false) }
   }, [nup, pageSize, landscape])
 
@@ -231,6 +235,8 @@ export default function PDFImpositionPage() {
           </>
         )}
       </div>
+
+      {errorMessage && <ErrorCard message={errorMessage} onReset={() => setErrorMessage('')} />}
 
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
         <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>

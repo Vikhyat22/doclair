@@ -6,6 +6,7 @@ import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 
 type ToolState = 'idle' | 'processing' | 'done' | 'error'
 
@@ -124,6 +125,7 @@ export default function PDFToGrayscalePage() {
   const [toolState, setToolState] = useState<ToolState>('idle')
   const [result, setResult]       = useState<Uint8Array | null>(null)
   const [error, setError]         = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
   const [progress, setProgress]   = useState({ current: 0, total: 0 })
 
   const handleFiles = useCallback((files: File[]) => {
@@ -141,7 +143,9 @@ export default function PDFToGrayscalePage() {
       setResult(out)
       setToolState('done')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to convert to grayscale')
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setError(message)
+      setErrorMessage(message)
       setToolState('error')
     }
   }, [file])
@@ -158,7 +162,7 @@ export default function PDFToGrayscalePage() {
   }, [result, file])
 
   const handleReset = useCallback(() => {
-    setFile(null); setResult(null); setError(''); setToolState('idle')
+    setFile(null); setResult(null); setError(''); setErrorMessage(''); setToolState('idle')
     setProgress({ current: 0, total: 0 })
   }, [])
 
@@ -214,13 +218,7 @@ export default function PDFToGrayscalePage() {
           </div>
         )}
 
-        {toolState === 'error' && (
-          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '16px', padding: '24px', color: '#991B1B' }}>
-            <div style={{ fontWeight: 600, marginBottom: '4px' }}>Something went wrong</div>
-            <div style={{ fontSize: '13px', opacity: 0.8 }}>{error}</div>
-            <button onClick={handleReset} style={{ marginTop: '12px', background: 'none', border: '1px solid #FECACA', borderRadius: '8px', padding: '6px 16px', cursor: 'pointer', color: '#991B1B', fontSize: '13px' }}>Try again</button>
-          </div>
-        )}
+        {toolState === 'error' && <ErrorCard message={errorMessage || 'Something went wrong. Try a different file.'} onReset={handleReset} />}
 
         {toolState === 'done' && result && file && (
           <DownloadCard

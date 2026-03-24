@@ -7,6 +7,7 @@ import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 
 const FAQS = [
   { q: 'Is background removal free?', a: 'Yes, completely free with no limits. No account required, no watermark added, and no daily caps.' },
@@ -76,12 +77,13 @@ export default function RemoveBackgroundPage() {
   const [toolState, setToolState]   = useState<ToolState>('idle')
   const [bgColor, setBgColor]       = useState('#ffffff')
   const [error, setError]           = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const handleReset = useCallback(() => {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     if (resultUrl) URL.revokeObjectURL(resultUrl)
     setFile(null); setPreviewUrl(null); setResultUrl(null)
-    setResult(null); setProgress(0); setToolState('idle'); setError(null)
+    setResult(null); setProgress(0); setToolState('idle'); setError(null); setErrorMessage('')
   }, [previewUrl, resultUrl])
 
   const addFile = useCallback((files: File[]) => {
@@ -101,7 +103,8 @@ export default function RemoveBackgroundPage() {
       setResultUrl(url); setResult(res); setToolState('done')
     } catch (err) {
       console.error(err)
-      setError('Background removal failed. Please try a different image.')
+      const msg = 'Background removal failed. Please try a different image.'
+      setError(msg); setErrorMessage(msg)
       setToolState('error')
     }
   }
@@ -193,12 +196,7 @@ export default function RemoveBackgroundPage() {
       )}
 
       {/* Error */}
-      {toolState === 'error' && error && (
-        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '12px', padding: '16px 20px' }}>
-          <div style={{ fontSize: '14px', color: '#991B1B', marginBottom: '8px' }}>{error}</div>
-          <button onClick={handleReset} style={{ fontFamily: 'var(--font-dm-mono)', fontSize: '12px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Try again</button>
-        </div>
-      )}
+      {toolState === 'error' && <ErrorCard message={errorMessage || 'Something went wrong.'} onReset={handleReset} />}
 
       {/* Result */}
       {toolState === 'done' && previewUrl && resultUrl && result && (

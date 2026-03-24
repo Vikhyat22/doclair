@@ -6,6 +6,7 @@ import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 import { scanPDFPrivacy, stripAllMetadata, type PrivacyScanResult } from '@/lib/pdf/privacyScanner'
 
 type ToolState = 'idle' | 'scanning' | 'scanned' | 'stripping' | 'done' | 'error'
@@ -87,6 +88,7 @@ export default function PrivacyScannerPage() {
   const [scanResult, setScanResult] = useState<PrivacyScanResult | null>(null)
   const [strippedBytes, setStrippedBytes] = useState<Uint8Array | null>(null)
   const [error, setError]         = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
 
   const handleFiles = useCallback(async (files: File[]) => {
     if (files.length === 0) return
@@ -101,7 +103,9 @@ export default function PrivacyScannerPage() {
       setScanResult(result)
       setToolState('scanned')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to scan PDF')
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setError(message)
+      setErrorMessage(message)
       setToolState('error')
     }
   }, [])
@@ -114,7 +118,9 @@ export default function PrivacyScannerPage() {
       setStrippedBytes(bytes)
       setToolState('done')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to strip metadata')
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setError(message)
+      setErrorMessage(message)
       setToolState('error')
     }
   }, [file])
@@ -131,7 +137,7 @@ export default function PrivacyScannerPage() {
   }, [strippedBytes, file])
 
   const handleReset = useCallback(() => {
-    setFile(null); setScanResult(null); setStrippedBytes(null); setError(''); setToolState('idle')
+    setFile(null); setScanResult(null); setStrippedBytes(null); setError(''); setErrorMessage(''); setToolState('idle')
   }, [])
 
   const banner = scanResult ? LEVEL_BANNERS[scanResult.riskLevel] : null
@@ -244,13 +250,7 @@ export default function PrivacyScannerPage() {
           </>
         )}
 
-        {toolState === 'error' && (
-          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '16px', padding: '24px', color: '#991B1B' }}>
-            <div style={{ fontWeight: 600, marginBottom: '4px' }}>Something went wrong</div>
-            <div style={{ fontSize: '13px', opacity: 0.8 }}>{error}</div>
-            <button onClick={handleReset} style={{ marginTop: '12px', background: 'none', border: '1px solid #FECACA', borderRadius: '8px', padding: '6px 16px', cursor: 'pointer', color: '#991B1B', fontSize: '13px' }}>Try again</button>
-          </div>
-        )}
+        {toolState === 'error' && <ErrorCard message={errorMessage || 'Something went wrong. Try a different file.'} onReset={handleReset} />}
 
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
           <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>

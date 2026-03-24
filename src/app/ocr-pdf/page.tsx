@@ -7,6 +7,7 @@ import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 
 const FAQS = [
   {
@@ -466,27 +467,7 @@ export default function OcrPDFPage() {
       )}
 
       {/* State: error */}
-      {toolState === 'error' && (
-        <div style={{
-          background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '12px', padding: '24px',
-        }}>
-          <div style={{ fontWeight: 600, color: 'var(--red)', marginBottom: '6px', fontSize: '15px' }}>OCR Failed</div>
-          <div style={{ fontSize: '13px', color: 'var(--red)', opacity: 0.8 }}>{errorMsg}</div>
-          <button
-            onClick={handleReset}
-            style={{
-              marginTop: '16px', background: 'none', border: '1px solid var(--red)',
-              borderRadius: '100px', padding: '8px 20px', cursor: 'pointer',
-              color: 'var(--red)', fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif',
-              fontSize: '13px', fontWeight: 500, transition: 'all 0.15s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#FEF2F2' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
-          >
-            Try again
-          </button>
-        </div>
-      )}
+      {toolState === 'error' && <ErrorCard message={errorMsg || 'Something went wrong. Try a different file.'} onReset={handleReset} />}
 
       {/* SEO Content */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>

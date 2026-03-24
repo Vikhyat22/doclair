@@ -6,6 +6,7 @@ import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 
 type SummaryType = 'brief' | 'standard' | 'detailed'
 
@@ -77,6 +78,7 @@ export default function AiSummarizerPage() {
   const [wordCount, setWordCount]   = useState(0)
   const [summaryType, setSummaryType] = useState<SummaryType>('standard')
   const [error, setError]           = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState('')
   const [copied, setCopied]         = useState(false)
 
   const summaryWords = summary ? (summary.match(/\b\w+\b/g) ?? []).length : 0
@@ -84,7 +86,7 @@ export default function AiSummarizerPage() {
   const handleReset = useCallback(() => {
     setFile(null); setExtracting(false); setEP(0); setET(0)
     setSummarizing(false); setSummary(null); setPageCount(0)
-    setWordCount(0); setError(null); setCopied(false)
+    setWordCount(0); setError(null); setErrorMessage(''); setCopied(false)
   }, [])
 
   const addFile = useCallback(async (files: File[]) => {
@@ -103,7 +105,8 @@ export default function AiSummarizerPage() {
       const res = await extractTextFromPDF(file, (page, total) => { setEP(page); setET(total) })
       extractedText = res.text; setPageCount(res.pageCount); setWordCount(res.wordCount)
     } catch {
-      setError('Failed to extract text from this PDF.'); setExtracting(false); return
+      const msg = 'Failed to extract text from this PDF.'
+      setError(msg); setErrorMessage(msg); setExtracting(false); return
     } finally { setExtracting(false) }
 
     setSummarizing(true)
@@ -116,7 +119,8 @@ export default function AiSummarizerPage() {
       const data = await res.json()
       setSummary(data.summary)
     } catch {
-      setError('Failed to generate summary. Please try again.')
+      const msg = 'Failed to generate summary. Please try again.'
+      setError(msg); setErrorMessage(msg)
     } finally { setSummarizing(false) }
   }
 
@@ -224,11 +228,7 @@ export default function AiSummarizerPage() {
       )}
 
       {/* Error */}
-      {error && !isProcessing && (
-        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '12px', padding: '16px 20px' }}>
-          <div style={{ fontSize: '14px', color: '#991B1B' }}>{error}</div>
-        </div>
-      )}
+      {error && !isProcessing && <ErrorCard message={errorMessage || 'Something went wrong.'} onReset={handleReset} />}
 
       {/* Summary result */}
       {summary && file && (

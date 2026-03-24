@@ -5,6 +5,7 @@ import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 import { extractPDFText, type PDFTextContent } from '@/lib/pdf/pdfToAudio'
 
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
@@ -104,6 +105,7 @@ export default function PDFToAudioPage() {
   const [extracting, setExtracting]           = useState(false)
   const [extractProgress, setExtractProgress] = useState({ page: 0, total: 0 })
   const [extractError, setExtractError]       = useState<string | null>(null)
+  const [errorMessage, setErrorMessage]       = useState('')
 
   /* ── Playback ────────────────────────────────────────────────────────── */
   const [isPlaying, setIsPlaying]             = useState(false)
@@ -177,7 +179,8 @@ export default function PDFToAudioPage() {
         setExtractProgress({ page, total })
       )
       if (result.totalWords === 0) {
-        setExtractError('No text found in this PDF. Try running OCR PDF first if it is a scanned document.')
+        const msg = 'No text found in this PDF. Try running OCR PDF first if it is a scanned document.'
+        setExtractError(msg); setErrorMessage(msg)
         setFile(null)
         return
       }
@@ -187,7 +190,8 @@ export default function PDFToAudioPage() {
         .find(v => v.lang === result.language)
       if (langVoice) setVoice(langVoice)
     } catch {
-      setExtractError('Failed to read PDF. The file may be corrupted or password-protected.')
+      const msg = 'Failed to read PDF. The file may be corrupted or password-protected.'
+      setExtractError(msg); setErrorMessage(msg)
       setFile(null)
     } finally {
       setExtracting(false)
@@ -344,6 +348,13 @@ export default function PDFToAudioPage() {
     }
   }, [content, file, rate, voice])
 
+  /* ── Reset ───────────────────────────────────────────────────────────── */
+  const handleReset = useCallback(() => {
+    window.speechSynthesis.cancel()
+    setFile(null); setContent(null); setIsPlaying(false); setIsPaused(false)
+    setCurrentPage(0); setCurrentWordIndex(0); setExtractError(null); setErrorMessage('')
+  }, [])
+
   /* ── Derived ─────────────────────────────────────────────────────────── */
   const currentPageData = content?.pages[currentPage]
   const totalPages      = content?.pages.length ?? 0
@@ -391,11 +402,7 @@ export default function PDFToAudioPage() {
       {!content && !extracting && (
         <>
           <DropZone onFilesAdded={handleFile} accept=".pdf" label="Drop your PDF here" subLabel="Supports text-based PDFs · For scanned PDFs, run OCR first" icon="🎧" maxFiles={1} />
-          {extractError && (
-            <div style={{ marginTop: '16px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '14px 18px', color: '#DC2626', fontSize: '14px', lineHeight: 1.5 }}>
-              {extractError}
-            </div>
-          )}
+          {extractError && <ErrorCard message={errorMessage || 'Something went wrong.'} onReset={handleReset} />}
         </>
       )}
 

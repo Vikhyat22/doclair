@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
+import ErrorCard from '@/components/ui/ErrorCard'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import FAQ from '@/components/ui/FAQ'
 import { rgb } from '@cantoo/pdf-lib'
@@ -87,9 +88,10 @@ export default function PDFToBookletPage() {
   const [sheetSize, setSheetSize] = useState<SheetSize>('A4')
   const [saving, setSaving] = useState(false)
   const [done, setDone] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const process = useCallback(async (file: File) => {
-    setSaving(true); setDone(false)
+    setSaving(true); setDone(false); setErrorMessage('')
     try {
       const { PDFDocument } = await import('@cantoo/pdf-lib')
       const pdfjsLib = (await import('pdfjs-dist')).default ?? await import('pdfjs-dist')
@@ -159,6 +161,8 @@ export default function PDFToBookletPage() {
       a.download = file.name.replace(/\.pdf$/i, '-booklet.pdf'); a.click()
       URL.revokeObjectURL(url)
       setDone(true)
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : 'Something went wrong. Try a different file.')
     } finally { setSaving(false) }
   }, [sheetSize])
 
@@ -215,6 +219,8 @@ export default function PDFToBookletPage() {
           </>
         )}
       </div>
+
+      {errorMessage && <ErrorCard message={errorMessage} onReset={() => setErrorMessage('')} />}
 
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
         <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>

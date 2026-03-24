@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DownloadCard from '@/components/ui/DownloadCard'
+import ErrorCard from '@/components/ui/ErrorCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import { textToPDF, type TextToPdfOptions } from '@/lib/pdf/textToPdf'
@@ -71,6 +72,7 @@ export default function TextToPDFPage() {
   const [toolState, setToolState] = useState<ToolState>('idle')
   const [result, setResult]       = useState<Uint8Array | null>(null)
   const [error, setError]         = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
 
   const [fontFamily, setFontFamily] = useState<TextToPdfOptions['fontFamily']>('sans')
   const [fontSize,   setFontSize]   = useState(12)
@@ -85,7 +87,9 @@ export default function TextToPDFPage() {
       setResult(out)
       setToolState('done')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to convert text')
+      const msg = err instanceof Error ? err.message : 'Failed to convert text'
+      setError(msg)
+      setErrorMessage(msg)
       setToolState('error')
     }
   }, [text, fontSize, fontFamily, pageSize])
@@ -102,7 +106,7 @@ export default function TextToPDFPage() {
   }, [result])
 
   const handleReset = useCallback(() => {
-    setResult(null); setError(''); setToolState('idle')
+    setResult(null); setError(''); setErrorMessage(''); setToolState('idle')
   }, [])
 
   const selectStyle: React.CSSProperties = {
@@ -183,13 +187,7 @@ export default function TextToPDFPage() {
           </div>
         )}
 
-        {toolState === 'error' && (
-          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '16px', padding: '24px', color: '#991B1B' }}>
-            <div style={{ fontWeight: 600, marginBottom: '4px' }}>Something went wrong</div>
-            <div style={{ fontSize: '13px', opacity: 0.8 }}>{error}</div>
-            <button onClick={handleReset} style={{ marginTop: '12px', background: 'none', border: '1px solid #FECACA', borderRadius: '8px', padding: '6px 16px', cursor: 'pointer', color: '#991B1B', fontSize: '13px' }}>Try again</button>
-          </div>
-        )}
+        {toolState === 'error' && <ErrorCard message={errorMessage || 'Something went wrong.'} onReset={handleReset} />}
 
         {toolState === 'done' && result && (
           <DownloadCard

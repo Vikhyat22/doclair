@@ -6,6 +6,7 @@ import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 import { detectBlankPages, removeBlankPagesFromPDF } from '@/lib/pdf/removeBlankPages'
 
 type ToolState = 'idle' | 'detecting' | 'preview' | 'processing' | 'done' | 'error'
@@ -89,14 +90,14 @@ export default function RemoveBlankPagesPage() {
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [result, setResult] = useState<Uint8Array | null>(null)
   const [removed, setRemoved] = useState(0)
-  const [error, setError] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
 
   const handleFiles = useCallback(async (files: File[]) => {
     if (files.length === 0) return
     const f = files[0]
     setFile(f)
     setToolState('detecting')
-    setError('')
+    setErrorMessage('')
     setResult(null)
     try {
       const { blankPageIndices, totalPages: total } = await detectBlankPages(f)
@@ -105,7 +106,7 @@ export default function RemoveBlankPagesPage() {
       setSelected(new Set(blankPageIndices))
       setToolState('preview')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to scan PDF for blank pages')
+      const message = err instanceof Error ? err.message : 'Unknown error'; setErrorMessage(message)
       setToolState('error')
     }
   }, [])
@@ -129,7 +130,7 @@ export default function RemoveBlankPagesPage() {
       setRemoved(indicesToRemove.length)
       setToolState('done')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to remove blank pages')
+      const message = err instanceof Error ? err.message : 'Unknown error'; setErrorMessage(message)
       setToolState('error')
     }
   }, [file, selected])
@@ -152,7 +153,7 @@ export default function RemoveBlankPagesPage() {
     setSelected(new Set())
     setTotalPages(0)
     setRemoved(0)
-    setError('')
+    setErrorMessage('')
     setToolState('idle')
   }, [])
 
@@ -273,13 +274,7 @@ export default function RemoveBlankPagesPage() {
         )}
 
         {/* Error */}
-        {toolState === 'error' && (
-          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '16px', padding: '24px', color: '#991B1B' }}>
-            <div style={{ fontWeight: 600, marginBottom: '4px' }}>Something went wrong</div>
-            <div style={{ fontSize: '13px', opacity: 0.8 }}>{error}</div>
-            <button onClick={handleReset} style={{ marginTop: '12px', background: 'none', border: '1px solid #FECACA', borderRadius: '8px', padding: '6px 16px', cursor: 'pointer', color: '#991B1B', fontSize: '13px' }}>Try again</button>
-          </div>
-        )}
+        {toolState === 'error' && <ErrorCard message={errorMessage || 'Something went wrong. Try a different file.'} onReset={handleReset} />}
 
         {/* Done */}
         {toolState === 'done' && result && file && (

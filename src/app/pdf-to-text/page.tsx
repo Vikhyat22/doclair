@@ -6,6 +6,7 @@ import type { ExtractTextResult } from '@/lib/pdf/extractText'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
+import ErrorCard from '@/components/ui/ErrorCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 
@@ -70,6 +71,7 @@ export default function PDFToTextPage() {
   const [file, setFile]             = useState<File | null>(null)
   const [toolState, setToolState]   = useState<'idle' | 'processing' | 'done' | 'error'>('idle')
   const [result, setResult]         = useState<ExtractTextResult | null>(null)
+  const [errorMessage, setErrorMessage] = useState('')
   const [currentPage, setCurrentPage] = useState(0)
   const [totalPages, setTotalPages]   = useState(0)
   const [copied, setCopied]           = useState(false)
@@ -78,6 +80,7 @@ export default function PDFToTextPage() {
     setFile(null)
     setToolState('idle')
     setResult(null)
+    setErrorMessage('')
     setCurrentPage(0)
     setTotalPages(0)
     setCopied(false)
@@ -108,6 +111,8 @@ export default function PDFToTextPage() {
       setToolState('done')
     } catch (err) {
       console.error(err)
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setErrorMessage(message)
       setToolState('error')
     }
   }
@@ -277,24 +282,7 @@ export default function PDFToTextPage() {
       )}
 
       {/* State: error */}
-      {toolState === 'error' && (
-        <div style={{
-          background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '12px',
-          padding: '20px 24px', textAlign: 'center',
-        }}>
-          <div style={{ fontSize: '14px', color: '#991B1B', fontWeight: 500, marginBottom: '8px' }}>
-            Something went wrong while extracting text.
-          </div>
-          <button
-            onClick={handleReset}
-            style={{
-              fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '12px',
-              color: 'var(--muted)', background: 'none', border: 'none',
-              cursor: 'pointer', textDecoration: 'underline',
-            }}
-          >Try again</button>
-        </div>
-      )}
+      {toolState === 'error' && <ErrorCard message={errorMessage || 'Something went wrong. Try a different file.'} onReset={handleReset} />}
 
       {/* State: done */}
       {toolState === 'done' && result && file && (

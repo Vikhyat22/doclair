@@ -8,6 +8,7 @@ import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 
 const FAQS = [
   { q: 'Is redaction permanent?', a: 'Yes. Doclair re-renders each page as an image and draws black pixels over the redacted areas. The original text data is completely destroyed and cannot be recovered by any software.' },
@@ -77,6 +78,7 @@ export default function RedactPDFPage() {
   const [searchResults, setSearchResults]     = useState<RedactionBox[]>([])
   const [searchCount, setSearchCount]         = useState<{ boxes: number; pages: number } | null>(null)
   const [toolState, setToolState]             = useState<'idle' | 'loadingPages' | 'ready' | 'processing' | 'done' | 'error'>('idle')
+  const [errorMessage, setErrorMessage]       = useState('')
   const [resultBytes, setResultBytes]         = useState<Uint8Array | null>(null)
   const [progress, setProgress]               = useState({ n: 0, total: 0 })
   const pageImageRef                          = useRef<HTMLImageElement>(null)
@@ -142,6 +144,7 @@ const addFile = useCallback(async (files: File[]) => {
       setToolState('ready')
     } catch (err) {
       console.error('Page rendering failed:', err)
+      const message = err instanceof Error ? err.message : 'Unknown error'; setErrorMessage(message)
       setToolState('error')
     } finally {
       // loading complete
@@ -164,6 +167,7 @@ const addFile = useCallback(async (files: File[]) => {
     setToolState('idle')
     setResultBytes(null)
     setProgress({ n: 0, total: 0 })
+    setErrorMessage('')
   }
 
   async function handleFindText() {
@@ -245,6 +249,7 @@ const addFile = useCallback(async (files: File[]) => {
       setToolState('done')
     } catch (err) {
       console.error('Redaction failed:', err)
+      const message = err instanceof Error ? err.message : 'Unknown error'; setErrorMessage(message)
       setToolState('error')
     }
   }
@@ -657,26 +662,7 @@ const addFile = useCallback(async (files: File[]) => {
       )}
 
       {/* State: error */}
-      {toolState === 'error' && (
-        <div style={{
-          background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '12px', padding: '24px',
-          textAlign: 'center',
-        }}>
-          <div style={{ fontSize: '32px', marginBottom: '12px' }}>⚠️</div>
-          <div style={{
-            fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700,
-            fontSize: '18px', color: '#991B1B', marginBottom: '8px',
-          }}>Something went wrong</div>
-          <button
-            onClick={handleReset}
-            style={{
-              padding: '10px 24px', borderRadius: '100px', border: '1px solid #991B1B',
-              background: '#991B1B', color: 'white', cursor: 'pointer',
-              fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif', fontSize: '14px',
-            }}
-          >Try Again</button>
-        </div>
-      )}
+      {toolState === 'error' && <ErrorCard message={errorMessage || 'Something went wrong. Try a different file.'} onReset={handleReset} />}
 
       {/* SEO Content */}
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>

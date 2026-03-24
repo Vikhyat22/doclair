@@ -7,6 +7,7 @@ import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 import type { ToolState } from '@/types'
 
 const FAQS = [
@@ -269,15 +270,7 @@ export default function RemovePasswordPage() {
               </p>
 
               {/* Error message */}
-              {errorMsg && (
-                <div style={{
-                  background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B',
-                  padding: '14px', borderRadius: '8px', fontSize: '13px',
-                  fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif', lineHeight: 1.6,
-                }}>
-                  ⚠ {errorMsg}
-                </div>
-              )}
+              {errorMsg && <ErrorCard message={errorMsg} onReset={handleReset} />}
 
               <button
                 onClick={handleRemove}

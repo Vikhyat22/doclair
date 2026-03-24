@@ -200,6 +200,9 @@ export default function GSTInvoicePage() {
   const [resultBytes, setResultBytes] = useState<Uint8Array | null>(null)
   const [resultData, setResultData] = useState<GSTInvoiceData | null>(null)
   const [savedInvoices, setSavedInvoices] = useState<SavedInvoice[]>([])
+  const [generateError, setGenerateError] = useState('')
+  const [saveError, setSaveError] = useState('')
+  const [saveSuccess, setSaveSuccess] = useState(false)
 
   const logoInputRef = useRef<HTMLInputElement>(null)
 
@@ -286,6 +289,7 @@ export default function GSTInvoicePage() {
 
   async function handleGenerate() {
     setGenerating(true)
+    setGenerateError('')
     try {
       const data = buildInvoiceData()
       const bytes = await generateGSTInvoicePDF(data)
@@ -293,7 +297,7 @@ export default function GSTInvoicePage() {
       setResultData(data)
       triggerDownload(bytes, data.invoiceNumber)
     } catch (err) {
-      alert('Failed to generate invoice: ' + (err instanceof Error ? err.message : String(err)))
+      setGenerateError('Failed to generate invoice: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
       setGenerating(false)
     }
@@ -310,6 +314,8 @@ export default function GSTInvoicePage() {
   }
 
   function handleSaveInvoice() {
+    setSaveError('')
+    setSaveSuccess(false)
     try {
       const data = buildInvoiceData()
       const entry: SavedInvoice = {
@@ -325,9 +331,10 @@ export default function GSTInvoicePage() {
       const updated = [entry, ...existing].slice(0, 20)
       localStorage.setItem('doclair-gst-invoices', JSON.stringify(updated))
       setSavedInvoices(updated.slice(0, 3))
-      alert('Invoice saved!')
+      setSaveSuccess(true)
+      setTimeout(() => setSaveSuccess(false), 3000)
     } catch {
-      alert('Could not save invoice.')
+      setSaveError('Could not save invoice.')
     }
   }
 
@@ -730,6 +737,9 @@ export default function GSTInvoicePage() {
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
         >💾 Save Invoice</button>
       </div>
+      {generateError && <p style={{ color: '#DC2626', fontSize: '13px', marginTop: '8px' }}>{generateError}</p>}
+      {saveError && <p style={{ color: '#DC2626', fontSize: '13px', marginTop: '8px' }}>{saveError}</p>}
+      {saveSuccess && <p style={{ color: '#16A34A', fontSize: '13px', marginTop: '8px' }}>✓ Invoice saved!</p>}
 
       {/* Saved Invoices */}
       {savedInvoices.length > 0 && (

@@ -6,6 +6,7 @@ import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import FAQ from '@/components/ui/FAQ'
+import ErrorCard from '@/components/ui/ErrorCard'
 
 type ToolState = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -90,6 +91,7 @@ export default function PDFViewerPage() {
   const [jumpMode, setJumpMode] = useState(false)
   const [rendering, setRendering] = useState(false)
   const [error, setError] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -112,7 +114,8 @@ export default function PDFViewerPage() {
       setCurrentPage(1)
       setToolState('ready')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load PDF')
+      const msg = err instanceof Error ? err.message : 'Failed to load PDF'
+      setError(msg); setErrorMessage(msg)
       setToolState('error')
     }
   }, [])
@@ -215,6 +218,7 @@ export default function PDFViewerPage() {
     setRotation(0)
     setSearchText('')
     setError('')
+    setErrorMessage('')
   }, [])
 
   const btnStyle = (disabled = false): React.CSSProperties => ({
@@ -279,13 +283,7 @@ export default function PDFViewerPage() {
       )}
 
       {/* Error */}
-      {toolState === 'error' && (
-        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '16px', padding: '24px', color: '#991B1B' }}>
-          <div style={{ fontWeight: 600, marginBottom: '4px' }}>Failed to load PDF</div>
-          <div style={{ fontSize: '13px', opacity: 0.8 }}>{error}</div>
-          <button onClick={handleReset} style={{ marginTop: '12px', background: 'none', border: '1px solid #FECACA', borderRadius: '8px', padding: '6px 16px', cursor: 'pointer', color: '#991B1B', fontSize: '13px' }}>Try another file</button>
-        </div>
-      )}
+      {toolState === 'error' && <ErrorCard message={errorMessage || 'Something went wrong.'} onReset={handleReset} />}
 
       {/* Viewer */}
       {toolState === 'ready' && pdf && (

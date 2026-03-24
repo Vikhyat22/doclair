@@ -6,6 +6,7 @@ import DropZone from '@/components/ui/DropZone'
 import DownloadCard from '@/components/ui/DownloadCard'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 import { csvToPDF } from '@/lib/pdf/csvToPdf'
 
 type ToolState = 'idle' | 'processing' | 'done' | 'error'
@@ -71,19 +72,19 @@ export default function CSVToPDFPage() {
   const [file, setFile]           = useState<File | null>(null)
   const [toolState, setToolState] = useState<ToolState>('idle')
   const [result, setResult]       = useState<Uint8Array | null>(null)
-  const [error, setError]         = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
   const [rowCount, setRowCount]   = useState(0)
 
   const handleFiles = useCallback((files: File[]) => {
     if (files.length > 0) {
-      setFile(files[0]); setToolState('idle'); setResult(null); setError(''); setRowCount(0)
+      setFile(files[0]); setToolState('idle'); setResult(null); setErrorMessage(''); setRowCount(0)
     }
   }, [])
 
   const handleConvert = useCallback(async () => {
     if (!file) return
     setToolState('processing')
-    setError('')
+    setErrorMessage('')
     try {
       // Count rows for display
       const text = await file.text()
@@ -94,7 +95,7 @@ export default function CSVToPDFPage() {
       setResult(out)
       setToolState('done')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to convert CSV')
+      const message = err instanceof Error ? err.message : 'Unknown error'; setErrorMessage(message)
       setToolState('error')
     }
   }, [file])
@@ -111,7 +112,7 @@ export default function CSVToPDFPage() {
   }, [result, file])
 
   const handleReset = useCallback(() => {
-    setFile(null); setResult(null); setError(''); setToolState('idle'); setRowCount(0)
+    setFile(null); setResult(null); setErrorMessage(''); setToolState('idle'); setRowCount(0)
   }, [])
 
   return (
@@ -157,13 +158,7 @@ export default function CSVToPDFPage() {
           </div>
         )}
 
-        {toolState === 'error' && (
-          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '16px', padding: '24px', color: '#991B1B' }}>
-            <div style={{ fontWeight: 600, marginBottom: '4px' }}>Something went wrong</div>
-            <div style={{ fontSize: '13px', opacity: 0.8 }}>{error}</div>
-            <button onClick={handleReset} style={{ marginTop: '12px', background: 'none', border: '1px solid #FECACA', borderRadius: '8px', padding: '6px 16px', cursor: 'pointer', color: '#991B1B', fontSize: '13px' }}>Try again</button>
-          </div>
-        )}
+        {toolState === 'error' && <ErrorCard message={errorMessage || 'Something went wrong. Try a different file.'} onReset={handleReset} />}
 
         {toolState === 'done' && result && file && (
           <DownloadCard

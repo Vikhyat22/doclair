@@ -313,6 +313,9 @@ export default function POSBillingPage() {
   // Bill history
   const [bills, setBills] = useState<Bill[]>([])
   const [generatingBill, setGeneratingBill] = useState(false)
+  const [billError, setBillError] = useState('')
+  const [reprintErrors, setReprintErrors] = useState<Record<string, string>>({})
+  const [productNameError, setProductNameError] = useState('')
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -385,7 +388,8 @@ export default function POSBillingPage() {
     : []
 
   async function handleGenerateBill() {
-    if (cart.length === 0) { alert('Cart is empty.'); return }
+    if (cart.length === 0) { setBillError('Cart is empty.'); return }
+    setBillError('')
     setGeneratingBill(true)
     try {
       const bill: Bill = {
@@ -404,18 +408,19 @@ export default function POSBillingPage() {
       setCart([])
       setCustomer('')
     } catch (err) {
-      alert('Failed to generate bill: ' + (err instanceof Error ? err.message : String(err)))
+      setBillError('Failed to generate bill: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
       setGeneratingBill(false)
     }
   }
 
   async function handleReprint(bill: Bill) {
+    setReprintErrors(prev => ({ ...prev, [bill.id]: '' }))
     try {
       const bytes = await generateReceipt(bill, shop)
       triggerDownload(bytes, `${bill.billNumber}.pdf`)
     } catch (err) {
-      alert('Reprint failed: ' + (err instanceof Error ? err.message : String(err)))
+      setReprintErrors(prev => ({ ...prev, [bill.id]: 'Reprint failed: ' + (err instanceof Error ? err.message : String(err)) }))
     }
   }
 
@@ -426,7 +431,8 @@ export default function POSBillingPage() {
 
   // Product form helpers
   function handleAddProduct() {
-    if (!newProduct.name.trim()) { alert('Product name is required.'); return }
+    if (!newProduct.name.trim()) { setProductNameError('Product name is required.'); return }
+    setProductNameError('')
     if (editingProduct) {
       saveProducts(products.map(p => p.id === editingProduct.id ? { ...newProduct, id: editingProduct.id } : p))
       setEditingProduct(null)
@@ -673,6 +679,7 @@ export default function POSBillingPage() {
               >
                 {generatingBill ? '⏳ Generating...' : '🖨 Generate Bill PDF'}
               </button>
+              {billError && <p style={{ color: '#DC2626', fontSize: '13px', marginTop: '8px' }}>{billError}</p>}
             </div>
           )}
 
@@ -681,6 +688,7 @@ export default function POSBillingPage() {
               <div style={{ fontSize: '40px', marginBottom: '12px' }}>🛒</div>
               <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>Cart is empty</div>
               <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Search for a product above to add it to the cart.</div>
+              {billError && <p style={{ color: '#DC2626', fontSize: '13px', marginTop: '12px' }}>{billError}</p>}
             </div>
           )}
         </div>
@@ -695,7 +703,8 @@ export default function POSBillingPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
               <div>
                 <label style={labelStyle}>Product Name *</label>
-                <input type="text" value={newProduct.name} onChange={e => setNewProduct(p => ({ ...p, name: e.target.value }))} placeholder="Product name" style={inputStyle} />
+                <input type="text" value={newProduct.name} onChange={e => { setNewProduct(p => ({ ...p, name: e.target.value })); if (productNameError) setProductNameError('') }} placeholder="Product name" style={{ ...inputStyle, borderColor: productNameError ? '#DC2626' : undefined }} />
+                {productNameError && <p style={{ color: '#DC2626', fontSize: '13px', marginTop: '8px' }}>{productNameError}</p>}
               </div>
               <div>
                 <label style={labelStyle}>Price (₹)</label>
@@ -778,15 +787,18 @@ export default function POSBillingPage() {
                     </div>
                   </div>
                   <div style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '14px', fontWeight: 600, color: 'var(--amber)', whiteSpace: 'nowrap' }}>₹{bill.total.toFixed(2)}</div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => handleReprint(bill)}
-                      style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', fontSize: '12px', fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif', color: 'var(--ink)' }}
-                    >Reprint</button>
-                    <button
-                      onClick={() => handleDeleteBill(bill.id)}
-                      style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: '#FEE2E2', cursor: 'pointer', fontSize: '12px', fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif', color: '#DC2626' }}
-                    >Delete</button>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => handleReprint(bill)}
+                        style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', fontSize: '12px', fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif', color: 'var(--ink)' }}
+                      >Reprint</button>
+                      <button
+                        onClick={() => handleDeleteBill(bill.id)}
+                        style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: '#FEE2E2', cursor: 'pointer', fontSize: '12px', fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif', color: '#DC2626' }}
+                      >Delete</button>
+                    </div>
+                    {reprintErrors[bill.id] && <p style={{ color: '#DC2626', fontSize: '12px', margin: 0 }}>{reprintErrors[bill.id]}</p>}
                   </div>
                 </div>
               ))}

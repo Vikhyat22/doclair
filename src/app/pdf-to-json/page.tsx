@@ -5,6 +5,7 @@ import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 import { pdfToJSON } from '@/lib/pdf/pdfToJson'
 
 type ToolState = 'idle' | 'processing' | 'done' | 'error'
@@ -71,26 +72,26 @@ export default function PDFToJSONPage() {
   const [toolState, setToolState] = useState<ToolState>('idle')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [jsonData, setJsonData]   = useState<any>(null)
-  const [error, setError]         = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
   const [progress, setProgress]   = useState({ current: 0, total: 0 })
   const [copied, setCopied]       = useState(false)
 
   const handleFiles = useCallback((files: File[]) => {
     if (files.length > 0) {
-      setFile(files[0]); setToolState('idle'); setJsonData(null); setError('')
+      setFile(files[0]); setToolState('idle'); setJsonData(null); setErrorMessage('')
     }
   }, [])
 
   const handleConvert = useCallback(async () => {
     if (!file) return
     setToolState('processing')
-    setError('')
+    setErrorMessage('')
     try {
       const data = await pdfToJSON(file, (c, t) => setProgress({ current: c, total: t }))
       setJsonData(data)
       setToolState('done')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to convert PDF')
+      const message = err instanceof Error ? err.message : 'Unknown error'; setErrorMessage(message)
       setToolState('error')
     }
   }, [file])
@@ -115,7 +116,7 @@ export default function PDFToJSONPage() {
   }, [jsonString])
 
   const handleReset = useCallback(() => {
-    setFile(null); setJsonData(null); setError(''); setToolState('idle')
+    setFile(null); setJsonData(null); setErrorMessage(''); setToolState('idle')
     setProgress({ current: 0, total: 0 })
   }, [])
 
@@ -170,13 +171,7 @@ export default function PDFToJSONPage() {
           </div>
         )}
 
-        {toolState === 'error' && (
-          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '16px', padding: '24px', color: '#991B1B' }}>
-            <div style={{ fontWeight: 600, marginBottom: '4px' }}>Something went wrong</div>
-            <div style={{ fontSize: '13px', opacity: 0.8 }}>{error}</div>
-            <button onClick={handleReset} style={{ marginTop: '12px', background: 'none', border: '1px solid #FECACA', borderRadius: '8px', padding: '6px 16px', cursor: 'pointer', color: '#991B1B', fontSize: '13px' }}>Try again</button>
-          </div>
-        )}
+        {toolState === 'error' && <ErrorCard message={errorMessage || 'Something went wrong. Try a different file.'} onReset={handleReset} />}
 
         {toolState === 'done' && jsonData && file && (
           <>

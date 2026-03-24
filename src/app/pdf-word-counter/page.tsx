@@ -6,6 +6,7 @@ import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 import { countWords, type WordCountResult } from '@/lib/pdf/wordCount'
 
 type ToolState = 'idle' | 'counting' | 'done' | 'error'
@@ -114,6 +115,7 @@ export default function PDFWordCounterPage() {
   const [toolState, setToolState] = useState<ToolState>('idle')
   const [result, setResult] = useState<WordCountResult | null>(null)
   const [error, setError] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
   const [excludeNumbers, setExcludeNumbers] = useState(false)
   const [ignoreWordsInput, setIgnoreWordsInput] = useState('')
 
@@ -135,7 +137,8 @@ export default function PDFWordCounterPage() {
       setResult(res)
       setToolState('done')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to count words')
+      const msg = err instanceof Error ? err.message : 'Failed to count words'
+      setError(msg); setErrorMessage(msg)
       setToolState('error')
     }
   }, [file, excludeNumbers, ignoreWordsInput])
@@ -144,6 +147,7 @@ export default function PDFWordCounterPage() {
     setFile(null)
     setResult(null)
     setError('')
+    setErrorMessage('')
     setToolState('idle')
   }, [])
 
@@ -249,13 +253,7 @@ export default function PDFWordCounterPage() {
         )}
 
         {/* Error */}
-        {toolState === 'error' && (
-          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '16px', padding: '24px', color: '#991B1B' }}>
-            <div style={{ fontWeight: 600, marginBottom: '4px' }}>Something went wrong</div>
-            <div style={{ fontSize: '13px', opacity: 0.8 }}>{error}</div>
-            <button onClick={handleReset} style={{ marginTop: '12px', background: 'none', border: '1px solid #FECACA', borderRadius: '8px', padding: '6px 16px', cursor: 'pointer', color: '#991B1B', fontSize: '13px' }}>Try again</button>
-          </div>
-        )}
+        {toolState === 'error' && <ErrorCard message={errorMessage || 'Something went wrong.'} onReset={handleReset} />}
 
         {/* Results */}
         {toolState === 'done' && result && (

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
+import ErrorCard from '@/components/ui/ErrorCard'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import FAQ from '@/components/ui/FAQ'
 
@@ -70,9 +71,10 @@ export default function PDFToEpubPage() {
   const [saving, setSaving] = useState(false)
   const [progress, setProgress] = useState('')
   const [done, setDone] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const process = useCallback(async (file: File) => {
-    setSaving(true); setDone(false)
+    setSaving(true); setDone(false); setErrorMessage('')
     try {
       const pdfjsLib = (await import('pdfjs-dist')).default ?? await import('pdfjs-dist')
       pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
@@ -181,6 +183,8 @@ ${paragraphs || '<p><em>(No text on this page)</em></p>'}
       a.download = `${title}.epub`; a.click()
       URL.revokeObjectURL(url)
       setDone(true)
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : 'Something went wrong. Try a different file.')
     } finally { setSaving(false); setProgress('') }
   }, [])
 
@@ -222,6 +226,8 @@ ${paragraphs || '<p><em>(No text on this page)</em></p>'}
           </>
         )}
       </div>
+
+      {errorMessage && <ErrorCard message={errorMessage} onReset={() => setErrorMessage('')} />}
 
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '16px', padding: '40px' }}>
         <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>

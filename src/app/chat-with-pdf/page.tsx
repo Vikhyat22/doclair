@@ -6,6 +6,7 @@ import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import ErrorCard from '@/components/ui/ErrorCard'
 
 interface Message {
   id:        string
@@ -88,6 +89,7 @@ export default function ChatWithPdfPage() {
   const [inputText, setInputText]       = useState('')
   const [isThinking, setIsThinking]     = useState(false)
   const [chatError, setChatError]       = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState('')
   const messagesEndRef                  = useRef<HTMLDivElement>(null)
   const textareaRef                     = useRef<HTMLTextAreaElement>(null)
 
@@ -98,7 +100,7 @@ export default function ChatWithPdfPage() {
   const handleReset = useCallback(() => {
     setFile(null); setExtracted(null); setExtracting(false)
     setExtractPage(0); setExtractTotal(0); setPageCount(0); setWordCount(0)
-    setMessages([]); setInputText(''); setIsThinking(false); setChatError(null)
+    setMessages([]); setInputText(''); setIsThinking(false); setChatError(null); setErrorMessage('')
   }, [])
 
   const addFile = useCallback(async (files: File[]) => {
@@ -112,7 +114,8 @@ export default function ChatWithPdfPage() {
       })
       setExtracted(res.text); setPageCount(res.pageCount); setWordCount(res.wordCount)
     } catch {
-      setChatError('Failed to extract text from this PDF.')
+      const msg = 'Failed to extract text from this PDF.'
+      setChatError(msg); setErrorMessage(msg)
     } finally {
       setExtracting(false)
     }
@@ -135,7 +138,8 @@ export default function ChatWithPdfPage() {
       const data = await res.json()
       setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: data.answer, timestamp: new Date() }])
     } catch {
-      setChatError('Something went wrong. Please try again.')
+      const msg = 'Something went wrong. Please try again.'
+      setChatError(msg); setErrorMessage(msg)
     } finally {
       setIsThinking(false)
     }
@@ -204,11 +208,7 @@ export default function ChatWithPdfPage() {
       )}
 
       {/* Extraction error */}
-      {chatError && !hasChatReady && (
-        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '12px', padding: '16px 20px' }}>
-          <div style={{ fontSize: '14px', color: '#991B1B' }}>{chatError}</div>
-        </div>
-      )}
+      {chatError && !hasChatReady && <ErrorCard message={errorMessage || 'Something went wrong.'} onReset={handleReset} />}
 
       {/* Chat UI */}
       {hasChatReady && file && (
@@ -280,9 +280,7 @@ export default function ChatWithPdfPage() {
                 </div>
               )}
 
-              {chatError && messages.length > 0 && (
-                <div style={{ alignSelf: 'flex-start', padding: '10px 14px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', fontSize: '13px', color: '#991B1B' }}>{chatError}</div>
-              )}
+              {chatError && messages.length > 0 && <ErrorCard message={errorMessage || 'Something went wrong.'} onReset={handleReset} />}
 
               <div ref={messagesEndRef} />
             </div>
