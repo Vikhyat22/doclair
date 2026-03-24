@@ -1,13 +1,17 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { TOOLS, CATEGORY_ICON_BG } from '@/constants/tools'
 import ToolSearchFilter, { ToolEmptyState } from '@/components/ui/ToolSearchFilter'
 
-export default function ToolsPage() {
+function ToolsPageInner() {
+  const searchParams = useSearchParams()
+  const initialQ = searchParams.get('q') ?? ''
+
   const [filteredTools, setFilteredTools] = useState(TOOLS)
   const [activeSearch, setActiveSearch] = useState('')
   const [resetSignal, setResetSignal] = useState(0)
@@ -18,7 +22,6 @@ export default function ToolsPage() {
 
   return (
     <>
-      <Navbar />
       <section style={{ padding: '64px 0 40px', position: 'relative', zIndex: 1 }}>
         <div className="section-inner">
           <div style={{
@@ -40,6 +43,7 @@ export default function ToolsPage() {
             onSearchChange={setActiveSearch}
             showResultCount={true}
             resetSignal={resetSignal}
+            initialSearch={initialQ}
           />
 
           <div style={{
@@ -77,13 +81,24 @@ export default function ToolsPage() {
           </div>
         </div>
       </section>
-      <Footer />
       <style>{`
         @media (min-width: 1100px) { .tools-grid { grid-template-columns: repeat(4,1fr) !important; } }
         @media (max-width: 1099px) and (min-width: 768px) { .tools-grid { grid-template-columns: repeat(3,1fr) !important; } }
         @media (max-width: 767px) and (min-width: 600px) { .tools-grid { grid-template-columns: repeat(2,1fr) !important; } }
         @media (max-width: 599px) { .tools-grid { grid-template-columns: 1fr !important; } }
       `}</style>
+    </>
+  )
+}
+
+export default function ToolsPage() {
+  return (
+    <>
+      <Navbar />
+      <Suspense>
+        <ToolsPageInner />
+      </Suspense>
+      <Footer />
     </>
   )
 }

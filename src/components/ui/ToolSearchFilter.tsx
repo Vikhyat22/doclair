@@ -10,6 +10,7 @@ interface ToolSearchFilterProps {
   onSearchChange?: (text: string) => void
   showResultCount?: boolean
   resetSignal?: number
+  initialSearch?: string
 }
 
 const PLACEHOLDERS = [
@@ -27,8 +28,9 @@ export default function ToolSearchFilter({
   onSearchChange,
   showResultCount = true,
   resetSignal = 0,
+  initialSearch = '',
 }: ToolSearchFilterProps) {
-  const [searchText, setSearchText] = useState('')
+  const [searchText, setSearchText] = useState(initialSearch)
   const [activeCategory, setActiveCategory] = useState('All Tools')
 
   // Reset internal state when parent signals a clear
