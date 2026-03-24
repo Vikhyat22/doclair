@@ -46,3 +46,6 @@ next-env.d.ts
 # OG image generation caches
 scripts/fonts/
 scripts/emoji-cache/
+
+# implementation plans / local docs
+/docs/

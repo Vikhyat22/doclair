@@ -6,6 +6,17 @@ export const metadata: Metadata = {
   title: 'Privacy Policy — Doclair',
   description: 'Doclair privacy policy — how we handle your files and data.',
   alternates: { canonical: 'https://doclair.in/privacy' },
+  openGraph: {
+    title: 'Privacy Policy — Doclair',
+    description: 'Doclair privacy policy — how we handle your files and data.',
+    url: 'https://doclair.in/privacy',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Privacy Policy — Doclair',
+    description: 'Doclair privacy policy — how we handle your files and data.',
+  },
 }
 
 export default function PrivacyPage() {

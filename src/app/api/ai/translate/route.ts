@@ -36,7 +36,14 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json()
-    const translated = data.content?.[0]?.text ?? ''
+
+    // Find first text block — MiniMax returns a thinking block before the text block
+    const textBlock = Array.isArray(data?.content)
+      ? data.content.find((block: { type: string }) => block.type === 'text')
+      : null
+    const translated = textBlock?.text
+                    ?? data?.choices?.[0]?.message?.content
+                    ?? ''
 
     return NextResponse.json({ translated, pageNum })
   } catch (err) {

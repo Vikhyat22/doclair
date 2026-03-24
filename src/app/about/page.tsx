@@ -6,12 +6,41 @@ export const metadata: Metadata = {
   title: 'About Doclair — Privacy-First PDF Tools',
   description: 'Learn how Doclair works and why we built a 100% browser-based document processing suite.',
   alternates: { canonical: 'https://doclair.in/about' },
+  openGraph: {
+    title: 'About Doclair — Privacy-First PDF Tools',
+    description: 'Learn how Doclair works and why we built a 100% browser-based document processing suite.',
+    url: 'https://doclair.in/about',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'About Doclair — Privacy-First PDF Tools',
+    description: 'Learn how Doclair works and why we built a 100% browser-based document processing suite.',
+  },
+}
+
+const JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'AboutPage',
+  name: 'About Doclair',
+  description: 'Learn how Doclair works and why we built a 100% browser-based document processing suite.',
+  url: 'https://doclair.in/about',
+  publisher: {
+    '@type': 'Organization',
+    name: 'Doclair',
+    url: 'https://doclair.in',
+    logo: { '@type': 'ImageObject', url: 'https://doclair.in/icon.png' },
+  },
 }
 
 export default function AboutPage() {
   return (
     <>
       <Navbar />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
       <div style={{ padding: '64px 0 80px', position: 'relative', zIndex: 1 }}>
         <div className="section-inner" style={{ maxWidth: '720px' }}>
           <div style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', color: 'var(--amber)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '14px' }}>// about</div>

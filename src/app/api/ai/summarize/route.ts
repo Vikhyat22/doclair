@@ -67,11 +67,6 @@ export async function POST(req: NextRequest) {
     const apiKey    = process.env.AI_API_KEY  ?? ''
     const model     = process.env.AI_MODEL    ?? 'minimax-m2.7'
 
-    console.log('Calling:', `${baseURL}/messages`)
-    console.log('Model:', model)
-    console.log('AI_BASE_URL set:', !!process.env.AI_BASE_URL)
-    console.log('AI_API_KEY set:', !!process.env.AI_API_KEY)
-
     const truncated    = extractedText.slice(0, 40000)
     const systemPrompt = SYSTEM_PROMPTS[summaryType as string] ?? SYSTEM_PROMPTS.standard
 
@@ -96,8 +91,6 @@ export async function POST(req: NextRequest) {
       }),
     })
 
-    console.log('Response status:', response.status)
-
     if (!response.ok) {
       const text = await response.text()
       console.error('API error response:', text.slice(0, 500))
@@ -108,7 +101,6 @@ export async function POST(req: NextRequest) {
     }
 
     const data    = await response.json()
-    console.log('Response keys:', Object.keys(data))
 
     // Find first text block — MiniMax returns a thinking block before the text block
     const textBlock = Array.isArray(data?.content)

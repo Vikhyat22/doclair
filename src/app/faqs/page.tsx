@@ -3,9 +3,20 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 
 export const metadata: Metadata = {
-  title: 'Frequently Asked Questions',
+  title: 'Frequently Asked Questions — Doclair',
   description: 'Everything you need to know about Doclair — privacy, security, how browser-based processing works, and more.',
   alternates: { canonical: 'https://doclair.in/faqs' },
+  openGraph: {
+    title: 'Frequently Asked Questions — Doclair',
+    description: 'Everything you need to know about Doclair — privacy, security, how browser-based processing works, and more.',
+    url: 'https://doclair.in/faqs',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Frequently Asked Questions — Doclair',
+    description: 'Everything you need to know about Doclair — privacy, security, how browser-based processing works, and more.',
+  },
 }
 
 const FAQ_SCHEMA = {
