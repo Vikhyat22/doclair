@@ -4,7 +4,7 @@ import { TOOLS } from '@/constants/tools'
 export default function sitemap(): MetadataRoute.Sitemap {
   const toolUrls = TOOLS.map(tool => ({
     url: `https://doclair.in/${tool.slug}`,
-    lastModified: new Date('2026-03-23'),
+    lastModified: new Date('2026-03-24'),
     changeFrequency: 'monthly' as const,
     priority: 0.9,
   }))
@@ -21,8 +21,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ]
 
   return [
-    { url: 'https://doclair.in', lastModified: new Date('2026-03-23'), changeFrequency: 'weekly', priority: 1.0 },
-    { url: 'https://doclair.in/tools', lastModified: new Date('2026-03-23'), changeFrequency: 'monthly', priority: 0.8 },
+    { url: 'https://doclair.in', lastModified: new Date('2026-03-24'), changeFrequency: 'weekly', priority: 1.0 },
+    { url: 'https://doclair.in/tools', lastModified: new Date('2026-03-24'), changeFrequency: 'monthly', priority: 0.8 },
     { url: 'https://doclair.in/faqs', lastModified: new Date('2026-03-01'), changeFrequency: 'monthly', priority: 0.7 },
     { url: 'https://doclair.in/install-app', lastModified: new Date('2026-03-01'), changeFrequency: 'monthly', priority: 0.7 },
     { url: 'https://doclair.in/blog', lastModified: new Date('2026-03-22'), changeFrequency: 'weekly', priority: 0.8 },

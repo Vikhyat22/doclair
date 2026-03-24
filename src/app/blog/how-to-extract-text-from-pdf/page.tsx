@@ -14,10 +14,13 @@ const JSON_LD = {
   '@context': 'https://schema.org',
   '@type': 'Article',
   headline: 'How to Extract Text From a PDF Free',
+  description: 'Extract all text from any PDF free. Download as .txt file or copy to clipboard. Works on scanned PDFs too (with OCR). No software needed.',
   author: { '@type': 'Organization', name: 'Doclair' },
   publisher: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
   datePublished: '2026-03-22',
   dateModified: '2026-03-22',
+  url: 'https://doclair.in/blog/how-to-extract-text-from-pdf',
+  mainEntityOfPage: 'https://doclair.in/blog/how-to-extract-text-from-pdf',
 }
 
 const FAQS = [

@@ -14,10 +14,13 @@ const JSON_LD = {
   '@context': 'https://schema.org',
   '@type': 'Article',
   headline: 'How to Compress PDF on iPhone — No App Download Needed',
+  description: 'Compress a PDF on iPhone without downloading any app. Works in Safari. Reduce PDF size for email, WhatsApp and government portals. Free, instant.',
   author: { '@type': 'Organization', name: 'Doclair' },
   publisher: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
   datePublished: '2026-03-22',
   dateModified: '2026-03-22',
+  url: 'https://doclair.in/blog/how-to-compress-pdf-on-iphone',
+  mainEntityOfPage: 'https://doclair.in/blog/how-to-compress-pdf-on-iphone',
 }
 
 const FAQS = [

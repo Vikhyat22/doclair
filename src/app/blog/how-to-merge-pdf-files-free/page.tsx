@@ -14,10 +14,13 @@ const JSON_LD = {
   '@context': 'https://schema.org',
   '@type': 'Article',
   headline: 'How to Merge PDF Files Free — No Watermark, No Sign-Up',
+  description: 'Step-by-step guide to merge multiple PDF files into one. Free, no watermark, no sign-up. Works on all devices including iPhone and Android.',
   author: { '@type': 'Organization', name: 'Doclair' },
   publisher: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
   datePublished: '2026-03-22',
   dateModified: '2026-03-22',
+  url: 'https://doclair.in/blog/how-to-merge-pdf-files-free',
+  mainEntityOfPage: 'https://doclair.in/blog/how-to-merge-pdf-files-free',
 }
 
 const FAQS = [

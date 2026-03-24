@@ -14,10 +14,13 @@ const JSON_LD = {
   '@context': 'https://schema.org',
   '@type': 'Article',
   headline: 'How to Convert Word to PDF Free — Preserve All Formatting',
+  description: 'Convert .docx or .doc files to PDF without Microsoft Word. Free online converter — formatting, fonts and tables preserved. Works on all devices.',
   author: { '@type': 'Organization', name: 'Doclair' },
   publisher: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
   datePublished: '2026-03-22',
   dateModified: '2026-03-22',
+  url: 'https://doclair.in/blog/how-to-convert-word-to-pdf',
+  mainEntityOfPage: 'https://doclair.in/blog/how-to-convert-word-to-pdf',
 }
 
 const FAQS = [

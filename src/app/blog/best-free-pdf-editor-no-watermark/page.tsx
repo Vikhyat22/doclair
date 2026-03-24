@@ -14,10 +14,13 @@ const JSON_LD = {
   '@context': 'https://schema.org',
   '@type': 'Article',
   headline: 'Best Free PDF Editor With No Watermark in 2026',
+  description: 'Looking for a free PDF editor that doesn\'t add watermarks? Here are the best options in 2026 — including one that\'s 100% free forever with no limits.',
   author: { '@type': 'Organization', name: 'Doclair' },
   publisher: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
   datePublished: '2026-03-22',
   dateModified: '2026-03-22',
+  url: 'https://doclair.in/blog/best-free-pdf-editor-no-watermark',
+  mainEntityOfPage: 'https://doclair.in/blog/best-free-pdf-editor-no-watermark',
 }
 
 const FAQS = [

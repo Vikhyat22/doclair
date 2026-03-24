@@ -14,10 +14,13 @@ const JSON_LD = {
   '@context': 'https://schema.org',
   '@type': 'Article',
   headline: 'How to Remove Background From Image Free — AI-Powered',
+  description: 'Remove image backgrounds free online in seconds. AI-powered, works on photos, product images and logos. No Photoshop needed. Download transparent PNG.',
   author: { '@type': 'Organization', name: 'Doclair' },
   publisher: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
   datePublished: '2026-03-22',
   dateModified: '2026-03-22',
+  url: 'https://doclair.in/blog/how-to-remove-background-from-image',
+  mainEntityOfPage: 'https://doclair.in/blog/how-to-remove-background-from-image',
 }
 
 const FAQS = [

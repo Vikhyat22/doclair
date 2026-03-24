@@ -14,10 +14,13 @@ const JSON_LD = {
   '@context': 'https://schema.org',
   '@type': 'Article',
   headline: 'How to Password Protect a PDF Free — AES-256 Encryption',
+  description: 'Add password protection to any PDF free. AES-256 encryption — bank-level security. No software needed. Works on Windows, Mac, iPhone and Android.',
   author: { '@type': 'Organization', name: 'Doclair' },
   publisher: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
   datePublished: '2026-03-22',
   dateModified: '2026-03-22',
+  url: 'https://doclair.in/blog/how-to-protect-pdf-with-password',
+  mainEntityOfPage: 'https://doclair.in/blog/how-to-protect-pdf-with-password',
 }
 
 const FAQS = [
