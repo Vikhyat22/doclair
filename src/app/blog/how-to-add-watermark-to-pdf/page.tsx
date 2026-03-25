@@ -35,7 +35,12 @@ export default function AddWatermarkToPDFArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="add-watermark" title="How to Add a Watermark to PDF Free — Text or Image" toolName="Add Watermark" readTime="5 min" category="Guide" date="Mar 24, 2026">
+      <ArticleLayout toolSlug="add-watermark" title="How to Add a Watermark to PDF Free — Text or Image" toolName="Add Watermark" readTime="5 min" category="Guide" date="Mar 24, 2026"
+        relatedTools={[
+          { name: 'Encrypt PDF', slug: 'encrypt-pdf', icon: '🔐', desc: 'Password-protect your PDF', colorBg: '#FEE2E2' },
+          { name: 'Redact PDF', slug: 'redact-pdf', icon: '⬛', desc: 'Permanently hide sensitive info', colorBg: '#F3F4F6' },
+          { name: 'Merge PDF', slug: 'merge-pdf', icon: '🔀', desc: 'Combine multiple PDFs', colorBg: '#FFF0DC' },
+        ]}>
 
         <p>Watermarks serve a range of practical purposes: marking a document as a draft before final approval, labelling copies as CONFIDENTIAL, branding client-facing reports with a company logo, or adding a COPY stamp to prevent unofficial reproductions from being mistaken for originals. Whatever the reason, adding a watermark to a PDF should take seconds — not require a paid subscription or an installed application.</p>
         <p>Doclair's <Link href="/add-watermark">Add Watermark tool</Link> handles both text and image watermarks, gives you full control over opacity, position, and rotation, and processes everything in your browser. Nothing is uploaded. Nothing is stored.</p>

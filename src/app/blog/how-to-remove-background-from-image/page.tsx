@@ -36,7 +36,13 @@ export default function RemoveBackgroundArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="remove-background" title="How to Remove Background From Image Free — AI-Powered" toolName="Remove Background" readTime="6 min" category="Guide">
+      <ArticleLayout toolSlug="remove-background" title="How to Remove Background From Image Free — AI-Powered" toolName="Remove Background" readTime="6 min" category="Guide"
+        relatedTools={[
+          { name: 'Compress Image', slug: 'compress-image', icon: '🗜️', desc: 'Reduce image file size', colorBg: '#F3F4F6' },
+          { name: 'JPG → PDF', slug: 'jpg-to-pdf', icon: '🖼️', desc: 'Convert images to PDF', colorBg: '#F3F4F6' },
+          { name: 'Image → PDF', slug: 'image-to-pdf', icon: '🖼️', desc: 'Convert any image to PDF', colorBg: '#F3F4F6' },
+        ]}
+      >
 
         <p>Background removal used to require Photoshop skills, expensive software, or paying for tools like Remove.bg. Today, AI can detect the subject of any photo and remove everything behind it — and <Link href="/remove-background">Doclair's Remove Background tool</Link> does it entirely in your browser, free, with the AI model running on your own device.</p>
 

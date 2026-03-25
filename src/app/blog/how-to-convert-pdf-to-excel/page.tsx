@@ -35,7 +35,13 @@ export default function ConvertPDFToExcelArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="pdf-to-word" title="How to Convert PDF to Excel Free — Extract Tables Without Software" toolName="PDF to Word" readTime="6 min" category="Guide" date="Mar 24, 2026">
+      <ArticleLayout toolSlug="pdf-to-word" title="How to Convert PDF to Excel Free — Extract Tables Without Software" toolName="PDF to Word" readTime="6 min" category="Guide" date="Mar 24, 2026"
+        relatedTools={[
+          { name: 'PDF → Word', slug: 'pdf-to-word', icon: '📝', desc: 'Convert PDF to Word doc', colorBg: '#DBEAFE' },
+          { name: 'PDF → Text', slug: 'pdf-to-text', icon: '📝', desc: 'Extract all text from PDF', colorBg: '#F3F4F6' },
+          { name: 'Compress PDF', slug: 'compress-pdf', icon: '📦', desc: 'Reduce file size', colorBg: '#FFF0DC' },
+        ]}
+      >
 
         <p>Extracting tables from a PDF into Excel is one of the most requested — and most frustrating — document tasks. Unlike a PDF-to-Word conversion where paragraphs mostly survive intact, tables are where things break: columns collapse, numbers run together, and merged cells vanish entirely. This happens because PDFs do not store tables as structured data. A table in a PDF is just text positioned at specific coordinates on a page — the grid lines are decorative graphics, not data boundaries.</p>
         <p>Doclair does not have a dedicated PDF-to-Excel tool. Rather than point you at an unreliable converter, this guide covers three free workarounds that genuinely work — ranked from most reliable to most manual.</p>

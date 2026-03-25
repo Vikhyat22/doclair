@@ -35,7 +35,12 @@ export default function SignPDFiPhoneArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="sign-pdf" title="How to Sign a PDF on iPhone Free — No App Download" toolName="Sign PDF" readTime="4 min" category="Tutorial" date="Mar 24, 2026">
+      <ArticleLayout toolSlug="sign-pdf" title="How to Sign a PDF on iPhone Free — No App Download" toolName="Sign PDF" readTime="4 min" category="Tutorial" date="Mar 24, 2026"
+        relatedTools={[
+          { name: 'Sign PDF', slug: 'sign-pdf', icon: '✍️', desc: 'Draw or type your signature', colorBg: '#FFF0DC' },
+          { name: 'Compress PDF', slug: 'compress-pdf', icon: '📦', desc: 'Reduce file size', colorBg: '#FFF0DC' },
+          { name: 'Merge PDF', slug: 'merge-pdf', icon: '🔀', desc: 'Combine multiple PDFs', colorBg: '#FFF0DC' },
+        ]}>
 
         <p>Rental agreements emailed as PDFs, job offer letters from HR, KYC forms from banks, tenancy contracts from landlords — the moment you receive one on your iPhone, the instinct is to search for an app. But downloading and paying for a PDF signing app just to handle an occasional document is overkill. You can sign any PDF directly in Safari on your iPhone, for free, in under two minutes — no app required.</p>
         <p>This guide walks through the exact steps to draw your signature with your finger and embed it into a PDF, right from your iPhone or iPad.</p>

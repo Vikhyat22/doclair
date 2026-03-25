@@ -35,7 +35,12 @@ export default function JPGToPDFArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="jpg-to-pdf" title="How to Convert JPG to PDF Free — Merge Multiple Images" toolName="JPG to PDF" readTime="5 min" category="Guide" date="Mar 24, 2026">
+      <ArticleLayout toolSlug="jpg-to-pdf" title="How to Convert JPG to PDF Free — Merge Multiple Images" toolName="JPG to PDF" readTime="5 min" category="Guide" date="Mar 24, 2026"
+        relatedTools={[
+          { name: 'PDF → JPG', slug: 'pdf-to-jpg', icon: '🖼️', desc: 'Extract PDF pages as images', colorBg: '#F3F4F6' },
+          { name: 'Compress PDF', slug: 'compress-pdf', icon: '📦', desc: 'Reduce file size', colorBg: '#FFF0DC' },
+          { name: 'Merge PDF', slug: 'merge-pdf', icon: '🔀', desc: 'Combine multiple PDFs', colorBg: '#FFF0DC' },
+        ]}>
 
         <p>Whether you need to submit scanned documents to a government portal, email a photo as a professional attachment, or bundle a stack of receipts into one tidy file, converting JPG images to PDF is one of the most common document tasks. The good news: you do not need Photoshop, Acrobat, or any desktop software. <Link href="/jpg-to-pdf">Doclair's JPG to PDF tool</Link> does it free, instantly, and entirely in your browser — nothing is uploaded to any server.</p>
 

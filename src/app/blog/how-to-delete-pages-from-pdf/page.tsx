@@ -35,7 +35,12 @@ export default function DeletePagesFromPDFArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="remove-pages-from-pdf" title="How to Delete Pages From PDF Free — Remove Any Page Instantly" toolName="Remove Pages" readTime="4 min" category="Guide" date="Mar 24, 2026">
+      <ArticleLayout toolSlug="remove-pages-from-pdf" title="How to Delete Pages From PDF Free — Remove Any Page Instantly" toolName="Remove Pages" readTime="4 min" category="Guide" date="Mar 24, 2026"
+        relatedTools={[
+          { name: 'Organize Pages', slug: 'organize-pages', icon: '📋', desc: 'Reorder, delete pages', colorBg: '#F3F4F6' },
+          { name: 'Split PDF', slug: 'split-pdf', icon: '✂️', desc: 'Extract pages by range', colorBg: '#FEE2E2' },
+          { name: 'Merge PDF', slug: 'merge-pdf', icon: '🔀', desc: 'Combine multiple PDFs', colorBg: '#FFF0DC' },
+        ]}>
 
         <p>Sometimes a PDF has one page too many. A cover page you do not need, a blank sheet at the end, a confidential appendix you must strip before forwarding to a client — whatever the reason, deleting specific pages from a PDF should take seconds, not require expensive software. With <Link href="/remove-pages-from-pdf">Doclair's Remove Pages tool</Link>, you see every page as a thumbnail, click the ones you want gone, and download a clean PDF instantly. No installation, no account, no upload to any server.</p>
 

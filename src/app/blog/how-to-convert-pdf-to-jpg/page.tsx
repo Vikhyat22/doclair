@@ -35,7 +35,12 @@ export default function PDFToJPGArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="pdf-to-jpg" title="How to Convert PDF to JPG Free — Extract All Pages as Images" toolName="PDF to JPG" readTime="5 min" category="Guide" date="Mar 24, 2026">
+      <ArticleLayout toolSlug="pdf-to-jpg" title="How to Convert PDF to JPG Free — Extract All Pages as Images" toolName="PDF to JPG" readTime="5 min" category="Guide" date="Mar 24, 2026"
+        relatedTools={[
+          { name: 'JPG → PDF', slug: 'jpg-to-pdf', icon: '🖼️', desc: 'Convert images to PDF', colorBg: '#F3F4F6' },
+          { name: 'Compress Image', slug: 'compress-image', icon: '🗜️', desc: 'Reduce image file size', colorBg: '#F3F4F6' },
+          { name: 'PDF → PNG', slug: 'pdf-to-png', icon: '🖼️', desc: 'Export pages as PNG', colorBg: '#EDE9FE' },
+        ]}>
 
         <p>Sometimes a PDF is the wrong format. You want to post a page on Instagram, attach a single slide to a WhatsApp message, generate a preview thumbnail for a website, or import a chart into a presentation — and none of those workflows accept a PDF directly. Converting a PDF to JPG images unlocks every one of these use cases instantly.</p>
 

@@ -35,7 +35,13 @@ export default function ExtractTextArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="pdf-to-text" title="How to Extract Text From a PDF Free" toolName="PDF to Text" readTime="5 min" category="Guide">
+      <ArticleLayout toolSlug="pdf-to-text" title="How to Extract Text From a PDF Free" toolName="PDF to Text" readTime="5 min" category="Guide"
+        relatedTools={[
+          { name: 'OCR PDF', slug: 'ocr-pdf', icon: '👁️', desc: 'Make scanned text searchable', colorBg: '#DBEAFE' },
+          { name: 'AI Summarizer', slug: 'ai-summarizer', icon: '🤖', desc: 'Get key points instantly', colorBg: '#EDE9FE' },
+          { name: 'PDF → Markdown', slug: 'pdf-to-markdown', icon: '📝', desc: 'Convert PDF to Markdown', colorBg: '#F3F4F6' },
+        ]}
+      >
 
         <p>Whether you need to copy content from a locked PDF, extract data for a spreadsheet, or get text from a scanned document, <Link href="/pdf-to-text">Doclair's PDF to Text tool</Link> pulls all the text out of any PDF — free, in your browser, with no file size limit.</p>
 

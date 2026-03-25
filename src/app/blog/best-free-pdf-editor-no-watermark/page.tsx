@@ -35,7 +35,13 @@ export default function BestFreePDFEditorArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="compress-pdf" title="Best Free PDF Editor With No Watermark in 2026" toolName="Doclair PDF Tools" readTime="7 min" category="Comparison">
+      <ArticleLayout toolSlug="compress-pdf" title="Best Free PDF Editor With No Watermark in 2026" toolName="Doclair PDF Tools" readTime="7 min" category="Comparison"
+        relatedTools={[
+          { name: 'Sign PDF', slug: 'sign-pdf', icon: '✍️', desc: 'Draw or type your signature', colorBg: '#FFF0DC' },
+          { name: 'Annotate PDF', slug: 'annotate-pdf', icon: '💬', desc: 'Highlight and comment', colorBg: '#DBEAFE' },
+          { name: 'Compress PDF', slug: 'compress-pdf', icon: '📦', desc: 'Reduce file size', colorBg: '#FFF0DC' },
+        ]}
+      >
 
         <p>Most "free" PDF editors add a watermark to every file you export — unless you pay. This is how they monetise: the free tier is limited enough to frustrate you into upgrading. Here is an honest comparison of the best free PDF tools in 2026, with a clear note on which ones watermark your files and which ones genuinely do not.</p>
 

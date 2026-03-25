@@ -35,7 +35,12 @@ export default function SplitPDFArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="split-pdf" title="How to Split a PDF File Free — Extract Pages or Ranges" toolName="Split PDF" readTime="5 min" category="Guide" date="Mar 24, 2026">
+      <ArticleLayout toolSlug="split-pdf" title="How to Split a PDF File Free — Extract Pages or Ranges" toolName="Split PDF" readTime="5 min" category="Guide" date="Mar 24, 2026"
+        relatedTools={[
+          { name: 'Merge PDF', slug: 'merge-pdf', icon: '🔀', desc: 'Combine multiple PDFs', colorBg: '#FFF0DC' },
+          { name: 'Organize Pages', slug: 'organize-pages', icon: '📋', desc: 'Reorder, delete pages', colorBg: '#F3F4F6' },
+          { name: 'Compress PDF', slug: 'compress-pdf', icon: '📦', desc: 'Reduce file size', colorBg: '#FFF0DC' },
+        ]}>
 
         <p>Not every recipient needs the entire document. A 60-page annual report might contain one invoice on page 14 that your accountant needs. A textbook PDF might have one chapter you want to share with a colleague. A legal contract might include an appendix you want to circulate separately. Splitting a PDF lets you extract exactly what you need — without compressing, converting, or touching the rest of the file.</p>
         <p>You can split any PDF for free at <Link href="/split-pdf">doclair.in/split-pdf</Link> — no software to install, no account to create, and nothing sent to any server. The entire operation runs inside your browser.</p>

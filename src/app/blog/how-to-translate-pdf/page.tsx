@@ -35,7 +35,13 @@ export default function TranslatePDFArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="translate-pdf" title="How to Translate a PDF Free — AI-Powered, 30+ Languages" toolName="Translate PDF" readTime="5 min" category="Guide" date="Mar 24, 2026">
+      <ArticleLayout toolSlug="translate-pdf" title="How to Translate a PDF Free — AI-Powered, 30+ Languages" toolName="Translate PDF" readTime="5 min" category="Guide" date="Mar 24, 2026"
+        relatedTools={[
+          { name: 'AI Summarizer', slug: 'ai-summarizer', icon: '🤖', desc: 'Get key points instantly', colorBg: '#EDE9FE' },
+          { name: 'OCR PDF', slug: 'ocr-pdf', icon: '👁️', desc: 'Make scanned text searchable', colorBg: '#DBEAFE' },
+          { name: 'PDF → Text', slug: 'pdf-to-text', icon: '📝', desc: 'Extract all text from PDF', colorBg: '#F3F4F6' },
+        ]}
+      >
 
         <p>Reading a research paper published in German, reviewing a supplier contract written in Mandarin, understanding a product manual in Japanese, or evaluating a job offer from a company abroad — these situations require fast, accurate PDF translation. Copying text out of a PDF into Google Translate is slow and loses all formatting. <Link href="/translate-pdf">Doclair's Translate PDF tool</Link> does it in one step: upload, choose a language, and download the translated document.</p>
         <p>AI-powered translation understands context, not just words. It handles technical terminology in legal and academic documents far better than older rule-based tools, producing output that reads naturally in the target language rather than feeling robotic or literal.</p>

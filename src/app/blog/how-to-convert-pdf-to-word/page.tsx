@@ -35,7 +35,12 @@ export default function PDFToWordArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="pdf-to-word" title="How to Convert PDF to Word Free — Get an Editable .docx" toolName="PDF to Word" readTime="6 min" category="Guide" date="Mar 24, 2026">
+      <ArticleLayout toolSlug="pdf-to-word" title="How to Convert PDF to Word Free — Get an Editable .docx" toolName="PDF to Word" readTime="6 min" category="Guide" date="Mar 24, 2026"
+        relatedTools={[
+          { name: 'Word → PDF', slug: 'word-to-pdf', icon: '📄', desc: 'Convert Word back to PDF', colorBg: '#DBEAFE' },
+          { name: 'Compress PDF', slug: 'compress-pdf', icon: '📦', desc: 'Reduce file size', colorBg: '#FFF0DC' },
+          { name: 'Merge PDF', slug: 'merge-pdf', icon: '🔀', desc: 'Combine multiple PDFs', colorBg: '#FFF0DC' },
+        ]}>
 
         <p>PDFs are designed for reading and sharing, not editing. The moment you need to change a word, update a figure, or reformat a paragraph, the PDF format works against you. Common situations where you need an editable Word version include: updating a contract you received as a PDF, editing a resume originally built in a desktop application, filling in a form that was not made interactive, or incorporating content from a report into your own document.</p>
         <p>You can convert any PDF to a fully editable .docx file for free at <Link href="/pdf-to-word">doclair.in/pdf-to-word</Link>. No account, no watermark, and nothing uploaded to any external server — the conversion happens entirely inside your browser.</p>

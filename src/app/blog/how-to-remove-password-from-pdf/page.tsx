@@ -35,7 +35,12 @@ export default function RemovePasswordArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="remove-password" title="How to Remove Password From PDF Free — Unlock Instantly" toolName="Remove Password" readTime="4 min" category="Guide" date="Mar 24, 2026">
+      <ArticleLayout toolSlug="remove-password" title="How to Remove Password From PDF Free — Unlock Instantly" toolName="Remove Password" readTime="4 min" category="Guide" date="Mar 24, 2026"
+        relatedTools={[
+          { name: 'Encrypt PDF', slug: 'encrypt-pdf', icon: '🔐', desc: 'Password-protect your PDF', colorBg: '#FEE2E2' },
+          { name: 'Compress PDF', slug: 'compress-pdf', icon: '📦', desc: 'Reduce file size', colorBg: '#FFF0DC' },
+          { name: 'Merge PDF', slug: 'merge-pdf', icon: '🔀', desc: 'Combine multiple PDFs', colorBg: '#FFF0DC' },
+        ]}>
 
         <p>Password-protected PDFs are everywhere — bank statements that arrive locked by default, payslips from HR systems, government documents, and email attachments that senders secure before sharing. Once you need to compress, merge, sign, or simply print the file, that password prompt becomes a blocker. Removing the password takes the friction away permanently, leaving you with a normal, fully usable PDF.</p>
         <p>This guide shows you exactly how to unlock a password-protected PDF for free in your browser, with no software to install and no file upload to a server.</p>

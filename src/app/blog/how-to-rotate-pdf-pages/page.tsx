@@ -35,7 +35,13 @@ export default function RotatePDFArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="rotate-pdf" title="How to Rotate PDF Pages Free — Fix Upside-Down or Sideways Pages" toolName="Rotate PDF" readTime="4 min" category="Guide" date="Mar 24, 2026">
+      <ArticleLayout toolSlug="rotate-pdf" title="How to Rotate PDF Pages Free — Fix Upside-Down or Sideways Pages" toolName="Rotate PDF" readTime="4 min" category="Guide" date="Mar 24, 2026"
+        relatedTools={[
+          { name: 'Organize Pages', slug: 'organize-pages', icon: '📋', desc: 'Reorder, delete pages', colorBg: '#F3F4F6' },
+          { name: 'Merge PDF', slug: 'merge-pdf', icon: '🔀', desc: 'Combine multiple PDFs', colorBg: '#FFF0DC' },
+          { name: 'Split PDF', slug: 'split-pdf', icon: '✂️', desc: 'Extract pages by range', colorBg: '#FEE2E2' },
+        ]}
+      >
 
         <p>You open a scanned document and half the pages are sideways. A spreadsheet exported to PDF is in landscape when you need portrait. A mobile scan came out upside down. These orientation problems are frustrating, but they are completely fixable — for free, in your browser, without any software — using <Link href="/rotate-pdf">Doclair's Rotate PDF tool</Link>.</p>
         <p>Pages end up in the wrong orientation for several reasons: mobile scanning apps misread the device sensor, documents are photographed at an angle, spreadsheets are exported in landscape by default, or a PDF is assembled from pages of different orientations. Whatever caused it, rotation is a lossless fix that takes under a minute.</p>

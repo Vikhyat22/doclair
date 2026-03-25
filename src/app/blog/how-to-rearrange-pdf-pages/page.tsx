@@ -35,7 +35,13 @@ export default function RearrangePDFPagesArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="organize-pages" title="How to Rearrange PDF Pages Free — Drag to Reorder Instantly" toolName="Organize Pages" readTime="4 min" category="Guide" date="Mar 24, 2026">
+      <ArticleLayout toolSlug="organize-pages" title="How to Rearrange PDF Pages Free — Drag to Reorder Instantly" toolName="Organize Pages" readTime="4 min" category="Guide" date="Mar 24, 2026"
+        relatedTools={[
+          { name: 'Split PDF', slug: 'split-pdf', icon: '✂️', desc: 'Extract pages by range', colorBg: '#FEE2E2' },
+          { name: 'Merge PDF', slug: 'merge-pdf', icon: '🔀', desc: 'Combine multiple PDFs', colorBg: '#FFF0DC' },
+          { name: 'Remove Pages', slug: 'remove-pages-from-pdf', icon: '🗑️', desc: 'Delete specific pages', colorBg: '#F3F4F6' },
+        ]}
+      >
 
         <p>PDFs rarely arrive in the right order. A contract gets scanned upside down on page 4. A report has its appendix before the introduction. You merge two documents and the pages interleave incorrectly. Rearranging PDF pages used to require Adobe Acrobat or a subscription service — now you can drag thumbnails to any order you like, directly in your browser, for free.</p>
         <p>The most common scenarios where page reordering saves time: reordering scanned multi-page documents, moving a signature page to the end of a contract, reorganising a presentation before sharing, and fixing page sequence after merging PDFs from different sources.</p>

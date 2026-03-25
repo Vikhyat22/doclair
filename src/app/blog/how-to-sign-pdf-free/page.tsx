@@ -35,7 +35,12 @@ export default function SignPDFFreeArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="sign-pdf" title="How to Sign a PDF Free — Add Your Signature Without Printing" toolName="Sign PDF" readTime="5 min" category="Guide" date="Mar 24, 2026">
+      <ArticleLayout toolSlug="sign-pdf" title="How to Sign a PDF Free — Add Your Signature Without Printing" toolName="Sign PDF" readTime="5 min" category="Guide" date="Mar 24, 2026"
+        relatedTools={[
+          { name: 'Encrypt PDF', slug: 'encrypt-pdf', icon: '🔐', desc: 'Password-protect your PDF', colorBg: '#FEE2E2' },
+          { name: 'Compress PDF', slug: 'compress-pdf', icon: '📦', desc: 'Reduce file size', colorBg: '#FFF0DC' },
+          { name: 'Merge PDF', slug: 'merge-pdf', icon: '🔀', desc: 'Combine multiple PDFs', colorBg: '#FFF0DC' },
+        ]}>
 
         <p>Printing a PDF just to sign it and scan it back is a workflow that wastes paper, time, and patience — especially when you are on a phone and nowhere near a printer. Whether it is a job offer letter, a rental agreement, an NDA, or a government application form, you can sign a PDF directly in your browser in under a minute. <Link href="/sign-pdf">Doclair's Sign PDF tool</Link> lets you draw, type, or upload your signature and place it anywhere on the document, free, with no account required and nothing stored on any server.</p>
 

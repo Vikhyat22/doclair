@@ -35,7 +35,13 @@ export default function RedactPDFArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="redact-pdf" title="How to Redact a PDF Free — Permanently Black Out Sensitive Text" toolName="Redact PDF" readTime="5 min" category="Guide" date="Mar 24, 2026">
+      <ArticleLayout toolSlug="redact-pdf" title="How to Redact a PDF Free — Permanently Black Out Sensitive Text" toolName="Redact PDF" readTime="5 min" category="Guide" date="Mar 24, 2026"
+        relatedTools={[
+          { name: 'Encrypt PDF', slug: 'encrypt-pdf', icon: '🔐', desc: 'Password-protect your PDF', colorBg: '#FEE2E2' },
+          { name: 'Privacy Scanner', slug: 'privacy-scanner', icon: '🔍', desc: 'Find hidden metadata', colorBg: '#F3F4F6' },
+          { name: 'Compress PDF', slug: 'compress-pdf', icon: '📦', desc: 'Reduce file size', colorBg: '#FFF0DC' },
+        ]}
+      >
 
         <p>Sharing a document that contains someone's Aadhaar number, PAN card details, home address, or salary information carries real risk — even when you only intend to share a portion of it. Redaction is the process of permanently removing that sensitive content from a PDF before you share it. HR teams use it to anonymise CVs, lawyers use it to protect client details, and individuals use it before submitting documents to portals or forwarding them over WhatsApp.</p>
         <p>The critical word is <strong>permanently</strong>. Many people cover sensitive text with a black rectangle drawn in a PDF viewer, not realising that the original text is still in the file and can be copied out in seconds. A proper redaction tool removes the content itself. <Link href="/redact-pdf">Doclair's Redact PDF tool</Link> does this entirely in your browser — your file never reaches a server.</p>

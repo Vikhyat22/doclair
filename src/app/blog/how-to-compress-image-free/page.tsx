@@ -35,7 +35,13 @@ export default function CompressImageArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="compress-image" title="How to Compress an Image Free — Reduce File Size Without Losing Quality" toolName="Compress Image" readTime="5 min" category="Guide" date="Mar 24, 2026">
+      <ArticleLayout toolSlug="compress-image" title="How to Compress an Image Free — Reduce File Size Without Losing Quality" toolName="Compress Image" readTime="5 min" category="Guide" date="Mar 24, 2026"
+        relatedTools={[
+          { name: 'JPG → PDF', slug: 'jpg-to-pdf', icon: '🖼️', desc: 'Convert images to PDF', colorBg: '#F3F4F6' },
+          { name: 'Remove Background', slug: 'remove-background', icon: '🎨', desc: 'Clear image backgrounds', colorBg: '#EDE9FE' },
+          { name: 'Compress PDF', slug: 'compress-pdf', icon: '📦', desc: 'Reduce PDF file size', colorBg: '#FFF0DC' },
+        ]}
+      >
 
         <p>Large images slow down websites, bounce back from email inboxes, fail to upload on government portals, and clog up WhatsApp storage. A photo taken on a modern smartphone is typically 3–8 MB — far too large for most submission portals, which cap uploads at 200 KB to 1 MB. Compressing an image reduces its file size by 60–90% while keeping the image looking virtually identical on screen.</p>
         <p>Unlike desktop software that requires installation, <Link href="/compress-image">Doclair's Compress Image tool</Link> runs entirely in your browser. There is nothing to install, no account to create, and your photos never leave your device — making it equally suitable for compressing personal ID photos, medical images, and everyday pictures.</p>

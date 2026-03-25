@@ -2,6 +2,14 @@ import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 
+interface RelatedTool {
+  name: string
+  slug: string
+  icon: string
+  desc: string
+  colorBg: string
+}
+
 interface ArticleLayoutProps {
   title: string
   toolSlug: string
@@ -9,11 +17,12 @@ interface ArticleLayoutProps {
   readTime: string
   category: 'Guide' | 'Tutorial' | 'Comparison'
   date?: string
+  relatedTools?: RelatedTool[]
   children: React.ReactNode
 }
 
 export default function ArticleLayout({
-  title, toolSlug, toolName, readTime, category, date = 'Mar 22, 2026', children,
+  title, toolSlug, toolName, readTime, category, date = 'Mar 22, 2026', relatedTools, children,
 }: ArticleLayoutProps) {
   return (
     <>
@@ -35,7 +44,25 @@ export default function ArticleLayout({
             <Link href={`/${toolSlug}`} style={{ background: 'var(--ink)', color: 'white', padding: '9px 20px', borderRadius: '100px', fontSize: '13px', fontWeight: 500, textDecoration: 'none', whiteSpace: 'nowrap' }}>{toolName} →</Link>
           </div>
           <div className="article-body">{children}</div>
-          <div style={{ background: 'var(--ink)', borderRadius: '16px', padding: '28px 32px', marginTop: '64px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+
+          {relatedTools && relatedTools.length > 0 && (
+            <div style={{ marginTop: '56px', borderTop: '1px solid var(--border)', paddingTop: '40px' }}>
+              <div style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px', color: 'var(--amber)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500, marginBottom: '18px' }}>// Related Tools</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                {relatedTools.map(tool => (
+                  <Link key={tool.slug} href={`/${tool.slug}`} className="related-tool-card" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px', background: 'white', border: '1px solid var(--border)', borderRadius: '12px', textDecoration: 'none', transition: 'all 0.18s' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: tool.colorBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>{tool.icon}</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.25 }}>{tool.name}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--ink)', opacity: 0.45, marginTop: '2px', lineHeight: 1.3 }}>{tool.desc}</div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ background: 'var(--ink)', borderRadius: '16px', padding: '28px 32px', marginTop: '48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
             <div>
               <div style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '17px', color: 'white', marginBottom: '4px' }}>Try {toolName} for Free</div>
               <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>No upload. No watermark. Works entirely in your browser.</div>
@@ -60,6 +87,8 @@ export default function ArticleLayout({
         .article-body td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--ink); opacity: 0.8; }
         .article-body tr:last-child td { border-bottom: none; }
         .article-body tr:nth-child(even) td { background: #FAFAFA; }
+        .related-tool-card:hover { background: white !important; border-color: var(--amber) !important; transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+        @media (max-width: 600px) { .related-tool-grid { grid-template-columns: repeat(2, 1fr) !important; } }
       `}</style>
     </>
   )

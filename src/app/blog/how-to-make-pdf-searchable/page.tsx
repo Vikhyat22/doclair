@@ -35,7 +35,12 @@ export default function MakePDFSearchableArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="ocr-pdf" title="How to Make a Scanned PDF Searchable Free (OCR)" toolName="OCR PDF" readTime="6 min" category="Guide" date="Mar 24, 2026">
+      <ArticleLayout toolSlug="ocr-pdf" title="How to Make a Scanned PDF Searchable Free (OCR)" toolName="OCR PDF" readTime="6 min" category="Guide" date="Mar 24, 2026"
+        relatedTools={[
+          { name: 'PDF → Text', slug: 'pdf-to-text', icon: '📝', desc: 'Extract all text from PDF', colorBg: '#F3F4F6' },
+          { name: 'AI Summarizer', slug: 'ai-summarizer', icon: '🤖', desc: 'Get key points instantly', colorBg: '#EDE9FE' },
+          { name: 'Compress PDF', slug: 'compress-pdf', icon: '📦', desc: 'Reduce file size', colorBg: '#FFF0DC' },
+        ]}>
 
         <p>When you scan a document — an Aadhaar card, a bank statement, a court order — the resulting PDF is essentially a photograph. You cannot press Ctrl+F to search it, you cannot select and copy a line of text, and screen readers cannot read it aloud. The file looks like a document, but to your computer it is just an image. Optical Character Recognition (OCR) fixes this by analysing the image and embedding a hidden, searchable text layer behind the page without altering its appearance.</p>
         <p>The result: a PDF that looks identical to the original scan but behaves like a fully digital document — searchable, selectable, and accessible.</p>

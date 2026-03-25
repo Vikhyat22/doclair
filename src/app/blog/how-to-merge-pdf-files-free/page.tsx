@@ -35,7 +35,12 @@ export default function MergePDFArticle() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ArticleLayout toolSlug="merge-pdf" title="How to Merge PDF Files Free — No Watermark, No Sign-Up" toolName="Merge PDF" readTime="5 min" category="Guide">
+      <ArticleLayout toolSlug="merge-pdf" title="How to Merge PDF Files Free — No Watermark, No Sign-Up" toolName="Merge PDF" readTime="5 min" category="Guide"
+        relatedTools={[
+          { name: 'Split PDF', slug: 'split-pdf', icon: '✂️', desc: 'Extract pages by range', colorBg: '#FEE2E2' },
+          { name: 'Compress PDF', slug: 'compress-pdf', icon: '📦', desc: 'Reduce file size', colorBg: '#FFF0DC' },
+          { name: 'Organize Pages', slug: 'organize-pages', icon: '📋', desc: 'Reorder, delete pages', colorBg: '#F3F4F6' },
+        ]}>
 
         <p>Merging multiple PDF files into a single document is one of the most common document tasks. Whether you are combining government forms, joining a CV with certificates, or consolidating monthly reports, <Link href="/merge-pdf">Doclair's Merge PDF tool</Link> handles it in seconds — free, with no watermark added.</p>
 
