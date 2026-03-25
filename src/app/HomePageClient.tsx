@@ -395,12 +395,14 @@ export default function HomePageClient() {
               { num: '02', icon: '⚙️', name: 'Browser does the work', desc: 'WebAssembly runs the processing locally on your CPU. Your file never moves.' },
               { num: '03', icon: '⬇️', name: 'Download instantly', desc: 'Your processed file downloads directly. Memory clears when you close the tab.' },
             ].map((step, i) => (
-              <div key={i} style={{
-                paddingLeft: i === 0 ? '0' : '40px',
-                paddingRight: i === 2 ? '0' : '40px',
-                borderRight: i < 2 ? '1px solid rgba(255,255,255,0.08)' : 'none',
-                position: 'relative',
-              }}>
+              <div key={i}
+                className="step-item"
+                style={{
+                  paddingLeft: i === 0 ? '0' : '40px',
+                  paddingRight: i === 2 ? '0' : '40px',
+                  borderRight: i < 2 ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                  position: 'relative',
+                }}>
                 <div style={{
                   fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800,
                   fontSize: '96px', lineHeight: 1, color: 'rgba(255,255,255,0.04)',
@@ -600,6 +602,8 @@ export default function HomePageClient() {
         }
         @media (max-width: 767px) {
           .steps-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+          .step-item { padding: 0 !important; border-right: none !important; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 40px !important; }
+          .step-item:last-child { border-bottom: none !important; padding-bottom: 0 !important; }
           .step-arrow { display: none !important; }
           .privacy-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
           .proof-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
