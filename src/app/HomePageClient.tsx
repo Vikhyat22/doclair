@@ -79,13 +79,15 @@ export default function HomePageClient() {
             animation: 'fadeUp 0.6s ease both',
             animationDelay: '0.12s',
           }}>
-            Your files.<br />Your device.<br />
+            <span style={{ fontWeight: 400 }}>Your</span> files.<br />
+            <span style={{ fontWeight: 400 }}>Your</span> device.<br />
             <em style={{
               fontStyle: 'normal',
               color: 'var(--amber)',
               position: 'relative',
               display: 'inline-block',
-            }}>Your rules.
+            }}>
+              <span style={{ fontWeight: 400 }}>Your</span> rules.
               <span style={{
                 position: 'absolute',
                 bottom: '-4px',
