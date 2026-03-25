@@ -136,7 +136,7 @@ export default function HomePageClient() {
             >Explore All Tools <span>→</span></Link>
             <Link href="#privacy" style={{
               background: 'transparent', color: 'var(--ink)', padding: '14px 28px', borderRadius: '100px',
-              fontSize: '15px', fontWeight: 500, border: '2px solid rgba(26,22,18,0.15)',
+              fontSize: '15px', fontWeight: 500, border: '2px solid rgba(26,22,18,0.25)',
               textDecoration: 'none', transition: 'all 0.2s',
             }}
               onMouseEnter={e => {
@@ -147,34 +147,19 @@ export default function HomePageClient() {
               onMouseLeave={e => {
                 const el = e.currentTarget as HTMLElement
                 el.style.background = 'transparent'
-                el.style.borderColor = 'rgba(26,22,18,0.15)'
+                el.style.borderColor = 'rgba(26,22,18,0.25)'
               }}
             >How privacy works</Link>
           </div>
 
-          {/* Stats */}
+          {/* Trusted Badges */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            borderTop: '1px solid var(--border)',
-            paddingTop: '28px',
-            animation: 'fadeUp 0.6s ease both',
-            animationDelay: '0.32s',
+            display: 'flex', gap: '8px', alignItems: 'center', opacity: 0.6, fontSize: '12px',
+            animation: 'fadeUp 0.6s ease both', animationDelay: '0.32s',
+            marginTop: '12px'
           }}>
-            {[
-              { num: '70+', label: 'Free tools' },
-              { num: '0 KB', label: 'Uploaded to servers' },
-              { num: '∞', label: 'No file size limits' },
-            ].map((s, i) => (
-              <div key={i} style={{
-                paddingRight: i < 2 ? '24px' : 0,
-                borderRight: i < 2 ? '1px solid var(--border)' : 'none',
-                marginRight: i < 2 ? '24px' : 0,
-              }}>
-                <div style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: '26px', color: 'var(--ink)' }}>{s.num}</div>
-                <div style={{ fontSize: '12px', color: 'var(--ink)', opacity: 0.55, marginTop: '2px' }}>{s.label}</div>
-              </div>
-            ))}
+            <span style={{ color: 'var(--amber)' }}>★ ★ ★ ★ ★</span>
+            <span>Used by 1,000+ per day. 100% Private.</span>
           </div>
         </div>
 
@@ -245,6 +230,8 @@ export default function HomePageClient() {
             fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '13px',
             lineHeight: '1.75', marginBottom: '24px',
             border: '1px solid rgba(255,255,255,0.08)', position: 'relative',
+            overflowX: 'auto', WebkitOverflowScrolling: 'touch',
+            whiteSpace: 'pre-wrap', wordBreak: 'break-word'
           }}>
             <div><span className="c-kw">const</span> result = <span className="c-kw">await</span> <span className="c-fn">mergePDF</span>(files);</div>
             <div><span className="c-cm">{'// ↑ runs entirely in your browser'}</span></div>
@@ -540,7 +527,7 @@ export default function HomePageClient() {
 
       {/* ── FAQ ── */}
       <section style={{
-        padding: '80px 0', position: 'relative', zIndex: 1,
+        padding: '120px 24px', position: 'relative', zIndex: 1,
         background: 'var(--ink)', overflow: 'hidden',
       }}>
         {/* Noise overlay */}
