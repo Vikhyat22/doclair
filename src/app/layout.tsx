@@ -3,6 +3,7 @@ import { Syne, DM_Sans, DM_Mono } from 'next/font/google'
 import { GoogleAnalytics } from '@next/third-parties/google'
 import './globals.css'
 import ClarityScript from '@/components/ClarityScript'
+import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration'
 
 const syne = Syne({
   subsets: ['latin'],
@@ -102,6 +103,7 @@ export default function RootLayout({
       <body>
         <a href="#main-content" className="skip-link">Skip to content</a>
         <div id="main-content">{children}</div>
+        <ServiceWorkerRegistration />
         {process.env.NEXT_PUBLIC_GA_ID && (
           <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
         )}

@@ -4,7 +4,7 @@ const withPWA = require('next-pwa')({
   register: true,
   skipWaiting: true,
   fallbacks: {
-    document: '/_offline',
+    document: '/offline',
   },
 })
 
