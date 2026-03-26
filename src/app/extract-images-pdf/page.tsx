@@ -81,7 +81,7 @@ export default function ExtractImagesPDFPage() {
 
     try {
       const pdfjsLib = (await import('pdfjs-dist')).default ?? await import('pdfjs-dist')
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
       const doc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise
 
       for (let pi = 1; pi <= doc.numPages; pi++) {

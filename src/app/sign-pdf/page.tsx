@@ -238,7 +238,7 @@ export default function SignPDFPage() {
 
   const loadPDF = useCallback(async (file: File) => {
     const pdfjsLib = (await import('pdfjs-dist')).default ?? await import('pdfjs-dist')
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
     const doc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise
     setPageCount(doc.numPages)
     setCurrentPage(0)

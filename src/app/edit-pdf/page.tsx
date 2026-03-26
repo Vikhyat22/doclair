@@ -221,7 +221,7 @@ export default function EditPDFPage() {
   const loadPDF = useCallback(async (file: File) => {
     const pdfjsLib = (await import('pdfjs-dist')).default ?? await import('pdfjs-dist')
     const { GlobalWorkerOptions } = pdfjsLib
-    GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+    GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
     const ab = await file.arrayBuffer()
     const doc = await pdfjsLib.getDocument({ data: ab }).promise
     pdfDocRef.current = doc
@@ -235,8 +235,10 @@ export default function EditPDFPage() {
       const canvas = document.createElement('canvas')
       canvas.width = vp.width
       canvas.height = vp.height
+      const canvasContext = canvas.getContext('2d')
+      if (!canvasContext) throw new Error('Could not get 2D canvas context')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (page.render as any)({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise
+      await (page.render as any)({ canvas, canvasContext, viewport: vp }).promise
       urls.push(canvas.toDataURL('image/jpeg', 0.92))
     }
     setCanvasDataUrls(urls)
