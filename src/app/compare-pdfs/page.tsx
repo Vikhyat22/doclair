@@ -74,13 +74,16 @@ export default function ComparePdfsPage() {
   const totalPages = Math.max(pages1.length, pages2.length)
   const idx = currentPage - 1
 
-  // Cleanup object URLs
+  // Cleanup object URLs only on unmount.
+  // Revoking on every pages1/pages2 update can invalidate images still rendering.
   useEffect(() => {
     return () => {
       pages1.forEach(u => URL.revokeObjectURL(u))
       pages2.forEach(u => URL.revokeObjectURL(u))
     }
-  }, [pages1, pages2])
+    // Intentionally run once on mount/unmount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Sync scroll
   useEffect(() => {

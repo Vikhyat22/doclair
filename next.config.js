@@ -119,20 +119,6 @@ const nextConfig = {
           { key: 'Permissions-Policy',     value: 'camera=(self), microphone=(), geolocation=()' },
         ],
       },
-      {
-        source: '/compress-pdf',
-        headers: [
-          { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
-          { key: 'Cross-Origin-Opener-Policy',   value: 'same-origin'  },
-        ],
-      },
-      {
-        source: '/api/compress-pdf(.*)',
-        headers: [
-          { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
-          { key: 'Cross-Origin-Opener-Policy',   value: 'same-origin'  },
-        ],
-      },
     ]
   },
 }
