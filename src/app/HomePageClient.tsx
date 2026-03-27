@@ -19,7 +19,6 @@ export default function HomePageClient() {
     setFilteredTools(tools)
   }, [])
 
-
   return (
     <>
       <Navbar />
@@ -35,7 +34,7 @@ export default function HomePageClient() {
 
         {/* Hero Left */}
         <div style={{
-          padding: '80px 64px',
+          padding: '52px 64px',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
@@ -68,37 +67,36 @@ export default function HomePageClient() {
           </div>
 
           {/* H1 */}
-          <h1 style={{
+          <h1 className="hero-headline" style={{
             fontFamily: 'var(--font-syne), Syne, sans-serif',
             fontWeight: 800,
-            fontSize: 'clamp(44px, 5vw, 72px)',
-            lineHeight: 1.02,
-            letterSpacing: '-2px',
+            fontSize: 'clamp(40px, 5vw, 72px)',
+            lineHeight: 0.98,
+            letterSpacing: '-1.6px',
             color: 'var(--ink)',
             marginBottom: '24px',
             animation: 'fadeUp 0.6s ease both',
             animationDelay: '0.12s',
           }}>
-            <span style={{ fontWeight: 400 }}>Your</span> files.<br />
-            <span style={{ fontWeight: 400 }}>Your</span> device.<br />
-            <em style={{
-              fontStyle: 'normal',
+            <span style={{ display: 'inline-block' }}>Your files.</span><br />
+            <span style={{ display: 'inline-block' }}>Your device.</span><br />
+            <span style={{
               color: 'var(--amber)',
               position: 'relative',
               display: 'inline-block',
             }}>
-              <span style={{ fontWeight: 400 }}>Your</span> rules.
+              Your rules.
               <span style={{
                 position: 'absolute',
-                bottom: '-4px',
+                bottom: '-3px',
                 left: 0,
                 right: 0,
-                height: '3px',
+                height: '2px',
                 background: 'var(--amber)',
                 borderRadius: '2px',
                 display: 'block',
               }} />
-            </em>
+            </span>
           </h1>
 
           {/* Subtitle */}
@@ -109,7 +107,7 @@ export default function HomePageClient() {
             color: 'var(--ink)',
             opacity: 0.72,
             maxWidth: '460px',
-            marginBottom: '36px',
+            marginBottom: '18px',
             animation: 'fadeUp 0.6s ease both',
             animationDelay: '0.18s',
           }}>
@@ -122,7 +120,7 @@ export default function HomePageClient() {
             display: 'flex',
             gap: '12px',
             flexWrap: 'wrap',
-            marginBottom: '52px',
+            marginBottom: '8px',
             animation: 'fadeUp 0.6s ease both',
             animationDelay: '0.22s',
           }}>
@@ -152,15 +150,27 @@ export default function HomePageClient() {
             >How privacy works</Link>
           </div>
 
-          {/* Trusted Badges */}
-          <div style={{
-            display: 'flex', gap: '8px', alignItems: 'center', opacity: 0.6, fontSize: '12px',
-            animation: 'fadeUp 0.6s ease both', animationDelay: '0.32s',
-            marginTop: '12px'
+          <div className="hero-trust-rotator" style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            opacity: 0.68,
+            fontSize: '13px',
+            marginTop: '22px',
+            animation: 'fadeUp 0.6s ease both',
+            animationDelay: '0.32s',
           }}>
-            <span style={{ color: 'var(--amber)' }}>★ ★ ★ ★ ★</span>
-            <span>Used by 1,000+ per day. 100% Private.</span>
+            <span style={{ color: 'var(--amber)' }}>●</span>
+            <span className="hero-trust-window">
+              <span className="hero-trust-track">
+                <span>Private by design.</span>
+                <span>Runs locally in your browser.</span>
+                <span>No account. No watermark. No upload.</span>
+                <span aria-hidden="true">Private by design.</span>
+              </span>
+            </span>
           </div>
+
         </div>
 
         {/* Hero Right */}
@@ -587,10 +597,36 @@ export default function HomePageClient() {
       <Footer />
 
       <style>{`
+        @keyframes heroTrustRotate {
+          0%, 22% { transform: translateY(0); }
+          33%, 55% { transform: translateY(-20px); }
+          66%, 88% { transform: translateY(-40px); }
+          100% { transform: translateY(-60px); }
+        }
+        .hero-trust-window {
+          height: 20px;
+          overflow: hidden;
+          display: inline-flex;
+          align-items: center;
+          min-width: 260px;
+        }
+        .hero-trust-track {
+          display: flex;
+          flex-direction: column;
+          animation: heroTrustRotate 9s ease-in-out infinite;
+        }
+        .hero-trust-track > span {
+          height: 20px;
+          line-height: 20px;
+          display: flex;
+          align-items: center;
+          white-space: nowrap;
+        }
         @media (max-width: 899px) {
           .hero-grid { grid-template-columns: 1fr !important; min-height: auto !important; }
           .hero-right { display: none !important; }
           .hero-left { padding: 48px 24px !important; max-width: 100% !important; }
+          .hero-trust-window { min-width: 0 !important; width: 100%; }
         }
         @media (min-width: 1100px) { .tools-grid { grid-template-columns: repeat(4,1fr) !important; } }
         @media (max-width: 1099px) and (min-width: 768px) { .tools-grid { grid-template-columns: repeat(3,1fr) !important; } }
@@ -609,6 +645,11 @@ export default function HomePageClient() {
           .proof-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
         }
         @media (max-width: 480px) {
+          .hero-headline {
+            font-size: clamp(37px, 11vw, 43px) !important;
+            letter-spacing: -1.1px !important;
+            line-height: 0.97 !important;
+          }
           .proof-grid { grid-template-columns: 1fr !important; }
         }
         @media (hover: none) {
