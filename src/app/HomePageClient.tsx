@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useEffect, startTransition, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
@@ -8,12 +8,45 @@ import { TOOLS, CATEGORY_ICON_BG } from '@/constants/tools'
 import ToolSearchFilter, { ToolEmptyState } from '@/components/ui/ToolSearchFilter'
 import { HOME_FAQS } from '@/constants/faqs'
 
+const HERO_TRUST_LINES = [
+  'Private by design.',
+  'Runs locally in your browser.',
+  'No upload. No account.',
+]
+
 export default function HomePageClient() {
   const [filteredTools, setFilteredTools] = useState(TOOLS)
   const [activeSearch, setActiveSearch] = useState('')
   const [resetSignal, setResetSignal] = useState(0)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [heroTrustIndex, setHeroTrustIndex] = useState(0)
+  const [heroTrustVisible, setHeroTrustVisible] = useState(true)
   const toolsSectionRef = useRef<HTMLDivElement>(null)
+  const trustSwapTimeoutRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setHeroTrustVisible(false)
+
+      if (trustSwapTimeoutRef.current !== null) {
+        window.clearTimeout(trustSwapTimeoutRef.current)
+      }
+
+      trustSwapTimeoutRef.current = window.setTimeout(() => {
+        startTransition(() => {
+          setHeroTrustIndex((prev) => (prev + 1) % HERO_TRUST_LINES.length)
+          setHeroTrustVisible(true)
+        })
+      }, 180)
+    }, 2600)
+
+    return () => {
+      window.clearInterval(interval)
+      if (trustSwapTimeoutRef.current !== null) {
+        window.clearTimeout(trustSwapTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const handleFiltered = useCallback((tools: typeof TOOLS) => {
     setFilteredTools(tools)
@@ -151,24 +184,20 @@ export default function HomePageClient() {
           </div>
 
           <div className="hero-trust-rotator" style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            opacity: 0.68,
-            fontSize: '13px',
+            display: 'inline-flex',
             marginTop: '22px',
             animation: 'fadeUp 0.6s ease both',
             animationDelay: '0.32s',
           }}>
-            <span style={{ color: 'var(--amber)' }}>●</span>
-            <span className="hero-trust-window">
-              <span className="hero-trust-track">
-                <span>Private by design.</span>
-                <span>Runs locally in your browser.</span>
-                <span>No account. No watermark. No upload.</span>
-                <span aria-hidden="true">Private by design.</span>
+            <div className="hero-trust-capsule">
+              <span className="hero-trust-orb" aria-hidden="true" />
+              <span
+                className={`hero-trust-copy ${heroTrustVisible ? 'is-visible' : 'is-hidden'}`}
+                aria-live="polite"
+              >
+                {HERO_TRUST_LINES[heroTrustIndex]}
               </span>
-            </span>
+            </div>
           </div>
 
         </div>
@@ -193,7 +222,7 @@ export default function HomePageClient() {
             fontFamily: 'var(--font-dm-mono), DM Mono, monospace',
             fontSize: '11px', color: 'var(--amber)', letterSpacing: '0.1em',
             textTransform: 'uppercase', marginBottom: '24px', position: 'relative',
-          }}>// Popular right now</div>
+          }}>{'// Popular right now'}</div>
 
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '32px', position: 'relative',
@@ -297,7 +326,7 @@ export default function HomePageClient() {
           <div style={{
             fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px',
             color: 'var(--amber)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '14px',
-          }}>// 70+ tools</div>
+          }}>{'// 70+ tools'}</div>
           <h2 style={{
             fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800,
             fontSize: 'clamp(32px, 4vw, 48px)', letterSpacing: '-1.5px', color: 'var(--ink)',
@@ -391,7 +420,7 @@ export default function HomePageClient() {
           <div style={{
             fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px',
             color: 'var(--amber)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '14px',
-          }}>// zero friction</div>
+          }}>{'// zero friction'}</div>
           <h2 style={{
             fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800,
             fontSize: 'clamp(32px, 4vw, 48px)', letterSpacing: '-1.5px', color: 'white',
@@ -462,7 +491,7 @@ export default function HomePageClient() {
               <div style={{
                 fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px',
                 color: 'var(--amber)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '14px',
-              }}>// privacy by design</div>
+              }}>{'// privacy by design'}</div>
               <h2 style={{
                 fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800,
                 fontSize: 'clamp(32px, 4vw, 48px)', letterSpacing: '-1.5px', color: 'var(--ink)',
@@ -505,7 +534,7 @@ export default function HomePageClient() {
           <div style={{
             fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px',
             color: 'var(--amber)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '14px',
-          }}>// trusted by users worldwide</div>
+          }}>{'// trusted by users worldwide'}</div>
           <h2 style={{
             fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800,
             fontSize: 'clamp(24px, 3vw, 36px)', letterSpacing: '-1px', color: 'var(--ink)',
@@ -552,7 +581,7 @@ export default function HomePageClient() {
           <div style={{
             fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px',
             color: 'var(--amber)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '14px',
-          }}>// frequently asked</div>
+          }}>{'// frequently asked'}</div>
           <h2 style={{
             fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800,
             fontSize: 'clamp(32px, 4vw, 48px)', letterSpacing: '-1.5px', color: 'white',
@@ -597,36 +626,113 @@ export default function HomePageClient() {
       <Footer />
 
       <style>{`
-        @keyframes heroTrustRotate {
-          0%, 22% { transform: translateY(0); }
-          33%, 55% { transform: translateY(-20px); }
-          66%, 88% { transform: translateY(-40px); }
-          100% { transform: translateY(-60px); }
+        @keyframes heroTrustFloat {
+          0%, 100% {
+            transform: perspective(1100px) rotateX(4deg) rotateY(-6deg) translate3d(0, 0, 0);
+          }
+          50% {
+            transform: perspective(1100px) rotateX(2deg) rotateY(2deg) translate3d(0, -1px, 0);
+          }
         }
-        .hero-trust-window {
-          height: 20px;
-          overflow: hidden;
+        .hero-trust-capsule {
+          position: relative;
           display: inline-flex;
           align-items: center;
-          min-width: 260px;
+          gap: 10px;
+          width: fit-content;
+          max-width: 100%;
+          padding: 10px 16px 10px 15px;
+          border-radius: 999px;
+          border: 1px solid rgba(26,22,18,0.10);
+          background:
+            linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0)) top/100% 56% no-repeat,
+            linear-gradient(90deg, rgba(232,130,12,0.14) 0, rgba(232,130,12,0.04) 12%, rgba(255,255,255,0.9) 24%, rgba(247,241,232,0.96) 100%);
+          box-shadow:
+            0 8px 18px rgba(26,22,18,0.08),
+            0 2px 4px rgba(26,22,18,0.04),
+            inset 0 1px 0 rgba(255,255,255,0.84),
+            inset 0 -8px 14px rgba(232,130,12,0.03);
+          transform-style: preserve-3d;
+          backdrop-filter: blur(14px) saturate(1.08);
+          animation: heroTrustFloat 5.5s ease-in-out infinite;
         }
-        .hero-trust-track {
-          display: flex;
-          flex-direction: column;
-          animation: heroTrustRotate 9s ease-in-out infinite;
+        .hero-trust-capsule::before {
+          content: '';
+          position: absolute;
+          left: 13px;
+          top: 10px;
+          bottom: 10px;
+          width: 2px;
+          border-radius: 999px;
+          background: linear-gradient(180deg, rgba(232,130,12,0.92), rgba(232,130,12,0.42));
+          opacity: 0.9;
+          pointer-events: none;
         }
-        .hero-trust-track > span {
-          height: 20px;
-          line-height: 20px;
-          display: flex;
+        .hero-trust-capsule::after {
+          content: '';
+          position: absolute;
+          left: 18px;
+          right: 18px;
+          bottom: -8px;
+          border-radius: inherit;
+          height: 12px;
+          background: rgba(26,22,18,0.16);
+          filter: blur(10px);
+          opacity: 0.08;
+          pointer-events: none;
+          z-index: -1;
+        }
+        .hero-trust-orb {
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          flex-shrink: 0;
+          margin-left: 6px;
+          background: radial-gradient(circle at 32% 32%, #FFE3B8 0%, #E8820C 62%, #C46D09 100%);
+          box-shadow:
+            0 0 0 4px rgba(232,130,12,0.08),
+            0 4px 10px rgba(232,130,12,0.16);
+          transform: translateZ(8px);
+        }
+        .hero-trust-copy {
+          position: relative;
+          display: inline-flex;
           align-items: center;
-          white-space: nowrap;
+          min-height: 20px;
+          color: rgba(26,22,18,0.74);
+          font-size: 13px;
+          font-weight: 500;
+          letter-spacing: 0.01em;
+          line-height: 1.35;
+          transition: opacity 0.22s ease, transform 0.22s ease;
+          transform-origin: left center;
+          will-change: opacity, transform;
+          transform-style: preserve-3d;
+        }
+        .hero-trust-copy.is-visible {
+          opacity: 1;
+          transform: translateY(0) translateZ(8px);
+        }
+        .hero-trust-copy.is-hidden {
+          opacity: 0;
+          transform: translateY(5px) translateZ(8px);
+        }
+        @media (hover: hover) {
+          .hero-trust-capsule:hover {
+            transform: perspective(1100px) rotateX(2deg) rotateY(-1deg) translate3d(0, -1px, 0);
+          }
         }
         @media (max-width: 899px) {
           .hero-grid { grid-template-columns: 1fr !important; min-height: auto !important; }
           .hero-right { display: none !important; }
           .hero-left { padding: 48px 24px !important; max-width: 100% !important; }
-          .hero-trust-window { min-width: 0 !important; width: 100%; }
+          .hero-trust-capsule {
+            padding: 10px 14px 10px 14px;
+            transform: perspective(900px) rotateX(3deg) rotateY(-3deg);
+          }
+          .hero-trust-copy {
+            max-width: calc(100vw - 120px) !important;
+          }
         }
         @media (min-width: 1100px) { .tools-grid { grid-template-columns: repeat(4,1fr) !important; } }
         @media (max-width: 1099px) and (min-width: 768px) { .tools-grid { grid-template-columns: repeat(3,1fr) !important; } }
@@ -649,6 +755,12 @@ export default function HomePageClient() {
             font-size: clamp(37px, 11vw, 43px) !important;
             letter-spacing: -1.1px !important;
             line-height: 0.97 !important;
+          }
+          .hero-trust-rotator {
+            margin-top: 18px !important;
+          }
+          .hero-trust-copy {
+            font-size: 12.5px;
           }
           .proof-grid { grid-template-columns: 1fr !important; }
         }
