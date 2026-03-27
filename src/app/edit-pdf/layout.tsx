@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import { toolMetadata } from '@/constants/seo'
 
 export const metadata: Metadata = toolMetadata(
-  'Edit PDF + Sign',
+  'Edit PDF Text + Sign',
   'edit-pdf',
-  'Add text and signatures to PDF files free online. Click to place text, draw or type your signature. No upload, no watermark, files stay in your browser.'
+  'Edit existing PDF text for text-based files, run OCR for scanned PDFs, add whiteout erase areas, and export edited pages with a clean searchable text layer. No upload, no watermark, files stay in your browser.'
 )
 
 export default function Layout({ children }: { children: React.ReactNode }) {
