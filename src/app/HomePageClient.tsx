@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, startTransition, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
@@ -8,10 +9,88 @@ import { TOOLS, CATEGORY_ICON_BG } from '@/constants/tools'
 import ToolSearchFilter, { ToolEmptyState } from '@/components/ui/ToolSearchFilter'
 import { HOME_FAQS } from '@/constants/faqs'
 
-const HERO_TRUST_LINES = [
-  'Private by design.',
-  'Runs locally in your browser.',
-  'No upload. No account.',
+function NoWatermarkMiniIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M8 1.7l1.6 1 1.9-.1.8 1.7 1.5 1.1-.5 1.8.5 1.8-1.5 1.1-.8 1.7-1.9-.1-1.6 1-1.6-1-1.9.1-.8-1.7-1.5-1.1.5-1.8-.5-1.8 1.5-1.1.8-1.7 1.9.1z"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m5.85 8.1 1.15 1.15 2.8-2.95"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function OnDeviceMiniIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect
+        x="2.2"
+        y="3.1"
+        width="11.6"
+        height="8.8"
+        rx="2"
+        stroke="currentColor"
+        strokeWidth="1.2"
+      />
+      <path d="M5.2 5.7h5.6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M6.1 9.45h3.8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M7.2 13.2h1.6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function OfflineMiniIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M3.05 6.1a7.4 7.4 0 0 1 9.9 0" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M5.05 8.7a4.35 4.35 0 0 1 5.9 0" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M7.95 11.7h.1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="m3.2 3.3 9.6 9.4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function NoSignupMiniIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <circle cx="6.05" cy="5.2" r="2.2" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M2.95 11.55c.7-1.75 2-2.7 3.95-2.7.95 0 1.8.2 2.45.65" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="m10.65 9.7 2.5 2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="m13.15 9.7-2.5 2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function NoCapMiniIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M2.8 8.1c0 1.45.95 2.45 2.3 2.45 2.1 0 2.55-4.1 5-4.1 1.75 0 3.1 1.35 3.1 3.05s-1.35 3.05-3.1 3.05c-2.45 0-2.9-4.1-5-4.1-1.35 0-2.3 1-2.3 2.45z"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+const TRUST_BAR_ITEMS = [
+  { icon: NoWatermarkMiniIcon, text: 'No watermark, ever' },
+  { icon: OnDeviceMiniIcon, text: 'Files stay on device' },
+  { icon: OfflineMiniIcon, text: 'Works offline' },
+  { icon: NoSignupMiniIcon, text: 'No sign-up required' },
+  { icon: NoCapMiniIcon, text: 'No file size cap' },
 ]
 
 export default function HomePageClient() {
@@ -19,38 +98,36 @@ export default function HomePageClient() {
   const [activeSearch, setActiveSearch] = useState('')
   const [resetSignal, setResetSignal] = useState(0)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
-  const [heroTrustIndex, setHeroTrustIndex] = useState(0)
-  const [heroTrustVisible, setHeroTrustVisible] = useState(true)
   const toolsSectionRef = useRef<HTMLDivElement>(null)
-  const trustSwapTimeoutRef = useRef<number | null>(null)
-
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setHeroTrustVisible(false)
-
-      if (trustSwapTimeoutRef.current !== null) {
-        window.clearTimeout(trustSwapTimeoutRef.current)
-      }
-
-      trustSwapTimeoutRef.current = window.setTimeout(() => {
-        startTransition(() => {
-          setHeroTrustIndex((prev) => (prev + 1) % HERO_TRUST_LINES.length)
-          setHeroTrustVisible(true)
-        })
-      }, 180)
-    }, 2600)
-
-    return () => {
-      window.clearInterval(interval)
-      if (trustSwapTimeoutRef.current !== null) {
-        window.clearTimeout(trustSwapTimeoutRef.current)
-      }
-    }
-  }, [])
+  const shouldReduceMotion = useReducedMotion()
 
   const handleFiltered = useCallback((tools: typeof TOOLS) => {
     setFilteredTools(tools)
   }, [])
+
+  const trustItemHover = shouldReduceMotion
+    ? undefined
+    : {
+        y: -1,
+        backgroundColor: 'rgba(26,22,18,0.03)',
+        transition: {
+          type: 'spring',
+          stiffness: 420,
+          damping: 30,
+          mass: 0.9,
+        },
+      }
+
+  const trustIconHover = shouldReduceMotion
+    ? undefined
+    : {
+        scale: 1.03,
+        transition: {
+          type: 'spring',
+          stiffness: 420,
+          damping: 28,
+        },
+      }
 
   return (
     <>
@@ -60,7 +137,7 @@ export default function HomePageClient() {
       <section style={{
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
-        minHeight: 'calc(100vh - 68px)',
+        minHeight: 'min(728px, calc(100vh - 68px))',
         position: 'relative',
         zIndex: 1,
       }} className="hero-grid">
@@ -183,23 +260,6 @@ export default function HomePageClient() {
             >How privacy works</Link>
           </div>
 
-          <div className="hero-trust-rotator" style={{
-            display: 'inline-flex',
-            marginTop: '22px',
-            animation: 'fadeUp 0.6s ease both',
-            animationDelay: '0.32s',
-          }}>
-            <div className="hero-trust-capsule">
-              <span className="hero-trust-orb" aria-hidden="true" />
-              <span
-                className={`hero-trust-copy ${heroTrustVisible ? 'is-visible' : 'is-hidden'}`}
-                aria-live="polite"
-              >
-                {HERO_TRUST_LINES[heroTrustIndex]}
-              </span>
-            </div>
-          </div>
-
         </div>
 
         {/* Hero Right */}
@@ -294,34 +354,63 @@ export default function HomePageClient() {
       </section>
 
       {/* ── TRUST BAR ── */}
-      <div style={{
+      <div
+        className="trust-bar-shell"
+        style={{
         borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
-        padding: '18px 0', position: 'relative', zIndex: 1, background: 'rgba(26,22,18,0.04)',
+        padding: '16px 0', position: 'relative', zIndex: 1, background: 'rgba(26,22,18,0.04)',
       }}>
-        <div className="section-inner">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)' }} className="trust-bar-grid">
-            {[
-              { icon: '✦', text: 'No watermark, ever' },
-              { icon: '🔒', text: 'Files stay on device' },
-              { icon: '📡', text: 'Works offline' },
-              { icon: '🚫', text: 'No sign-up required' },
-              { icon: '∞', text: 'No file size cap' },
-            ].map((item, i) => (
-              <div key={i} className="trust-item" style={{
-                display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center',
-                padding: '0 12px', opacity: 0.7,
-                borderRight: i < 4 ? '1px solid var(--border)' : 'none',
-              }}>
-                <span style={{ fontSize: '15px' }}>{item.icon}</span>
-                <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--ink)' }}>{item.text}</span>
-              </div>
-            ))}
+        <div className="section-inner trust-bar-wrap">
+          <div className="trust-bar-stage">
+            <div
+              className="trust-bar-grid"
+              style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)' }}
+            >
+              {TRUST_BAR_ITEMS.map((item, i) => {
+                const Icon = item.icon
+
+                return (
+                  <motion.div
+                    key={item.text}
+                    className="trust-item"
+                    whileHover={trustItemHover}
+                    whileTap={shouldReduceMotion ? undefined : { scale: 0.995 }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      justifyContent: 'center',
+                      padding: '0 14px',
+                      borderRight: i < TRUST_BAR_ITEMS.length - 1 ? '1px solid var(--border)' : 'none',
+                    }}
+                  >
+                    <span className="trust-item-icon-wrap" aria-hidden="true">
+                      <motion.span className="trust-item-icon" whileHover={trustIconHover}>
+                        <Icon />
+                      </motion.span>
+                    </span>
+                    <span className="trust-item-label">
+                      {item.text}
+                    </span>
+                  </motion.div>
+                )
+              })}
+            </div>
           </div>
         </div>
       </div>
 
       {/* ── TOOLS SECTION ── */}
-      <section id="tools" ref={toolsSectionRef} style={{ padding: '100px 0 80px', position: 'relative', zIndex: 1 }}>
+      <section
+        id="tools"
+        ref={toolsSectionRef}
+        style={{
+          padding: '74px 0 80px',
+          position: 'relative',
+          zIndex: 1,
+          background: 'linear-gradient(180deg, rgba(232,130,12,0.024), rgba(232,130,12,0) 104px)',
+        }}
+      >
         <div className="section-inner">
           <div style={{
             fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '11px',
@@ -641,57 +730,55 @@ export default function HomePageClient() {
           gap: 10px;
           width: fit-content;
           max-width: 100%;
-          padding: 10px 16px 10px 15px;
+          padding: 9px 14px 9px 13px;
           border-radius: 999px;
-          border: 1px solid rgba(26,22,18,0.10);
+          border: 1px solid rgba(26,22,18,0.08);
           background:
-            linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0)) top/100% 56% no-repeat,
-            linear-gradient(90deg, rgba(232,130,12,0.14) 0, rgba(232,130,12,0.04) 12%, rgba(255,255,255,0.9) 24%, rgba(247,241,232,0.96) 100%);
+            linear-gradient(180deg, rgba(255,255,255,0.68), rgba(255,255,255,0)) top/100% 56% no-repeat,
+            linear-gradient(90deg, rgba(232,130,12,0.08) 0, rgba(255,255,255,0.88) 26%, rgba(247,241,232,0.94) 100%);
           box-shadow:
-            0 8px 18px rgba(26,22,18,0.08),
-            0 2px 4px rgba(26,22,18,0.04),
-            inset 0 1px 0 rgba(255,255,255,0.84),
-            inset 0 -8px 14px rgba(232,130,12,0.03);
+            0 4px 12px rgba(26,22,18,0.05),
+            0 1px 2px rgba(26,22,18,0.03),
+            inset 0 1px 0 rgba(255,255,255,0.8);
           transform-style: preserve-3d;
-          backdrop-filter: blur(14px) saturate(1.08);
-          animation: heroTrustFloat 5.5s ease-in-out infinite;
+          backdrop-filter: blur(12px) saturate(1.03);
         }
         .hero-trust-capsule::before {
           content: '';
           position: absolute;
-          left: 13px;
-          top: 10px;
-          bottom: 10px;
-          width: 2px;
+          left: 12px;
+          top: 9px;
+          bottom: 9px;
+          width: 1.5px;
           border-radius: 999px;
-          background: linear-gradient(180deg, rgba(232,130,12,0.92), rgba(232,130,12,0.42));
-          opacity: 0.9;
+          background: linear-gradient(180deg, rgba(232,130,12,0.8), rgba(232,130,12,0.34));
+          opacity: 0.72;
           pointer-events: none;
         }
         .hero-trust-capsule::after {
           content: '';
           position: absolute;
-          left: 18px;
-          right: 18px;
-          bottom: -8px;
+          left: 16px;
+          right: 16px;
+          bottom: -6px;
           border-radius: inherit;
-          height: 12px;
+          height: 8px;
           background: rgba(26,22,18,0.16);
-          filter: blur(10px);
-          opacity: 0.08;
+          filter: blur(8px);
+          opacity: 0.05;
           pointer-events: none;
           z-index: -1;
         }
         .hero-trust-orb {
-          width: 8px;
-          height: 8px;
+          width: 7px;
+          height: 7px;
           border-radius: 999px;
           flex-shrink: 0;
           margin-left: 6px;
           background: radial-gradient(circle at 32% 32%, #FFE3B8 0%, #E8820C 62%, #C46D09 100%);
           box-shadow:
-            0 0 0 4px rgba(232,130,12,0.08),
-            0 4px 10px rgba(232,130,12,0.16);
+            0 0 0 3px rgba(232,130,12,0.05),
+            0 2px 6px rgba(232,130,12,0.12);
           transform: translateZ(8px);
         }
         .hero-trust-copy {
@@ -719,7 +806,7 @@ export default function HomePageClient() {
         }
         @media (hover: hover) {
           .hero-trust-capsule:hover {
-            transform: perspective(1100px) rotateX(2deg) rotateY(-1deg) translate3d(0, -1px, 0);
+            transform: translateY(-1px);
           }
         }
         @media (max-width: 899px) {
@@ -727,8 +814,7 @@ export default function HomePageClient() {
           .hero-right { display: none !important; }
           .hero-left { padding: 48px 24px !important; max-width: 100% !important; }
           .hero-trust-capsule {
-            padding: 10px 14px 10px 14px;
-            transform: perspective(900px) rotateX(3deg) rotateY(-3deg);
+            padding: 9px 13px 9px 13px;
           }
           .hero-trust-copy {
             max-width: calc(100vw - 120px) !important;
@@ -740,7 +826,16 @@ export default function HomePageClient() {
         @media (max-width: 599px) {
           .tools-grid { grid-template-columns: 1fr !important; }
           .trust-bar-grid { grid-template-columns: repeat(2,1fr) !important; }
-          .trust-bar-grid > .trust-item { border-right: none !important; border-bottom: 1px solid var(--border); padding: 10px 12px !important; }
+          .trust-bar-grid > .trust-item {
+            border-right: none !important;
+            border-bottom: 1px solid var(--border);
+            padding: 14px 16px !important;
+            justify-content: flex-start !important;
+          }
+          .trust-bar-grid > .trust-item:last-child {
+            grid-column: 1 / -1;
+            border-bottom: none !important;
+          }
         }
         @media (max-width: 767px) {
           .steps-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
@@ -757,7 +852,7 @@ export default function HomePageClient() {
             line-height: 0.97 !important;
           }
           .hero-trust-rotator {
-            margin-top: 18px !important;
+            margin-top: 16px !important;
           }
           .hero-trust-copy {
             font-size: 12.5px;

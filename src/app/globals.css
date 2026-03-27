@@ -255,11 +255,113 @@ body::before {
 }
 
 /* Trust bar items */
-.trust-item {
-  transition: opacity 0.2s;
+.trust-bar-shell {
+  overflow: hidden;
 }
-.trust-item:hover {
-  opacity: 1 !important;
+
+.trust-bar-wrap {
+  position: relative;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.trust-bar-stage {
+  position: relative;
+  border: 1px solid rgba(26,22,18,0.065);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.14);
+  overflow: hidden;
+}
+
+.trust-bar-grid {
+  position: relative;
+}
+
+.trust-item {
+  position: relative;
+  min-height: 56px;
+  border-radius: 10px;
+  will-change: transform, opacity;
+}
+
+.trust-item::after {
+  content: '';
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  bottom: 10px;
+  height: 1px;
+  border-radius: 999px;
+  background: rgba(232,130,12,0.46);
+  opacity: 0;
+  transform: scaleX(0.35);
+  transform-origin: center;
+  transition: opacity 0.18s ease, transform 0.22s ease;
+}
+
+.trust-item:hover::after {
+  opacity: 0.72;
+  transform: scaleX(1);
+}
+
+.trust-item-icon-wrap {
+  width: auto;
+  height: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  color: rgba(26,22,18,0.8);
+}
+
+.trust-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.trust-item-icon svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+  stroke-width: 1.3px;
+}
+
+.trust-item-label {
+  position: relative;
+  z-index: 1;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: rgba(26,22,18,0.92);
+  font-weight: 560;
+  font-size: 13.6px;
+}
+
+@media (max-width: 767px) {
+  .trust-bar-wrap {
+    max-width: none;
+  }
+  .trust-bar-stage {
+    border-radius: 14px;
+  }
+  .trust-item {
+    min-height: 62px;
+  }
+  .trust-item-icon-wrap {
+    color: rgba(26,22,18,0.72);
+  }
+  .trust-item-icon svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 1.2px;
+  }
+  .trust-item-label {
+    font-size: 13px;
+  }
 }
 
 /* Step icons */
