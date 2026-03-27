@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion, type TargetAndTransition } from 'framer-motion'
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
@@ -105,25 +105,25 @@ export default function HomePageClient() {
     setFilteredTools(tools)
   }, [])
 
-  const trustItemHover = shouldReduceMotion
+  const trustItemHover: TargetAndTransition | undefined = shouldReduceMotion
     ? undefined
     : {
         y: -1,
         backgroundColor: 'rgba(26,22,18,0.03)',
         transition: {
-          type: 'spring',
+          type: 'spring' as const,
           stiffness: 420,
           damping: 30,
           mass: 0.9,
         },
       }
 
-  const trustIconHover = shouldReduceMotion
+  const trustIconHover: TargetAndTransition | undefined = shouldReduceMotion
     ? undefined
     : {
         scale: 1.03,
         transition: {
-          type: 'spring',
+          type: 'spring' as const,
           stiffness: 420,
           damping: 28,
         },
