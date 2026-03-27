@@ -4,7 +4,7 @@ import { TOOLS } from '@/constants/tools'
 export default function sitemap(): MetadataRoute.Sitemap {
   const toolUrls = TOOLS.map(tool => ({
     url: `https://doclair.in/${tool.slug}`,
-    lastModified: new Date('2026-03-24'),
+    lastModified: new Date('2026-03-27'),
     changeFrequency: 'monthly' as const,
     priority: 0.9,
   }))
@@ -36,7 +36,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: 'https://doclair.in/blog/how-to-redact-pdf',                    lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
     { url: 'https://doclair.in/blog/how-to-compress-image-free',           lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
     { url: 'https://doclair.in/blog/how-to-rearrange-pdf-pages',           lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-convert-pdf-to-excel',          lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
+    { url: 'https://doclair.in/blog/how-to-convert-pdf-to-excel',          lastModified: new Date('2026-03-27'), changeFrequency: 'monthly' as const, priority: 0.8 },
   ]
 
   return [

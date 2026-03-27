@@ -181,10 +181,10 @@ const ARTICLES = [
   {
     slug: 'how-to-convert-pdf-to-excel',
     title: 'How to Convert PDF to Excel Free — Extract Tables Without Software',
-    desc: 'Free workarounds to get PDF tables into Excel — no paid tools needed. Step-by-step methods.',
+    desc: 'Use Doclair\'s PDF to Excel converter plus fallback methods for scans and complex tables.',
     category: 'Guide',
     readTime: '6 min',
-    tool: 'pdf-to-word',
+    tool: 'pdf-to-excel',
   },
   {
     slug: 'how-to-compress-pdf-on-iphone',

@@ -317,6 +317,16 @@ export const TOOLS: Tool[] = [
     colorBg: '#D1FAE5',
   },
   {
+    id: 'pdf-to-html',
+    name: 'PDF → HTML',
+    icon: '🌐',
+    category: 'Convert',
+    desc: 'Convert PDF text into clean HTML',
+    slug: 'pdf-to-html',
+    colorBg: '#D1FAE5',
+    isNew: true,
+  },
+  {
     id: 'markdown-to-pdf',
     name: 'Markdown → PDF',
     icon: 'Md',
@@ -333,6 +343,16 @@ export const TOOLS: Tool[] = [
     desc: 'Spreadsheets to readable PDFs',
     slug: 'excel-to-pdf',
     colorBg: '#D1FAE5',
+  },
+  {
+    id: 'pdf-to-excel',
+    name: 'PDF → Excel',
+    icon: '📊',
+    category: 'Convert',
+    desc: 'Export rows and tables to XLSX',
+    slug: 'pdf-to-excel',
+    colorBg: '#D1FAE5',
+    isNew: true,
   },
   {
     id: 'csv-to-pdf',
