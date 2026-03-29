@@ -1,7 +1,12 @@
 import { createWorker } from 'tesseract.js'
 import {
   PDFDocument,
+  PDFContentStream,
+  PDFName,
+  PDFRawStream,
   StandardFonts,
+  decodePDFRawStream,
+  degrees,
   rgb,
   type PDFFont,
   type PDFPage,
@@ -9,16 +14,27 @@ import {
 
 export const EDIT_PREVIEW_SCALE = 1.6
 export const EDIT_REBUILD_SCALE = 2.4
+export const MIN_MEDIA_OVERLAY_OPACITY = 0.1
+export const MAX_MEDIA_OVERLAY_ROTATION_DEG = 180
 
 export type TextBlockSource = 'native' | 'ocr'
 export type EditableFontFamily = 'sans' | 'serif' | 'mono'
 export type EditableFontWeight = 'regular' | 'bold'
 export type EditableFontStyle = 'normal' | 'italic'
+export type EditableTextAlign = 'left' | 'center' | 'right'
+type EmbeddedFontFamily = 'arimo' | 'carlito' | 'tinos' | 'cousine'
 
 export interface EditableFontDescriptor {
   family: EditableFontFamily
   weight: EditableFontWeight
   style: EditableFontStyle
+}
+
+export interface FontPresentation {
+  cssFontFamily: string
+  detectedFamilyLabel: string
+  exportFamilyLabel: string
+  exactMatch: boolean
 }
 
 export interface EditableTextBlock {
@@ -28,6 +44,8 @@ export interface EditableTextBlock {
   originalFontHint: string
   originalPdfFontSize: number
   originalTextColor: string
+  originalTextAlign: EditableTextAlign
+  originalLineHeightMultiplier: number
   text: string
   source: TextBlockSource
   pdfX: number
@@ -42,6 +60,8 @@ export interface EditableTextBlock {
   pdfFontSize: number
   fontHint: string
   textColor: string
+  textAlign: EditableTextAlign
+  lineHeightMultiplier: number
   edited: boolean
 }
 
@@ -76,6 +96,8 @@ export interface AddedTextOverlay {
   text: string
   fontSize: number
   color: string
+  textAlign: EditableTextAlign
+  lineHeightMultiplier: number
   editing: boolean
 }
 
@@ -88,6 +110,21 @@ export interface SignatureOverlay {
   width: number
   height: number
   dataUrl: string
+  rotationDeg: number
+  opacity: number
+}
+
+export interface ImageOverlay {
+  id: string
+  type: 'image'
+  pageIndex: number
+  x: number
+  y: number
+  width: number
+  height: number
+  dataUrl: string
+  rotationDeg: number
+  opacity: number
 }
 
 export interface MarkupOverlay {
@@ -111,7 +148,7 @@ export interface WhiteoutOverlay {
   height: number
 }
 
-export type EditOverlay = AddedTextOverlay | SignatureOverlay | MarkupOverlay | WhiteoutOverlay
+export type EditOverlay = AddedTextOverlay | SignatureOverlay | ImageOverlay | MarkupOverlay | WhiteoutOverlay
 
 export interface EditorLoadProgress {
   current: number
@@ -132,6 +169,7 @@ export interface SaveEditedPdfResult {
   scannedPageCount: number
   visualReplacementCount: number
   rebuiltPageCount: number
+  exactRewritePageCount: number
   whiteoutCount: number
 }
 
@@ -200,9 +238,107 @@ interface TesseractBlock {
   paragraphs?: TesseractParagraph[]
 }
 
+interface EmbeddedFontAsset {
+  label: string
+  cssFallbacks: string[]
+  files: {
+    regular: string
+    italic: string
+    bold: string
+    boldItalic: string
+  }
+}
+
+function getMediaOverlayRotationDeg(overlay: SignatureOverlay | ImageOverlay) {
+  const safeRotation = Number.isFinite(overlay.rotationDeg) ? overlay.rotationDeg : 0
+  return Math.min(MAX_MEDIA_OVERLAY_ROTATION_DEG, Math.max(-MAX_MEDIA_OVERLAY_ROTATION_DEG, safeRotation))
+}
+
+function getMediaOverlayOpacity(overlay: SignatureOverlay | ImageOverlay) {
+  const safeOpacity = Number.isFinite(overlay.opacity) ? overlay.opacity : 1
+  return Math.min(1, Math.max(MIN_MEDIA_OVERLAY_OPACITY, safeOpacity))
+}
+
 const LINE_BUCKET_SIZE = 3
 const OCR_RENDER_SCALE = 2.2
 const DEFAULT_TEXT_COLOR = '#111827'
+const EMBEDDED_FONT_ASSETS: Record<EmbeddedFontFamily, EmbeddedFontAsset> = {
+  arimo: {
+    label: 'Arimo',
+    cssFallbacks: ['Arial', 'Helvetica Neue', 'Helvetica', 'sans-serif'],
+    files: {
+      regular: '/editor-fonts/Arimo-Regular.ttf',
+      italic: '/editor-fonts/Arimo-Italic.ttf',
+      bold: '/editor-fonts/Arimo-Bold.ttf',
+      boldItalic: '/editor-fonts/Arimo-BoldItalic.ttf',
+    },
+  },
+  carlito: {
+    label: 'Carlito',
+    cssFallbacks: ['Calibri', 'Segoe UI', 'Arial', 'sans-serif'],
+    files: {
+      regular: '/editor-fonts/Carlito-Regular.ttf',
+      italic: '/editor-fonts/Carlito-Italic.ttf',
+      bold: '/editor-fonts/Carlito-Bold.ttf',
+      boldItalic: '/editor-fonts/Carlito-BoldItalic.ttf',
+    },
+  },
+  tinos: {
+    label: 'Tinos',
+    cssFallbacks: ['Times New Roman', 'Times', 'Georgia', 'serif'],
+    files: {
+      regular: '/editor-fonts/Tinos-Regular.ttf',
+      italic: '/editor-fonts/Tinos-Italic.ttf',
+      bold: '/editor-fonts/Tinos-Bold.ttf',
+      boldItalic: '/editor-fonts/Tinos-BoldItalic.ttf',
+    },
+  },
+  cousine: {
+    label: 'Cousine',
+    cssFallbacks: ['Courier New', 'Courier', 'Consolas', 'Menlo', 'Monaco', 'monospace'],
+    files: {
+      regular: '/editor-fonts/Cousine-Regular.ttf',
+      italic: '/editor-fonts/Cousine-Italic.ttf',
+      bold: '/editor-fonts/Cousine-Bold.ttf',
+      boldItalic: '/editor-fonts/Cousine-BoldItalic.ttf',
+    },
+  },
+}
+const SPECIFIC_FONT_ALIASES: Array<{ token: string; label: string; family: EmbeddedFontFamily }> = [
+  { token: 'calibri', label: 'Calibri', family: 'carlito' },
+  { token: 'carlito', label: 'Carlito', family: 'carlito' },
+  { token: 'aptos', label: 'Aptos', family: 'carlito' },
+  { token: 'arial', label: 'Arial', family: 'arimo' },
+  { token: 'helvetica neue', label: 'Helvetica Neue', family: 'arimo' },
+  { token: 'helvetica', label: 'Helvetica', family: 'arimo' },
+  { token: 'arimo', label: 'Arimo', family: 'arimo' },
+  { token: 'roboto', label: 'Roboto', family: 'arimo' },
+  { token: 'open sans', label: 'Open Sans', family: 'arimo' },
+  { token: 'inter', label: 'Inter', family: 'arimo' },
+  { token: 'avenir', label: 'Avenir', family: 'arimo' },
+  { token: 'segoe ui', label: 'Segoe UI', family: 'arimo' },
+  { token: 'verdana', label: 'Verdana', family: 'arimo' },
+  { token: 'tahoma', label: 'Tahoma', family: 'arimo' },
+  { token: 'times new roman', label: 'Times New Roman', family: 'tinos' },
+  { token: 'times', label: 'Times', family: 'tinos' },
+  { token: 'tinos', label: 'Tinos', family: 'tinos' },
+  { token: 'georgia', label: 'Georgia', family: 'tinos' },
+  { token: 'cambria', label: 'Cambria', family: 'tinos' },
+  { token: 'garamond', label: 'Garamond', family: 'tinos' },
+  { token: 'palatino', label: 'Palatino', family: 'tinos' },
+  { token: 'baskerville', label: 'Baskerville', family: 'tinos' },
+  { token: 'courier new', label: 'Courier New', family: 'cousine' },
+  { token: 'courier', label: 'Courier', family: 'cousine' },
+  { token: 'cousine', label: 'Cousine', family: 'cousine' },
+  { token: 'consolas', label: 'Consolas', family: 'cousine' },
+  { token: 'source code', label: 'Source Code', family: 'cousine' },
+  { token: 'menlo', label: 'Menlo', family: 'cousine' },
+  { token: 'monaco', label: 'Monaco', family: 'cousine' },
+]
+const fontByteCache = new Map<string, Promise<ArrayBuffer>>()
+const docsWithFontkit = new WeakSet<PDFDocument>()
+let fontkitModulePromise: Promise<unknown> | null = null
+let browserFontLoadPromise: Promise<void> | null = null
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
@@ -252,12 +388,33 @@ function normalizeHexColor(color: string) {
   return DEFAULT_TEXT_COLOR
 }
 
+function normalizeFontHint(fontHint: string) {
+  return fontHint.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function quoteFontFamily(family: string) {
+  return /[\s]/.test(family) && !/^".*"$/.test(family) ? `"${family}"` : family
+}
+
+function unique<T>(values: T[]) {
+  return [...new Set(values)]
+}
+
 export function describeFontHint(fontHint: string): EditableFontDescriptor {
-  const hint = fontHint.toLowerCase()
+  const hint = normalizeFontHint(fontHint)
+  const isMono = hint.includes('monospace') || hint.includes('mono') || hint.includes('courier')
+  const isSans =
+    hint.includes('sans-serif') ||
+    hint.includes('sans serif') ||
+    hint.includes('sans') ||
+    hint.includes('arial') ||
+    hint.includes('helvetica')
   const family: EditableFontDescriptor['family'] =
-    hint.includes('mono') || hint.includes('courier')
+    isMono
       ? 'mono'
-      : hint.includes('times') || hint.includes('serif') || hint.includes('georgia')
+      : isSans
+        ? 'sans'
+        : hint.includes('times') || /\bserif\b/.test(hint) || hint.includes('georgia')
         ? 'serif'
         : 'sans'
 
@@ -268,26 +425,85 @@ export function describeFontHint(fontHint: string): EditableFontDescriptor {
   return { family, weight, style }
 }
 
+function resolveEmbeddedFontFamily(fontHint: string, descriptor = describeFontHint(fontHint)) {
+  const normalizedHint = normalizeFontHint(fontHint)
+  const aliasMatch = SPECIFIC_FONT_ALIASES.find(alias => normalizedHint.includes(alias.token))
+
+  if (aliasMatch) {
+    return {
+      family: aliasMatch.family,
+      detectedFamilyLabel: aliasMatch.label,
+      exactMatch: normalizedHint.includes(EMBEDDED_FONT_ASSETS[aliasMatch.family].label.toLowerCase()),
+    }
+  }
+
+  if (descriptor.family === 'mono') {
+    return { family: 'cousine' as const, detectedFamilyLabel: 'Monospace', exactMatch: false }
+  }
+
+  if (descriptor.family === 'serif') {
+    return { family: 'tinos' as const, detectedFamilyLabel: 'Serif', exactMatch: false }
+  }
+
+  return { family: 'arimo' as const, detectedFamilyLabel: 'Sans', exactMatch: false }
+}
+
+export function getFontPresentation(fontHint: string): FontPresentation {
+  const descriptor = describeFontHint(fontHint)
+  const match = resolveEmbeddedFontFamily(fontHint, descriptor)
+  const asset = EMBEDDED_FONT_ASSETS[match.family]
+  const cssFontFamily = unique([match.detectedFamilyLabel, asset.label, ...asset.cssFallbacks])
+    .map(quoteFontFamily)
+    .join(', ')
+
+  return {
+    cssFontFamily,
+    detectedFamilyLabel: match.detectedFamilyLabel,
+    exportFamilyLabel: asset.label,
+    exactMatch: match.exactMatch,
+  }
+}
+
 export function composeFontHint(descriptor: EditableFontDescriptor) {
   return [descriptor.family, descriptor.weight === 'bold' ? 'bold' : '', descriptor.style === 'italic' ? 'italic' : '']
     .filter(Boolean)
     .join(' ')
 }
 
+function fontHintsMatch(left: string, right: string) {
+  const leftDescriptor = describeFontHint(left)
+  const rightDescriptor = describeFontHint(right)
+
+  return (
+    leftDescriptor.family === rightDescriptor.family &&
+    leftDescriptor.weight === rightDescriptor.weight &&
+    leftDescriptor.style === rightDescriptor.style
+  )
+}
+
 export function isTextBlockEdited(
   block: EditableTextBlock,
-  overrides?: Partial<Pick<EditableTextBlock, 'text' | 'fontHint' | 'pdfFontSize' | 'textColor'>>,
+  overrides?: Partial<
+    Pick<
+      EditableTextBlock,
+      'text' | 'fontHint' | 'pdfFontSize' | 'textColor' | 'textAlign' | 'lineHeightMultiplier'
+    >
+  >,
 ) {
   const nextText = (overrides?.text ?? block.text).replace(/\r/g, '')
   const nextFontHint = overrides?.fontHint ?? block.fontHint
   const nextPdfFontSize = overrides?.pdfFontSize ?? block.pdfFontSize
   const nextTextColor = normalizeHexColor(overrides?.textColor ?? block.textColor)
+  const nextTextAlign = overrides?.textAlign ?? block.textAlign
+  const nextLineHeightMultiplier = overrides?.lineHeightMultiplier ?? block.lineHeightMultiplier
 
   return (
     nextText !== block.originalText ||
-    nextFontHint !== block.originalFontHint ||
+    !fontHintsMatch(nextFontHint, block.originalFontHint) ||
     Math.abs(nextPdfFontSize - block.originalPdfFontSize) > 0.15 ||
-    nextTextColor !== normalizeHexColor(block.originalTextColor)
+    nextTextColor !== normalizeHexColor(block.originalTextColor) ||
+    nextTextAlign !== block.originalTextAlign ||
+    Math.abs(nextLineHeightMultiplier - block.originalLineHeightMultiplier) > 0.02
   )
 }
 
@@ -312,6 +528,56 @@ function standardFontForHint(fontHint: string) {
   if (descriptor.weight === 'bold') return StandardFonts.HelveticaBold
   if (descriptor.style === 'italic') return StandardFonts.HelveticaOblique
   return StandardFonts.Helvetica
+}
+
+function fontVariantKey(descriptor: EditableFontDescriptor) {
+  if (descriptor.weight === 'bold' && descriptor.style === 'italic') return 'boldItalic' as const
+  if (descriptor.weight === 'bold') return 'bold' as const
+  if (descriptor.style === 'italic') return 'italic' as const
+  return 'regular' as const
+}
+
+async function ensureFontkit(doc: PDFDocument) {
+  if (docsWithFontkit.has(doc)) return
+  if (!fontkitModulePromise) {
+    fontkitModulePromise = import('@pdf-lib/fontkit').then(module => module.default ?? module)
+  }
+
+  doc.registerFontkit(await fontkitModulePromise as Parameters<PDFDocument['registerFontkit']>[0])
+  docsWithFontkit.add(doc)
+}
+
+async function fetchEmbeddedFontBytes(path: string) {
+  let request = fontByteCache.get(path)
+  if (!request) {
+    request = fetch(path).then(async response => {
+      if (!response.ok) throw new Error(`Could not load font asset: ${path}`)
+      return response.arrayBuffer()
+    })
+    fontByteCache.set(path, request)
+  }
+  return request
+}
+
+async function ensureBrowserFallbackFontsLoaded() {
+  if (typeof document === 'undefined' || typeof FontFace === 'undefined') return
+  if (browserFontLoadPromise) return browserFontLoadPromise
+
+  browserFontLoadPromise = (async () => {
+    const fontFaces = Object.values(EMBEDDED_FONT_ASSETS).flatMap(asset => [
+      new FontFace(asset.label, `url(${asset.files.regular})`, { weight: '400', style: 'normal' }),
+      new FontFace(asset.label, `url(${asset.files.italic})`, { weight: '400', style: 'italic' }),
+      new FontFace(asset.label, `url(${asset.files.bold})`, { weight: '700', style: 'normal' }),
+      new FontFace(asset.label, `url(${asset.files.boldItalic})`, { weight: '700', style: 'italic' }),
+    ])
+
+    await Promise.all(fontFaces.map(async face => {
+      const loaded = await face.load()
+      document.fonts.add(loaded)
+    }))
+  })()
+
+  return browserFontLoadPromise
 }
 
 function blockToOverlayBox(block: EditableTextBlock, page: EditablePdfPage) {
@@ -372,6 +638,8 @@ function buildBlocksFromItems(
         originalFontHint: first.fontHint,
         originalPdfFontSize: pdfFontSize,
         originalTextColor: DEFAULT_TEXT_COLOR,
+        originalTextAlign: 'left' as const,
+        originalLineHeightMultiplier: 1,
         text: text.trim(),
         source: 'native',
         pdfX: pdfLeft,
@@ -386,6 +654,8 @@ function buildBlocksFromItems(
         pdfFontSize,
         fontHint: first.fontHint,
         textColor: DEFAULT_TEXT_COLOR,
+        textAlign: 'left' as const,
+        lineHeightMultiplier: 1,
         edited: false,
       })
 
@@ -527,6 +797,8 @@ function createOcrBlock(
     originalFontHint: fontHint,
     originalPdfFontSize: pdfFontSize,
     originalTextColor: DEFAULT_TEXT_COLOR,
+    originalTextAlign: 'left' as const,
+    originalLineHeightMultiplier: 1,
     text,
     source: 'ocr' as const,
     pdfX: box.x0 * pdfScaleX,
@@ -541,6 +813,8 @@ function createOcrBlock(
     pdfFontSize,
     fontHint,
     textColor: DEFAULT_TEXT_COLOR,
+    textAlign: 'left' as const,
+    lineHeightMultiplier: 1,
     edited: false,
   }
 }
@@ -739,6 +1013,7 @@ export async function loadEditablePdf(
   file: File,
   onProgress?: (progress: EditorLoadProgress) => void,
 ): Promise<EditablePdfDocument> {
+  await ensureBrowserFallbackFontsLoaded()
   const pdfjsLib = await getPdfJs()
   const bytes = await file.arrayBuffer()
   const pdf = await pdfjsLib.getDocument({
@@ -1126,12 +1401,7 @@ function wrapCanvasText(ctx: CanvasRenderingContext2D, text: string, maxWidth: n
 
 function cssFontForHint(fontHint: string, fontSize: number) {
   const descriptor = describeFontHint(fontHint)
-  const family =
-    descriptor.family === 'mono'
-      ? '"Courier New", Courier, monospace'
-      : descriptor.family === 'serif'
-        ? 'Georgia, "Times New Roman", serif'
-        : '"Helvetica Neue", Arial, sans-serif'
+  const family = getFontPresentation(fontHint).cssFontFamily
   const style = descriptor.style === 'italic' ? 'italic' : 'normal'
   const weight = descriptor.weight === 'bold' ? '700' : '400'
 
@@ -1256,6 +1526,32 @@ interface FittedTextLayout {
   fontSize: number
   lineHeight: number
   widestLine: number
+  height: number
+  singleLine: boolean
+}
+
+function resolveSoftMaxHeight(text: string, fontSize: number, maxHeight?: number) {
+  if (!maxHeight || !Number.isFinite(maxHeight)) return Number.POSITIVE_INFINITY
+
+  const explicitLineCount = Math.max(text.split('\n').length, 1)
+  const growthFactor = explicitLineCount > 1 ? Math.min(Math.max(explicitLineCount, 2), 4) : 1.9
+  return Math.max(
+    maxHeight,
+    maxHeight * growthFactor,
+    fontSize * 1.16 * Math.min(Math.max(explicitLineCount, 1), 4),
+  )
+}
+
+function resolveLineHeight(fontSize: number, lineCount: number, targetHeight?: number) {
+  if (!targetHeight || !Number.isFinite(targetHeight)) {
+    return fontSize * (lineCount > 1 ? 1.1 : 1.16)
+  }
+
+  const idealLineHeight = targetHeight / Math.max(lineCount, 1)
+  const minFactor = lineCount > 1 ? 1.02 : 1.08
+  const maxFactor = lineCount > 2 ? 1.14 : 1.22
+
+  return clamp(idealLineHeight, fontSize * minFactor, fontSize * maxFactor)
 }
 
 function fitPdfTextLayout(
@@ -1263,21 +1559,28 @@ function fitPdfTextLayout(
   font: PDFFont,
   fontSize: number,
   maxWidth: number,
+  maxHeight?: number,
+  lineHeightMultiplier = 1,
 ) {
   const prefersSingleLine = !text.includes('\n')
   const singleLineText = normalizeSingleLineText(text)
-  const minimumSize = Math.max(8, fontSize * 0.72)
+  const minimumSize = Math.max(6.5, fontSize * 0.58)
+  const softMaxHeight = resolveSoftMaxHeight(text, fontSize, maxHeight)
   let nextSize = fontSize
+  let bestLayout: FittedTextLayout | null = null
 
   if (prefersSingleLine && singleLineText) {
     while (nextSize >= minimumSize) {
       const width = font.widthOfTextAtSize(singleLineText, nextSize)
-      if (width <= maxWidth) {
+      if (width <= maxWidth * 0.995) {
+        const lineHeight = resolveLineHeight(nextSize, 1, maxHeight) * lineHeightMultiplier
         return {
           lines: [singleLineText],
           fontSize: nextSize,
-          lineHeight: nextSize * 1.18,
+          lineHeight,
           widestLine: width,
+          height: lineHeight,
+          singleLine: true,
         } satisfies FittedTextLayout
       }
 
@@ -1286,14 +1589,51 @@ function fitPdfTextLayout(
     }
   }
 
-  const lines = wrapText(text, font, nextSize, Math.max(maxWidth, nextSize))
-  const lineHeight = nextSize * 1.18
-  const widestLine = lines.reduce(
-    (widest, line) => Math.max(widest, font.widthOfTextAtSize(line || ' ', nextSize)),
-    0,
-  )
+  nextSize = fontSize
 
-  return { lines, fontSize: nextSize, lineHeight, widestLine }
+  while (nextSize >= minimumSize) {
+    const lines = wrapText(text, font, nextSize, Math.max(maxWidth, nextSize))
+    const widestLine = lines.reduce(
+      (widest, line) => Math.max(widest, font.widthOfTextAtSize(line || ' ', nextSize)),
+      0,
+    )
+    const lineHeight = resolveLineHeight(nextSize, lines.length, softMaxHeight) * lineHeightMultiplier
+    const height = lineHeight * lines.length
+    const layout = {
+      lines,
+      fontSize: nextSize,
+      lineHeight,
+      widestLine,
+      height,
+      singleLine: lines.length === 1,
+    } satisfies FittedTextLayout
+
+    if (
+      !bestLayout ||
+      layout.height < bestLayout.height - 0.1 ||
+      (Math.abs(layout.height - bestLayout.height) <= 0.1 && layout.fontSize > bestLayout.fontSize)
+    ) {
+      bestLayout = layout
+    }
+
+    if (height <= softMaxHeight + 0.25) {
+      return layout
+    }
+
+    if (nextSize === minimumSize) break
+    nextSize = Math.max(minimumSize, Number((nextSize * 0.96).toFixed(2)))
+  }
+
+  return (
+    bestLayout ?? {
+      lines: wrapText(text, font, fontSize, Math.max(maxWidth, fontSize)),
+      fontSize,
+      lineHeight: resolveLineHeight(fontSize, 1, maxHeight) * lineHeightMultiplier,
+      widestLine: font.widthOfTextAtSize(singleLineText || text || ' ', fontSize),
+      height: resolveLineHeight(fontSize, 1, maxHeight) * lineHeightMultiplier,
+      singleLine: true,
+    }
+  )
 }
 
 function fitCanvasTextLayout(
@@ -1302,11 +1642,15 @@ function fitCanvasTextLayout(
   fontSize: number,
   maxWidth: number,
   fontHint: string,
+  maxHeight?: number,
+  lineHeightMultiplier = 1,
 ) {
   const prefersSingleLine = !text.includes('\n')
   const singleLineText = normalizeSingleLineText(text)
-  const minimumSize = Math.max(8, fontSize * 0.72)
+  const minimumSize = Math.max(6.5, fontSize * 0.58)
+  const softMaxHeight = resolveSoftMaxHeight(text, fontSize, maxHeight)
   let nextSize = fontSize
+  let bestLayout: FittedTextLayout | null = null
 
   if (prefersSingleLine && singleLineText) {
     while (nextSize >= minimumSize) {
@@ -1315,12 +1659,15 @@ function fitCanvasTextLayout(
       const width = ctx.measureText(singleLineText).width
       ctx.restore()
 
-      if (width <= maxWidth) {
+      if (width <= maxWidth * 0.995) {
+        const lineHeight = resolveLineHeight(nextSize, 1, maxHeight) * lineHeightMultiplier
         return {
           lines: [singleLineText],
           fontSize: nextSize,
-          lineHeight: nextSize * 1.18,
+          lineHeight,
           widestLine: width,
+          height: lineHeight,
+          singleLine: true,
         } satisfies FittedTextLayout
       }
 
@@ -1329,21 +1676,60 @@ function fitCanvasTextLayout(
     }
   }
 
+  nextSize = fontSize
+
+  while (nextSize >= minimumSize) {
+    ctx.save()
+    ctx.font = cssFontForHint(fontHint, nextSize)
+    const lines = wrapCanvasText(ctx, text, Math.max(maxWidth, nextSize))
+    const widestLine = lines.reduce(
+      (widest, line) => Math.max(widest, ctx.measureText(line || ' ').width),
+      0,
+    )
+    ctx.restore()
+
+    const lineHeight = resolveLineHeight(nextSize, lines.length, softMaxHeight) * lineHeightMultiplier
+    const height = lineHeight * lines.length
+    const layout = {
+      lines,
+      fontSize: nextSize,
+      lineHeight,
+      widestLine,
+      height,
+      singleLine: lines.length === 1,
+    } satisfies FittedTextLayout
+
+    if (
+      !bestLayout ||
+      layout.height < bestLayout.height - 0.1 ||
+      (Math.abs(layout.height - bestLayout.height) <= 0.1 && layout.fontSize > bestLayout.fontSize)
+    ) {
+      bestLayout = layout
+    }
+
+    if (height <= softMaxHeight + 0.25) {
+      return layout
+    }
+
+    if (nextSize === minimumSize) break
+    nextSize = Math.max(minimumSize, Number((nextSize * 0.96).toFixed(2)))
+  }
+
   ctx.save()
-  ctx.font = cssFontForHint(fontHint, nextSize)
-  const lines = wrapCanvasText(ctx, text, Math.max(maxWidth, nextSize))
-  const widestLine = lines.reduce(
-    (widest, line) => Math.max(widest, ctx.measureText(line || ' ').width),
-    0,
-  )
+  ctx.font = cssFontForHint(fontHint, fontSize)
+  const widestLine = ctx.measureText(singleLineText || text || ' ').width
   ctx.restore()
 
-  return {
-    lines,
-    fontSize: nextSize,
-    lineHeight: nextSize * 1.18,
-    widestLine,
-  } satisfies FittedTextLayout
+  return (
+    bestLayout ?? {
+      lines: [singleLineText || text || ''],
+      fontSize,
+      lineHeight: resolveLineHeight(fontSize, 1, maxHeight) * lineHeightMultiplier,
+      widestLine,
+      height: resolveLineHeight(fontSize, 1, maxHeight) * lineHeightMultiplier,
+      singleLine: true,
+    }
+  )
 }
 
 function blockToCanvasMetrics(
@@ -1372,14 +1758,32 @@ function drawWrappedCanvasText(
   maxWidth: number,
   color: string,
   fontHint: string,
+  maxHeight?: number,
+  textAlign: EditableTextAlign = 'left',
+  lineHeightMultiplier = 1,
 ) {
-  const layout = fitCanvasTextLayout(ctx, text, fontSize, Math.max(maxWidth, fontSize), fontHint)
+  const layout = fitCanvasTextLayout(
+    ctx,
+    text,
+    fontSize,
+    Math.max(maxWidth, fontSize),
+    fontHint,
+    maxHeight,
+    lineHeightMultiplier,
+  )
   ctx.save()
   ctx.font = cssFontForHint(fontHint, layout.fontSize)
   ctx.fillStyle = color
   ctx.textBaseline = 'top'
   layout.lines.forEach((line, index) => {
-    ctx.fillText(line, x, y + index * layout.lineHeight)
+    const lineWidth = ctx.measureText(line).width
+    const drawX =
+      textAlign === 'center'
+        ? x + Math.max(0, (maxWidth - lineWidth) / 2)
+        : textAlign === 'right'
+          ? x + Math.max(0, maxWidth - lineWidth)
+          : x
+    ctx.fillText(line, drawX, y + index * layout.lineHeight)
   })
   ctx.restore()
 
@@ -1388,6 +1792,8 @@ function drawWrappedCanvasText(
     lineHeight: layout.lineHeight,
     widestLine: layout.widestLine,
     fontSize: layout.fontSize,
+    height: layout.height,
+    singleLine: layout.singleLine,
   }
 }
 
@@ -1428,6 +1834,7 @@ async function drawRebuiltPageCanvas(
   pageState: EditablePdfPage,
   pageOverlays: EditOverlay[],
 ) {
+  await ensureBrowserFallbackFontsLoaded()
   const ctx = getCanvas2dContext(canvas)
 
   for (const overlay of pageOverlays) {
@@ -1459,16 +1866,25 @@ async function drawRebuiltPageCanvas(
 
   for (const block of pageState.textBlocks.filter(item => item.edited)) {
     const metrics = blockToCanvasMetrics(block, pageState, canvas)
-    const background = sampleCanvasFill(ctx, metrics.x, metrics.y, metrics.width, metrics.height)
-    const coverWidth = Math.max(metrics.width + 3, metrics.fontSize * 0.95)
-    const coverHeight = Math.max(metrics.height + 2, metrics.fontSize * 1.1)
+    const previewLayout = fitCanvasTextLayout(
+      ctx,
+      block.text,
+      metrics.fontSize,
+      metrics.width,
+      block.fontHint,
+      metrics.height,
+      block.lineHeightMultiplier,
+    )
+    const coverWidth = Math.max(metrics.width + 8, previewLayout.widestLine + previewLayout.fontSize * 1.05)
+    const coverHeight = Math.max(metrics.height + 6, previewLayout.height + previewLayout.fontSize * 0.55)
+    const background = sampleCanvasFill(ctx, metrics.x, metrics.y, coverWidth, coverHeight)
     ctx.save()
     ctx.fillStyle = background.fill
     ctx.fillRect(
-      Math.max(0, metrics.x - 1.5),
-      Math.max(0, metrics.y - 1),
-      Math.min(canvas.width, coverWidth),
-      Math.min(canvas.height, coverHeight),
+      Math.max(0, metrics.x - 3),
+      Math.max(0, metrics.y - 2),
+      Math.min(canvas.width - Math.max(0, metrics.x - 3), coverWidth + 4),
+      Math.min(canvas.height - Math.max(0, metrics.y - 2), coverHeight + 4),
     )
     ctx.restore()
 
@@ -1481,6 +1897,9 @@ async function drawRebuiltPageCanvas(
       metrics.width,
       block.textColor,
       block.fontHint,
+      metrics.height,
+      block.textAlign,
+      block.lineHeightMultiplier,
     )
   }
 
@@ -1496,6 +1915,9 @@ async function drawRebuiltPageCanvas(
         Math.max(overlay.width * canvas.width, overlay.fontSize * 2),
         `rgb(${red}, ${green}, ${blue})`,
         'sans',
+        undefined,
+        overlay.textAlign,
+        overlay.lineHeightMultiplier,
       )
     }
 
@@ -1511,15 +1933,25 @@ async function drawRebuiltPageCanvas(
       ctx.restore()
     }
 
-    if (overlay.type === 'signature') {
+    if (overlay.type === 'signature' || overlay.type === 'image') {
       const image = await loadImageElement(overlay.dataUrl)
+      const drawWidth = overlay.width * canvas.width
+      const drawHeight = overlay.height * canvas.height
+      const centerX = overlay.x * canvas.width + drawWidth / 2
+      const centerY = overlay.y * canvas.height + drawHeight / 2
+
+      ctx.save()
+      ctx.translate(centerX, centerY)
+      ctx.rotate((getMediaOverlayRotationDeg(overlay) * Math.PI) / 180)
+      ctx.globalAlpha = getMediaOverlayOpacity(overlay)
       ctx.drawImage(
         image,
-        overlay.x * canvas.width,
-        overlay.y * canvas.height,
-        overlay.width * canvas.width,
-        overlay.height * canvas.height,
+        -drawWidth / 2,
+        -drawHeight / 2,
+        drawWidth,
+        drawHeight,
       )
+      ctx.restore()
     }
   }
 }
@@ -1529,13 +1961,37 @@ async function resolveFont(
   cache: Map<string, PDFFont>,
   fontHint: string,
 ) {
+  const descriptor = describeFontHint(fontHint)
+  const match = resolveEmbeddedFontFamily(fontHint, descriptor)
+  const asset = EMBEDDED_FONT_ASSETS[match.family]
+  const variant = fontVariantKey(descriptor)
+  const customKey = `custom:${match.family}:${variant}`
+
+  if (!cache.has(customKey)) {
+    try {
+      await ensureFontkit(doc)
+      const bytes = await fetchEmbeddedFontBytes(asset.files[variant])
+      cache.set(customKey, await doc.embedFont(bytes, { subset: true }))
+    } catch {
+      // Fall back to a standard PDF font when embedded font loading fails.
+    }
+  }
+
+  if (cache.has(customKey)) {
+    return {
+      font: cache.get(customKey)!,
+      substituted: !match.exactMatch,
+    }
+  }
+
   const fontName = standardFontForHint(fontHint)
-  if (!cache.has(fontName)) {
-    cache.set(fontName, await doc.embedFont(fontName))
+  const standardKey = `standard:${fontName}`
+  if (!cache.has(standardKey)) {
+    cache.set(standardKey, await doc.embedFont(fontName))
   }
   return {
-    font: cache.get(fontName)!,
-    substituted: !fontHint.toLowerCase().includes(fontName.toLowerCase().replace(/-/g, '')),
+    font: cache.get(standardKey)!,
+    substituted: true,
   }
 }
 
@@ -1547,14 +2003,31 @@ function drawWrappedText(
   y: number,
   fontSize: number,
   maxWidth: number,
+  maxHeight: number | undefined,
   color: ReturnType<typeof rgb>,
+  textAlign: EditableTextAlign = 'left',
+  lineHeightMultiplier = 1,
   opacity = 1,
 ) {
-  const layout = fitPdfTextLayout(text, font, fontSize, Math.max(maxWidth, fontSize))
+  const layout = fitPdfTextLayout(
+    text,
+    font,
+    fontSize,
+    Math.max(maxWidth, fontSize),
+    maxHeight,
+    lineHeightMultiplier,
+  )
 
   layout.lines.forEach((line, index) => {
+    const lineWidth = font.widthOfTextAtSize(line, layout.fontSize)
+    const drawX =
+      textAlign === 'center'
+        ? x + Math.max(0, (maxWidth - lineWidth) / 2)
+        : textAlign === 'right'
+          ? x + Math.max(0, maxWidth - lineWidth)
+          : x
     page.drawText(line, {
-      x,
+      x: drawX,
       y: y - index * layout.lineHeight,
       font,
       size: layout.fontSize,
@@ -1569,7 +2042,171 @@ function drawWrappedText(
     lineHeight: layout.lineHeight,
     widestLine: layout.widestLine,
     fontSize: layout.fontSize,
+    height: layout.height,
+    singleLine: layout.singleLine,
   }
+}
+
+function escapePdfLiteralString(value: string) {
+  return value
+    .replace(/\\/g, '\\\\')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)')
+}
+
+function encodeUtf16BeHexString(value: string) {
+  let hex = 'FEFF'
+
+  for (const char of value) {
+    const codePoint = char.codePointAt(0) ?? 0
+    if (codePoint <= 0xffff) {
+      hex += codePoint.toString(16).toUpperCase().padStart(4, '0')
+      continue
+    }
+
+    const adjusted = codePoint - 0x10000
+    const high = 0xd800 + (adjusted >> 10)
+    const low = 0xdc00 + (adjusted & 0x3ff)
+    hex += high.toString(16).toUpperCase().padStart(4, '0')
+    hex += low.toString(16).toUpperCase().padStart(4, '0')
+  }
+
+  return `<${hex}>`
+}
+
+function countOccurrences(content: string, needle: string) {
+  if (!needle) return 0
+
+  let count = 0
+  let cursor = 0
+
+  while (cursor < content.length) {
+    const index = content.indexOf(needle, cursor)
+    if (index === -1) break
+    count += 1
+    cursor = index + needle.length
+  }
+
+  return count
+}
+
+function replaceUniqueEncodedText(content: string, originalText: string, replacementText: string) {
+  const literalOriginal = `(${escapePdfLiteralString(originalText)})`
+  const literalReplacement = `(${escapePdfLiteralString(replacementText)})`
+
+  if (countOccurrences(content, literalOriginal) === 1) {
+    return content.replace(literalOriginal, literalReplacement)
+  }
+
+  const utf16Original = encodeUtf16BeHexString(originalText)
+  if (countOccurrences(content, utf16Original) === 1) {
+    return content.replace(utf16Original, encodeUtf16BeHexString(replacementText))
+  }
+
+  return null
+}
+
+function stringToPdfBytes(value: string) {
+  const bytes = new Uint8Array(value.length)
+  for (let index = 0; index < value.length; index += 1) {
+    bytes[index] = value.charCodeAt(index) & 0xff
+  }
+  return bytes
+}
+
+function styleChangedFromOriginal(block: EditableTextBlock) {
+  return (
+    !fontHintsMatch(block.fontHint, block.originalFontHint) ||
+    Math.abs(block.pdfFontSize - block.originalPdfFontSize) > 0.02 ||
+    normalizeHexColor(block.textColor) !== normalizeHexColor(block.originalTextColor) ||
+    block.textAlign !== block.originalTextAlign ||
+    Math.abs(block.lineHeightMultiplier - block.originalLineHeightMultiplier) > 0.02
+  )
+}
+
+export function isExactRewriteCandidateBlock(block: EditableTextBlock) {
+  return (
+    block.edited &&
+    block.source === 'native' &&
+    !styleChangedFromOriginal(block) &&
+    !block.originalText.includes('\n') &&
+    !block.text.includes('\n')
+  )
+}
+
+export function isExactRewriteCandidatePage(page: EditablePdfPage, overlays: EditOverlay[]) {
+  if (!page.hasTextLayer || page.ocrApplied) return false
+  if (overlays.some(overlay => overlay.pageIndex === page.pageIndex && overlay.type === 'whiteout')) return false
+
+  const editedBlocks = page.textBlocks.filter(block => block.edited)
+  return editedBlocks.length > 0 && editedBlocks.every(isExactRewriteCandidateBlock)
+}
+
+async function canKeepSingleLineForExactRewrite(
+  doc: PDFDocument,
+  cache: Map<string, PDFFont>,
+  block: EditableTextBlock,
+) {
+  const { font } = await resolveFont(doc, cache, block.originalFontHint)
+  const originalText = normalizeSingleLineText(block.originalText.replace(/\r/g, ''))
+  const replacementText = normalizeSingleLineText(block.text.replace(/\r/g, ''))
+  const originalWidth = font.widthOfTextAtSize(originalText || ' ', block.originalPdfFontSize)
+  const replacementWidth = font.widthOfTextAtSize(replacementText || ' ', block.originalPdfFontSize)
+  const maxWidth = Math.max(block.pdfWidth, originalWidth) + 0.5
+
+  return replacementWidth <= maxWidth
+}
+
+async function tryExactRewritePage(
+  doc: PDFDocument,
+  page: PDFPage,
+  pageState: EditablePdfPage,
+  editedBlocks: EditableTextBlock[],
+  fontCache: Map<string, PDFFont>,
+) {
+  const normalizedEntries = page.node.normalizedEntries()
+  const contents = normalizedEntries.Contents
+  if (!contents) return false
+
+  let decodedContent = ''
+
+  for (let index = 0, count = contents.size(); index < count; index += 1) {
+    const stream = contents.lookup(index)
+    if (stream instanceof PDFRawStream) {
+      decodedContent += new TextDecoder('latin1').decode(decodePDFRawStream(stream).decode())
+      decodedContent += '\n'
+      continue
+    }
+
+    if (stream instanceof PDFContentStream) {
+      decodedContent += new TextDecoder('latin1').decode(stream.getUnencodedContents())
+      decodedContent += '\n'
+      continue
+    }
+
+    return false
+  }
+
+  const blocksByLength = [...editedBlocks].sort((left, right) => right.originalText.length - left.originalText.length)
+
+  for (const block of blocksByLength) {
+    if (!(await canKeepSingleLineForExactRewrite(doc, fontCache, block))) return false
+
+    const nextContent = replaceUniqueEncodedText(
+      decodedContent,
+      block.originalText.replace(/\r/g, ''),
+      block.text.replace(/\r/g, ''),
+    )
+
+    if (!nextContent) return false
+    decodedContent = nextContent
+  }
+
+  const replacementStream = doc.context.flateStream(stringToPdfBytes(decodedContent))
+  const replacementRef = doc.context.register(replacementStream)
+  page.node.set(PDFName.of('Contents'), doc.context.obj([replacementRef]))
+
+  return true
 }
 
 function whiteoutCoversBlock(
@@ -1662,6 +2299,7 @@ export async function saveEditedPdf(
   pages: EditablePdfPage[],
   overlays: EditOverlay[],
 ): Promise<SaveEditedPdfResult> {
+  await ensureBrowserFallbackFontsLoaded()
   const bytes = await file.arrayBuffer()
   const sourceDoc = await PDFDocument.load(bytes, { throwOnInvalidObject: false })
   const doc = await PDFDocument.create()
@@ -1670,6 +2308,8 @@ export async function saveEditedPdf(
   let substitutedFontCount = 0
   let scannedPageCount = 0
   let rebuiltPageCount = 0
+  let exactRewritePageCount = 0
+  let exactRewriteTextCount = 0
   let whiteoutCount = 0
   let pdfjsLib: Awaited<ReturnType<typeof getPdfJs>> | null = null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1677,14 +2317,17 @@ export async function saveEditedPdf(
 
   for (const pageState of pages) {
     const pageOverlays = overlays.filter(overlay => overlay.pageIndex === pageState.pageIndex)
-    const hasEditedExistingText = pageState.textBlocks.some(block => block.edited)
     const whiteoutOverlays = pageOverlays.filter(
       (overlay): overlay is WhiteoutOverlay => overlay.type === 'whiteout'
     )
     const editedBlocks = pageState.textBlocks.filter(block => block.edited)
-    const requiresRebuild = hasEditedExistingText || whiteoutOverlays.length > 0
+    const hasEditedExistingText = editedBlocks.length > 0
+    const canAttemptExactRewrite =
+      whiteoutOverlays.length === 0 &&
+      isExactRewriteCandidatePage(pageState, pageOverlays)
 
-    let pdfPage: PDFPage
+    let pdfPage: PDFPage | null = null
+    let exactRewriteApplied = false
 
     if (pageState.ocrApplied) {
       scannedPageCount += 1
@@ -1692,7 +2335,27 @@ export async function saveEditedPdf(
 
     whiteoutCount += whiteoutOverlays.length
 
-    if (requiresRebuild) {
+    if (canAttemptExactRewrite) {
+      const [candidatePage] = await doc.copyPages(sourceDoc, [pageState.pageIndex])
+      exactRewriteApplied = await tryExactRewritePage(
+        doc,
+        candidatePage,
+        pageState,
+        editedBlocks,
+        fontCache,
+      )
+
+      if (exactRewriteApplied) {
+        pdfPage = candidatePage
+        doc.addPage(pdfPage)
+        exactRewritePageCount += 1
+        exactRewriteTextCount += editedBlocks.length
+      }
+    }
+
+    const requiresRebuild = !exactRewriteApplied && (hasEditedExistingText || whiteoutOverlays.length > 0)
+
+    if (!exactRewriteApplied && requiresRebuild) {
       if (!pdfjsLib) pdfjsLib = await getPdfJs()
       if (!pdfjsDoc) {
         pdfjsDoc = await pdfjsLib.getDocument({
@@ -1716,10 +2379,14 @@ export async function saveEditedPdf(
         height: pageState.pdfHeight,
       })
       rebuiltPageCount += 1
-    } else {
+    } else if (!exactRewriteApplied) {
       const [copiedPage] = await doc.copyPages(sourceDoc, [pageState.pageIndex])
       pdfPage = copiedPage
       doc.addPage(pdfPage)
+    }
+
+    if (!pdfPage) {
+      throw new Error(`Could not prepare export page ${pageState.pageIndex + 1}`)
     }
 
     const pdfWidth = pageState.pdfWidth || pdfPage.getWidth()
@@ -1760,7 +2427,10 @@ export async function saveEditedPdf(
         block.pdfY,
         block.pdfFontSize,
         block.pdfWidth,
+        block.pdfHeight,
         rgb(0, 0, 0),
+        block.textAlign,
+        block.lineHeightMultiplier,
         0.001,
       )
 
@@ -1787,7 +2457,10 @@ export async function saveEditedPdf(
             y,
             overlay.fontSize,
             width,
+            undefined,
             rgb(red / 255, green / 255, blue / 255),
+            overlay.textAlign,
+            overlay.lineHeightMultiplier,
           )
         }
 
@@ -1800,21 +2473,33 @@ export async function saveEditedPdf(
             y,
             overlay.fontSize,
             width,
+            undefined,
             rgb(0, 0, 0),
+            overlay.textAlign,
+            overlay.lineHeightMultiplier,
             0.001,
           )
         }
       }
 
-      if (!requiresRebuild && overlay.type === 'signature') {
+      if (!requiresRebuild && (overlay.type === 'signature' || overlay.type === 'image')) {
         const image = await doc.embedPng(overlay.dataUrl)
         const drawWidth = overlay.width * pdfWidth
         const drawHeight = overlay.height * pdfHeight
+        const rotationDeg = getMediaOverlayRotationDeg(overlay)
+        const rotationRad = (rotationDeg * Math.PI) / 180
+        const centerX = overlay.x * pdfWidth + drawWidth / 2
+        const centerY = pdfHeight - overlay.y * pdfHeight - drawHeight / 2
+        const anchorX = centerX - (drawWidth / 2) * Math.cos(rotationRad) + (drawHeight / 2) * Math.sin(rotationRad)
+        const anchorY = centerY - (drawWidth / 2) * Math.sin(rotationRad) - (drawHeight / 2) * Math.cos(rotationRad)
+
         pdfPage.drawImage(image, {
-          x: overlay.x * pdfWidth,
-          y: pdfHeight - overlay.y * pdfHeight - drawHeight,
+          x: anchorX,
+          y: anchorY,
           width: drawWidth,
           height: drawHeight,
+          rotate: degrees(rotationDeg),
+          opacity: getMediaOverlayOpacity(overlay),
         })
       }
 
@@ -1853,8 +2538,9 @@ export async function saveEditedPdf(
     editedTextCount,
     substitutedFontCount,
     scannedPageCount,
-    visualReplacementCount: editedTextCount,
+    visualReplacementCount: Math.max(editedTextCount - exactRewriteTextCount, 0),
     rebuiltPageCount,
+    exactRewritePageCount,
     whiteoutCount,
   }
 }

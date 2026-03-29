@@ -18,13 +18,19 @@ import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import {
   EDIT_PREVIEW_SCALE,
+  MAX_MEDIA_OVERLAY_ROTATION_DEG,
+  MIN_MEDIA_OVERLAY_OPACITY,
   type AddedTextOverlay,
   composeFontHint,
   describeFontHint,
   type EditableFontDescriptor,
   type EditablePdfPage,
+  type EditableTextAlign,
   type EditableTextBlock,
   type EditOverlay,
+  type ImageOverlay,
+  getFontPresentation,
+  isExactRewriteCandidatePage,
   type MarkupOverlay,
   type SignatureOverlay,
   type WhiteoutOverlay,
@@ -35,8 +41,8 @@ import {
 } from '@/lib/pdf/editableText'
 import { OCR_LANGUAGES } from '@/lib/ocr/tesseract'
 
-type ToolMode = 'edit' | 'select' | 'pan' | 'text' | 'signature' | 'highlight' | 'underline' | 'whiteout'
-type PageQualityTone = 'original' | 'overlay' | 'ocr' | 'rebuild' | 'attention'
+type ToolMode = 'edit' | 'select' | 'pan' | 'text' | 'image' | 'signature' | 'highlight' | 'underline' | 'whiteout'
+type PageQualityTone = 'original' | 'overlay' | 'ocr' | 'rebuild' | 'exact' | 'attention'
 type ResizeHandle = 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
 
 interface PageQualityState {
@@ -50,6 +56,26 @@ interface SignatureDraft {
   dataUrl: string
   widthPx: number
   heightPx: number
+}
+
+interface ImageDraft {
+  dataUrl: string
+  widthPx: number
+  heightPx: number
+  name: string
+}
+
+type MediaDraftKind = 'image' | 'signature'
+type QuickInsertKind = 'today' | 'approved' | 'draft' | 'received' | 'custom'
+
+interface QuickInsertDraft {
+  label: string
+  text: string
+  width: number
+  color: string
+  fontSize: number
+  align: EditableTextAlign
+  lineHeightMultiplier: number
 }
 
 interface DragState {
@@ -80,6 +106,8 @@ interface PageFrame {
 interface BlockStyleDraft extends EditableFontDescriptor {
   fontSize: number
   color: string
+  align: EditableTextAlign
+  lineHeightMultiplier: number
 }
 
 interface DocumentSnapshot {
@@ -101,26 +129,26 @@ interface SearchMatch {
 const FAQS = [
   {
     q: 'Can I edit the existing text inside my PDF?',
-    a: 'Yes for text-based PDFs. Click existing text to edit it in place. For scanned PDFs, run OCR first to detect editable text blocks before making changes.',
+    a: 'Yes for text-based PDFs. Click existing text to edit it in place. Simple native-text edits can export with a direct rewrite that keeps the original page intact. For scanned PDFs, run OCR first to detect editable text blocks before making changes.',
   },
   {
     q: 'Are my PDF files uploaded to a server?',
     a: 'No. Your PDF stays on your device. Rendering, text detection, editing, and export run locally in your browser, and OCR also runs locally after the needed language data loads on first use.',
   },
   {
-    q: 'Can I still add signatures, highlights, and extra text?',
-    a: 'Yes. The editor supports existing-text edits plus new text boxes, highlights, underlines, whiteout erase areas, and signatures in the same workflow.',
+    q: 'Can I still add images, signatures, highlights, and extra text?',
+    a: 'Yes. The editor supports existing-text edits plus new text boxes, logos or screenshots, pasted clipboard images, fast date or stamp inserts, highlights, underlines, whiteout erase areas, and signatures in the same workflow.',
   },
   {
     q: 'Will the downloaded PDF stay searchable?',
-    a: 'Yes, but with an honest tradeoff. When you edit existing text, Doclair can rebuild just that page with a clean searchable text layer so copied and searched text matches your edit. Unedited pages stay in their original PDF form. Complex PDFs may still need light touch-ups in desktop software.',
+    a: 'Yes, with an honest tradeoff. Simple native-text edits can export through a direct rewrite that keeps the original page intact. When that is unsafe, Doclair rebuilds only the affected page with a clean searchable text layer so copied and searched text matches your edit. Unedited pages stay in their original PDF form.',
   },
 ]
 
 const TOOL_SEO_NAME = 'Edit PDF Text + Sign'
 const TOOL_SLUG = 'edit-pdf'
 const TOOL_DESCRIPTION =
-  'Edit existing PDF text for text-based files, search and replace across pages, run OCR for scanned PDFs, and add text, highlights, whiteout erase areas, and signatures. No upload, no watermark, files stay in your browser.'
+  'Edit existing PDF text for text-based files, search and replace across pages, export simple edits through direct PDF rewrite when safe, run OCR for scanned PDFs, and add text, quick date or stamp inserts, clipboard images, highlights, whiteout erase areas, and rotatable signatures or images. No upload, no watermark, files stay in your browser.'
 
 const JSON_LD_SCHEMA = {
   '@context': 'https://schema.org',
@@ -136,8 +164,9 @@ const JSON_LD_SCHEMA = {
       featureList: [
         'Edit existing PDF text for text-based files',
         'Search and replace text across PDF pages',
+        'Direct PDF rewrite for simple native-text edits',
         'Run OCR for scanned PDFs',
-        'Add highlights, whiteout erase areas, new text, and signatures',
+        'Add clipboard images, fast date or stamp inserts, highlights, whiteout erase areas, new text, images, and signatures with rotation and opacity controls',
         'Browser-only, no upload, no watermark',
       ],
       provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
@@ -191,6 +220,12 @@ const PAGE_QUALITY_STYLES: Record<
     borderColor: '#FDBA74',
     panelBg: '#FFF8F1',
   },
+  exact: {
+    badgeBg: '#ECFEFF',
+    badgeColor: '#0F766E',
+    borderColor: '#99F6E4',
+    panelBg: '#F0FDFA',
+  },
   attention: {
     badgeBg: '#FEF3C7',
     badgeColor: '#92400E',
@@ -218,6 +253,7 @@ function summarizePageOverlays(overlays: EditOverlay[], pageIndex: number) {
 
 function getPageQualityState(
   page: EditablePdfPage,
+  pageOverlays: EditOverlay[],
   overlaySummary: ReturnType<typeof summarizePageOverlays>,
 ): PageQualityState {
   const hasEditedText = page.textBlocks.some(block => block.edited)
@@ -249,6 +285,18 @@ function getPageQualityState(
   }
 
   if (hasEditedText || hasRebuildOverlay) {
+    if (hasEditedText && !hasRebuildOverlay && isExactRewriteCandidatePage(page, pageOverlays)) {
+      return {
+        tone: 'exact',
+        chip: 'Direct rewrite',
+        title: 'Original page stays intact',
+        detail:
+          overlaySummary.hasOverlay
+            ? 'This page is a strong candidate for a direct stream-level text rewrite, so Doclair can keep the original PDF page content intact and layer your added overlays on top. If the source stream turns out to be too complex during export, it falls back to rebuilt-page mode automatically.'
+            : 'This page is a strong candidate for a direct stream-level text rewrite, so Doclair can keep the original PDF page content intact instead of rebuilding the page. If the source stream turns out to be too complex during export, it falls back to rebuilt-page mode automatically.',
+      }
+    }
+
     const actions = [
       hasEditedText ? 'text edits' : null,
       hasRebuildOverlay ? 'whiteout erasures' : null,
@@ -287,7 +335,7 @@ function getPageQualityState(
       tone: 'overlay',
       chip: 'Overlay edits',
       title: 'Overlay edits on original page',
-      detail: 'The original PDF page stays intact while your added text, signature, or markup is layered on top.',
+      detail: 'The original PDF page stays intact while your added text, image, signature, or markup is layered on top.',
     }
   }
 
@@ -346,6 +394,80 @@ const MAX_HISTORY_STEPS = 60
 
 function clampZoom(value: number) {
   return Math.min(MAX_EDITOR_ZOOM, Math.max(MIN_EDITOR_ZOOM, Number(value.toFixed(2))))
+}
+
+function clampMediaOverlayRotationDeg(value: number) {
+  const safeValue = Number.isFinite(value) ? value : 0
+  return Math.min(
+    MAX_MEDIA_OVERLAY_ROTATION_DEG,
+    Math.max(-MAX_MEDIA_OVERLAY_ROTATION_DEG, Number(safeValue.toFixed(1))),
+  )
+}
+
+function clampMediaOverlayOpacity(value: number) {
+  const safeValue = Number.isFinite(value) ? value : 1
+  return Math.min(1, Math.max(MIN_MEDIA_OVERLAY_OPACITY, Number(safeValue.toFixed(2))))
+}
+
+function getMediaOverlayRotationDeg(overlay: SignatureOverlay | ImageOverlay) {
+  return clampMediaOverlayRotationDeg(overlay.rotationDeg)
+}
+
+function getMediaOverlayOpacity(overlay: SignatureOverlay | ImageOverlay) {
+  return clampMediaOverlayOpacity(overlay.opacity)
+}
+
+function estimateQuickInsertWidth(text: string) {
+  return Math.min(0.38, Math.max(0.16, 0.08 + text.trim().length * 0.012))
+}
+
+function buildQuickInsertDraft(
+  kind: QuickInsertKind,
+  customValue: string,
+  fallbackColor: string,
+): QuickInsertDraft | null {
+  const trimmedCustomValue = customValue.trim()
+
+  if (kind === 'custom' && !trimmedCustomValue) return null
+
+  const text =
+    kind === 'today'
+      ? new Intl.DateTimeFormat(undefined, { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date())
+      : kind === 'approved'
+        ? 'APPROVED'
+        : kind === 'draft'
+          ? 'DRAFT'
+          : kind === 'received'
+            ? 'RECEIVED'
+            : trimmedCustomValue
+
+  const color =
+    kind === 'approved'
+      ? '#166534'
+      : kind === 'draft'
+        ? '#B91C1C'
+        : kind === 'received'
+          ? '#1D4ED8'
+          : fallbackColor
+
+  return {
+    label:
+      kind === 'today'
+        ? 'today date'
+        : kind === 'approved'
+          ? 'approved stamp'
+          : kind === 'draft'
+            ? 'draft stamp'
+            : kind === 'received'
+              ? 'received stamp'
+              : trimmedCustomValue,
+    text,
+    width: estimateQuickInsertWidth(text),
+    color,
+    fontSize: kind === 'today' ? 18 : 20,
+    align: 'center',
+    lineHeightMultiplier: 1,
+  }
 }
 
 function buildSearchSnippet(text: string, start: number, end: number) {
@@ -437,21 +559,67 @@ function blockStyleDraftFromBlock(block: EditableTextBlock, useOriginal = false)
     ...descriptor,
     fontSize: Math.max(8, Math.round(fontSize)),
     color,
+    align: useOriginal ? block.originalTextAlign : block.textAlign,
+    lineHeightMultiplier: useOriginal ? block.originalLineHeightMultiplier : block.lineHeightMultiplier,
   }
 }
 
 function cssFontFromHint(fontHint: string) {
   const descriptor = describeFontHint(fontHint)
+  const presentation = getFontPresentation(fontHint)
 
   return {
-    fontFamily:
-      descriptor.family === 'mono'
-        ? '"Courier New", Courier, monospace'
-        : descriptor.family === 'serif'
-          ? 'Georgia, "Times New Roman", serif'
-          : '"Helvetica Neue", Arial, sans-serif',
+    fontFamily: presentation.cssFontFamily,
     fontWeight: descriptor.weight === 'bold' ? 700 : 400,
     fontStyle: descriptor.style === 'italic' ? 'italic' as const : 'normal' as const,
+  }
+}
+
+function formatDetectedFont(fontHint: string) {
+  const presentation = getFontPresentation(fontHint)
+  const descriptor = describeFontHint(fontHint)
+  const traits = [
+    descriptor.weight === 'bold' ? 'Bold' : null,
+    descriptor.style === 'italic' ? 'Italic' : null,
+  ].filter(Boolean)
+
+  return traits.length ? `${presentation.detectedFamilyLabel} · ${traits.join(' ')}` : presentation.detectedFamilyLabel
+}
+
+function isMediaOverlay(overlay: EditOverlay): overlay is SignatureOverlay | ImageOverlay {
+  return overlay.type === 'signature' || overlay.type === 'image'
+}
+
+async function loadImageDraftFromFile(file: File): Promise<ImageDraft> {
+  const objectUrl = URL.createObjectURL(file)
+
+  try {
+    const image = new Image()
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve()
+      image.onerror = () => reject(new Error('Could not decode that image file'))
+      image.src = objectUrl
+    })
+
+    const longestEdge = Math.max(image.naturalWidth, image.naturalHeight)
+    const scale = longestEdge > 2200 ? 2200 / longestEdge : 1
+    const widthPx = Math.max(1, Math.round(image.naturalWidth * scale))
+    const heightPx = Math.max(1, Math.round(image.naturalHeight * scale))
+    const canvas = document.createElement('canvas')
+    canvas.width = widthPx
+    canvas.height = heightPx
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Could not prepare image placement')
+
+    ctx.drawImage(image, 0, 0, widthPx, heightPx)
+    return {
+      dataUrl: canvas.toDataURL('image/png'),
+      widthPx,
+      heightPx,
+      name: file.name,
+    }
+  } finally {
+    URL.revokeObjectURL(objectUrl)
   }
 }
 
@@ -702,6 +870,9 @@ export default function EditPDFPage() {
   const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null)
   const [showSignatureModal, setShowSignatureModal] = useState(false)
   const [signatureDraft, setSignatureDraft] = useState<SignatureDraft | null>(null)
+  const [imageDraft, setImageDraft] = useState<ImageDraft | null>(null)
+  const [quickInsertDraft, setQuickInsertDraft] = useState<QuickInsertDraft | null>(null)
+  const [customQuickInsertText, setCustomQuickInsertText] = useState('')
   const [dragging, setDragging] = useState<DragState | null>(null)
   const [panning, setPanning] = useState<PanState | null>(null)
   const [pageFrame, setPageFrame] = useState<PageFrame>({ width: 0, height: 0 })
@@ -718,6 +889,7 @@ export default function EditPDFPage() {
   const overlayTextareaRef = useRef<HTMLTextAreaElement | null>(null)
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const replaceInputRef = useRef<HTMLInputElement | null>(null)
+  const imageInputRef = useRef<HTMLInputElement | null>(null)
   const markupStart = useRef<{ x: number; y: number } | null>(null)
   const panStateRef = useRef<PanState | null>(null)
   const pagesRef = useRef<EditablePdfPage[]>([])
@@ -725,6 +897,7 @@ export default function EditPDFPage() {
   const currentPageRef = useRef(0)
   const dragStartSnapshotRef = useRef<DocumentSnapshot | null>(null)
   const overlayEditStartSnapshotsRef = useRef<Record<string, DocumentSnapshot>>({})
+  const keyboardOverlayNudgeRef = useRef<string | null>(null)
 
   const applyDraftToBlock = useCallback(
     (block: EditableTextBlock, nextTextOverride?: string) => {
@@ -734,6 +907,8 @@ export default function EditPDFPage() {
       const nextPdfFontSize = Math.max(8, blockStyleDraft.fontSize)
       const nextFontHint = composeFontHint(blockStyleDraft)
       const nextColor = blockStyleDraft.color
+      const nextAlign = blockStyleDraft.align
+      const nextLineHeightMultiplier = Number(blockStyleDraft.lineHeightMultiplier.toFixed(2))
 
       return {
         ...block,
@@ -741,14 +916,18 @@ export default function EditPDFPage() {
         fontHint: nextFontHint,
         pdfFontSize: nextPdfFontSize,
         previewFontSize: nextPdfFontSize * EDIT_PREVIEW_SCALE,
-        pdfHeight: Math.max(block.pdfHeight, nextPdfFontSize * 1.2),
-        previewHeight: Math.max(block.previewHeight, nextPdfFontSize * EDIT_PREVIEW_SCALE * 1.2),
+        pdfHeight: Math.max(block.pdfHeight, nextPdfFontSize * 1.18 * nextLineHeightMultiplier),
+        previewHeight: Math.max(block.previewHeight, nextPdfFontSize * EDIT_PREVIEW_SCALE * 1.18 * nextLineHeightMultiplier),
         textColor: nextColor,
+        textAlign: nextAlign,
+        lineHeightMultiplier: nextLineHeightMultiplier,
         edited: isTextBlockEdited(block, {
           text: nextText,
           fontHint: nextFontHint,
           pdfFontSize: nextPdfFontSize,
           textColor: nextColor,
+          textAlign: nextAlign,
+          lineHeightMultiplier: nextLineHeightMultiplier,
         }),
       }
     },
@@ -788,9 +967,10 @@ export default function EditPDFPage() {
   )
   const pageQualities = useMemo(
     () =>
-      previewPages.map(page =>
-        getPageQualityState(page, summarizePageOverlays(overlays, page.pageIndex)),
-      ),
+      previewPages.map(page => {
+        const pageOverlays = overlays.filter(overlay => overlay.pageIndex === page.pageIndex)
+        return getPageQualityState(page, pageOverlays, summarizePageOverlays(overlays, page.pageIndex))
+      }),
     [overlays, previewPages],
   )
   const currentPageQuality = pageQualities[currentPage] ?? null
@@ -805,6 +985,13 @@ export default function EditPDFPage() {
   const sourceActiveBlock = useMemo(
     () => pages.flatMap(page => page.textBlocks).find(block => block.id === activeBlockId) ?? null,
     [activeBlockId, pages],
+  )
+  const activeFontPresentation = useMemo(
+    () =>
+      activeBlock
+        ? getFontPresentation(sourceActiveBlock?.originalFontHint ?? activeBlock.originalFontHint)
+        : null,
+    [activeBlock, sourceActiveBlock],
   )
   const searchMatches = useMemo(() => collectSearchMatches(previewPages, searchQuery), [previewPages, searchQuery])
   const searchMatchesByBlockId = useMemo(
@@ -842,6 +1029,7 @@ export default function EditPDFPage() {
           overlay: 0,
           ocr: 0,
           rebuild: 0,
+          exact: 0,
           attention: 0,
         } satisfies Record<PageQualityTone, number>,
       ),
@@ -1064,6 +1252,8 @@ export default function EditPDFPage() {
     setEditingOverlayId(null)
     setSelectedOverlayId(null)
     setSignatureDraft(null)
+    setImageDraft(null)
+    setQuickInsertDraft(null)
     setDragging(null)
     setPanning(null)
     setMarkupDraft(null)
@@ -1121,6 +1311,111 @@ export default function EditPDFPage() {
     [loadFile],
   )
 
+  const prepareMediaDraftFromFile = useCallback(
+    async (file: File, kind: MediaDraftKind, sourceLabel?: string) => {
+      try {
+        const draft = await loadImageDraftFromFile(file)
+        const sourceName = sourceLabel ?? draft.name ?? (kind === 'signature' ? 'Signature image' : 'Image')
+
+        setSelectedOverlayId(null)
+        setActiveBlockId(null)
+        setEditingOverlayId(null)
+        setQuickInsertDraft(null)
+        setSaveError('')
+
+        if (kind === 'signature') {
+          setImageDraft(null)
+          setSignatureDraft({
+            dataUrl: draft.dataUrl,
+            widthPx: draft.widthPx,
+            heightPx: draft.heightPx,
+          })
+          setShowSignatureModal(false)
+          setTool('signature')
+          setSaveNote(`${sourceName} is ready as a signature. Click anywhere on the page to place it.`)
+          return
+        }
+
+        setSignatureDraft(null)
+        setImageDraft(draft)
+        setTool('image')
+        setSaveNote(`${sourceName} is ready. Click anywhere on the page to place it.`)
+      } catch (error) {
+        setSaveError(error instanceof Error ? error.message : `Could not load ${kind}`)
+      }
+    },
+    [],
+  )
+
+  const handleImageInput = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0]
+      event.target.value = ''
+      if (!file) return
+      await prepareMediaDraftFromFile(file, 'image')
+    },
+    [prepareMediaDraftFromFile],
+  )
+
+  const handlePasteMediaFromClipboard = useCallback(
+    async (kind: MediaDraftKind) => {
+      if (!pageCount) {
+        setSaveError('Upload a PDF first, then paste the image you want to place.')
+        return
+      }
+
+      if (!navigator.clipboard?.read) {
+        setSaveError('Clipboard image paste button is not available here. Use Cmd/Ctrl + V on the page instead.')
+        return
+      }
+
+      try {
+        const items = await navigator.clipboard.read()
+
+        for (const item of items) {
+          const imageType = item.types.find(type => type.startsWith('image/'))
+          if (!imageType) continue
+
+          const blob = await item.getType(imageType)
+          const extension = imageType.split('/')[1] || 'png'
+          const file = new File([blob], `clipboard-${kind}.${extension}`, { type: imageType })
+          await prepareMediaDraftFromFile(
+            file,
+            kind,
+            kind === 'signature' ? 'Clipboard image' : 'Clipboard image',
+          )
+          return
+        }
+
+        setSaveError('Your clipboard does not contain an image right now.')
+      } catch (error) {
+        setSaveError(error instanceof Error ? error.message : 'Could not read the clipboard image')
+      }
+    },
+    [pageCount, prepareMediaDraftFromFile],
+  )
+
+  const queueQuickInsert = useCallback(
+    (kind: QuickInsertKind) => {
+      const draft = buildQuickInsertDraft(kind, customQuickInsertText, fontColor)
+      if (!draft) {
+        setSaveError('Enter initials or custom stamp text first.')
+        return
+      }
+
+      setQuickInsertDraft(draft)
+      setTool('text')
+      setSignatureDraft(null)
+      setImageDraft(null)
+      setSelectedOverlayId(null)
+      setActiveBlockId(null)
+      setEditingOverlayId(null)
+      setSaveError('')
+      setSaveNote(`Click anywhere on the page to place the ${draft.label}.`)
+    },
+    [customQuickInsertText, fontColor],
+  )
+
   const handleUndo = useCallback(() => {
     if (!undoStack.length) return
     const snapshot = undoStack[undoStack.length - 1]
@@ -1141,6 +1436,29 @@ export default function EditPDFPage() {
     })
     applySnapshot(snapshot)
   }, [applySnapshot, getCurrentSnapshot, redoStack])
+
+  useEffect(() => {
+    const handlePaste = (event: ClipboardEvent) => {
+      if (!pageCount) return
+
+      const items = Array.from(event.clipboardData?.items ?? [])
+      const imageItem = items.find(item => item.type.startsWith('image/'))
+      if (!imageItem) return
+
+      const file = imageItem.getAsFile()
+      if (!file) return
+
+      event.preventDefault()
+      void prepareMediaDraftFromFile(
+        file,
+        tool === 'signature' ? 'signature' : 'image',
+        'Pasted clipboard image',
+      )
+    }
+
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [pageCount, prepareMediaDraftFromFile, tool])
 
   const openBlockEditor = useCallback(
     (blockId: string) => {
@@ -1171,6 +1489,8 @@ export default function EditPDFPage() {
         previewBlock.fontHint !== currentBlock.fontHint ||
         Math.abs(previewBlock.pdfFontSize - currentBlock.pdfFontSize) > 0.01 ||
         previewBlock.textColor !== currentBlock.textColor ||
+        previewBlock.textAlign !== currentBlock.textAlign ||
+        Math.abs(previewBlock.lineHeightMultiplier - currentBlock.lineHeightMultiplier) > 0.01 ||
         previewBlock.edited !== currentBlock.edited)
 
     if (!changed) {
@@ -1217,47 +1537,6 @@ export default function EditPDFPage() {
       return clampZoom(nextValue)
     })
   }, [])
-
-  useEffect(() => {
-    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (!(event.metaKey || event.ctrlKey)) return
-
-      const target = event.target as HTMLElement | null
-      const typingIntoField =
-        Boolean(target?.isContentEditable) ||
-        target?.tagName === 'INPUT' ||
-        target?.tagName === 'TEXTAREA' ||
-        target?.closest('[contenteditable="true"]') !== null
-
-      if (typingIntoField) return
-
-      const key = event.key.toLowerCase()
-
-      if (key === 'f') {
-        event.preventDefault()
-        searchInputRef.current?.focus()
-        searchInputRef.current?.select()
-        return
-      }
-
-      if (key === 'z') {
-        event.preventDefault()
-        if (event.shiftKey) {
-          handleRedo()
-        } else {
-          handleUndo()
-        }
-      }
-
-      if (key === 'y') {
-        event.preventDefault()
-        handleRedo()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleRedo, handleUndo])
 
   const goToPage = useCallback(
     (nextPage: number) => {
@@ -1538,6 +1817,161 @@ export default function EditPDFPage() {
     [getCurrentSnapshot, overlays, pushUndoSnapshot],
   )
 
+  const nudgeSelectedOverlay = useCallback(
+    (deltaXPx: number, deltaYPx: number) => {
+      if (!selectedOverlay || !currentPageState) return false
+
+      const liveOverlay = overlaysRef.current.find(overlay => overlay.id === selectedOverlay.id)
+      if (!liveOverlay) return false
+
+      const pageWidth = Math.max(currentPageState.previewWidth, 1)
+      const pageHeight = Math.max(currentPageState.previewHeight, 1)
+      const deltaX = deltaXPx / pageWidth
+      const deltaY = deltaYPx / pageHeight
+      const maxX = liveOverlay.type === 'text-overlay' ? 0.99 - liveOverlay.width : 1 - liveOverlay.width
+      const maxY = liveOverlay.type === 'text-overlay' ? 0.98 : 1 - liveOverlay.height
+      const nextX = Math.min(Math.max(liveOverlay.x + deltaX, 0), Math.max(0, maxX))
+      const nextY = Math.min(Math.max(liveOverlay.y + deltaY, 0), Math.max(0, maxY))
+
+      if (Math.abs(nextX - liveOverlay.x) < 0.0001 && Math.abs(nextY - liveOverlay.y) < 0.0001) {
+        return false
+      }
+
+      if (keyboardOverlayNudgeRef.current !== liveOverlay.id) {
+        pushUndoSnapshot(getCurrentSnapshot())
+        keyboardOverlayNudgeRef.current = liveOverlay.id
+      }
+
+      setOverlays(previous =>
+        previous.map(overlay =>
+          overlay.id === liveOverlay.id
+            ? {
+                ...overlay,
+                x: nextX,
+                y: nextY,
+              }
+            : overlay,
+        ),
+      )
+
+      return true
+    },
+    [currentPageState, getCurrentSnapshot, pushUndoSnapshot, selectedOverlay],
+  )
+
+  useEffect(() => {
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      const target = event.target as HTMLElement | null
+      const typingIntoField =
+        Boolean(target?.isContentEditable) ||
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.closest('[contenteditable="true"]') !== null
+
+      const key = event.key.toLowerCase()
+
+      if (!typingIntoField && selectedOverlay && tool === 'select') {
+        const nudgeStep = event.shiftKey ? 10 : 1
+        if (key === 'arrowleft' && nudgeSelectedOverlay(-nudgeStep, 0)) {
+          event.preventDefault()
+          return
+        }
+        if (key === 'arrowright' && nudgeSelectedOverlay(nudgeStep, 0)) {
+          event.preventDefault()
+          return
+        }
+        if (key === 'arrowup' && nudgeSelectedOverlay(0, -nudgeStep)) {
+          event.preventDefault()
+          return
+        }
+        if (key === 'arrowdown' && nudgeSelectedOverlay(0, nudgeStep)) {
+          event.preventDefault()
+          return
+        }
+
+        if ((key === 'backspace' || key === 'delete') && !event.metaKey && !event.ctrlKey) {
+          event.preventDefault()
+          deleteOverlay(selectedOverlay.id)
+          return
+        }
+      }
+
+      if (!typingIntoField && key === 'escape') {
+        keyboardOverlayNudgeRef.current = null
+        if (editingOverlayId) {
+          cancelOverlayTextEdit(editingOverlayId)
+          return
+        }
+        if (selectedOverlayId) {
+          setSelectedOverlayId(null)
+          return
+        }
+        if (activeBlockId) {
+          commitBlockEdit()
+        }
+        return
+      }
+
+      if (!(event.metaKey || event.ctrlKey)) return
+      if (typingIntoField) return
+
+      if (key === 'f') {
+        event.preventDefault()
+        searchInputRef.current?.focus()
+        searchInputRef.current?.select()
+        return
+      }
+
+      if (key === 'z') {
+        event.preventDefault()
+        if (event.shiftKey) {
+          handleRedo()
+        } else {
+          handleUndo()
+        }
+        return
+      }
+
+      if (key === 'y') {
+        event.preventDefault()
+        handleRedo()
+        return
+      }
+
+      if (key === 'd' && selectedOverlay) {
+        event.preventDefault()
+        duplicateOverlay(selectedOverlay.id)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [
+    activeBlockId,
+    cancelOverlayTextEdit,
+    commitBlockEdit,
+    deleteOverlay,
+    duplicateOverlay,
+    editingOverlayId,
+    handleRedo,
+    handleUndo,
+    nudgeSelectedOverlay,
+    selectedOverlay,
+    selectedOverlayId,
+    tool,
+  ])
+
+  useEffect(() => {
+    const handleKeyUp = (event: globalThis.KeyboardEvent) => {
+      if (event.key.startsWith('Arrow')) {
+        keyboardOverlayNudgeRef.current = null
+      }
+    }
+
+    window.addEventListener('keyup', handleKeyUp)
+    return () => window.removeEventListener('keyup', handleKeyUp)
+  }, [])
+
   const getRelativePoint = useCallback((clientX: number, clientY: number) => {
     const rect = containerRef.current?.getBoundingClientRect()
     if (!rect) return null
@@ -1628,7 +2062,7 @@ export default function EditPDFPage() {
   const getOverlayMinimumSize = useCallback((overlay: EditOverlay) => {
     if (overlay.type === 'text-overlay') return { width: 0.08, height: 0.04 }
     if (overlay.type === 'underline') return { width: 0.05, height: 0.01 }
-    if (overlay.type === 'signature') return { width: 0.09, height: 0.05 }
+    if (isMediaOverlay(overlay)) return { width: 0.09, height: 0.05 }
     return { width: 0.04, height: 0.03 }
   }, [])
 
@@ -1770,11 +2204,23 @@ export default function EditPDFPage() {
           pageIndex: currentPage,
           x: point.x,
           y: point.y,
-          width: 0.28,
-          text: '',
-          fontSize: fontSize / EDIT_PREVIEW_SCALE,
-          color: fontColor,
-          editing: true,
+          width: quickInsertDraft?.width ?? 0.28,
+          text: quickInsertDraft?.text ?? '',
+          fontSize: (quickInsertDraft?.fontSize ?? fontSize) / EDIT_PREVIEW_SCALE,
+          color: quickInsertDraft?.color ?? fontColor,
+          textAlign: quickInsertDraft?.align ?? 'left',
+          lineHeightMultiplier: quickInsertDraft?.lineHeightMultiplier ?? 1,
+          editing: quickInsertDraft ? false : true,
+        }
+
+        if (quickInsertDraft) {
+          pushUndoSnapshot(startSnapshot)
+          setOverlays(previous => [...previous, overlay])
+          setSelectedOverlayId(overlay.id)
+          setQuickInsertDraft(null)
+          setTool('select')
+          setActiveBlockId(null)
+          return
         }
 
         overlayEditStartSnapshotsRef.current[overlay.id] = startSnapshot
@@ -1802,6 +2248,8 @@ export default function EditPDFPage() {
           width: baseWidth,
           height: baseHeight,
           dataUrl: signatureDraft.dataUrl,
+          rotationDeg: 0,
+          opacity: 1,
         }
 
         pushUndoSnapshot(snapshot)
@@ -1809,9 +2257,38 @@ export default function EditPDFPage() {
         setSignatureDraft(null)
         setSelectedOverlayId(overlay.id)
         setTool('select')
+        return
+      }
+
+      if (tool === 'image' && imageDraft) {
+        const snapshot = getCurrentSnapshot()
+        const baseWidth = Math.min(Math.max(imageDraft.widthPx / currentPageState.previewWidth, 0.16), 0.42)
+        const baseHeight = Math.min(
+          (imageDraft.heightPx / imageDraft.widthPx) * baseWidth * (currentPageState.previewWidth / currentPageState.previewHeight),
+          0.3,
+        )
+
+        const overlay: ImageOverlay = {
+          id: crypto.randomUUID(),
+          type: 'image',
+          pageIndex: currentPage,
+          x: point.x,
+          y: point.y,
+          width: baseWidth,
+          height: baseHeight,
+          dataUrl: imageDraft.dataUrl,
+          rotationDeg: 0,
+          opacity: 1,
+        }
+
+        pushUndoSnapshot(snapshot)
+        setOverlays(previous => [...previous, overlay])
+        setImageDraft(null)
+        setSelectedOverlayId(overlay.id)
+        setTool('select')
       }
     },
-    [currentPage, currentPageState, fontColor, fontSize, getCurrentSnapshot, getRelativePoint, pushUndoSnapshot, signatureDraft, tool],
+    [currentPage, currentPageState, fontColor, fontSize, getCurrentSnapshot, getRelativePoint, imageDraft, pushUndoSnapshot, quickInsertDraft, signatureDraft, tool],
   )
 
   const startDrag = useCallback(
@@ -1956,7 +2433,7 @@ export default function EditPDFPage() {
           nextWidth = Math.max(nextWidth, minimum.width)
           nextHeight = Math.max(nextHeight, minimum.height)
 
-          if (overlay.type === 'signature') {
+          if (isMediaOverlay(overlay)) {
             const aspectRatio = dragging.originWidth / Math.max(dragging.originHeight, 0.0001)
             const widthChanged = Math.abs(nextWidth - dragging.originWidth)
             const heightChanged = Math.abs(nextHeight - dragging.originHeight)
@@ -2124,7 +2601,8 @@ export default function EditPDFPage() {
 
       const notes = [
         result.editedTextCount > 0 ? `${result.editedTextCount} text edit${result.editedTextCount === 1 ? '' : 's'} saved` : null,
-        result.substitutedFontCount > 0 ? `${result.substitutedFontCount} edit${result.substitutedFontCount === 1 ? ' uses' : 's use'} a matched standard PDF font` : null,
+        result.substitutedFontCount > 0 ? `${result.substitutedFontCount} edit${result.substitutedFontCount === 1 ? ' uses' : 's use'} a matched fallback font` : null,
+        result.exactRewritePageCount > 0 ? `${result.exactRewritePageCount} page${result.exactRewritePageCount === 1 ? '' : 's'} kept in the original PDF stream with direct text rewrite` : null,
         result.rebuiltPageCount > 0 ? `${result.rebuiltPageCount} page${result.rebuiltPageCount === 1 ? '' : 's'} rebuilt with a clean searchable text layer` : null,
         result.whiteoutCount > 0 ? `${result.whiteoutCount} erased area${result.whiteoutCount === 1 ? '' : 's'} applied` : null,
         result.scannedPageCount > 0 ? `OCR-enhanced text layer included for ${result.scannedPageCount} scanned page${result.scannedPageCount === 1 ? '' : 's'}` : null,
@@ -2158,6 +2636,8 @@ export default function EditPDFPage() {
       ? 'text box'
       : selectedOverlay.type === 'signature'
         ? 'signature'
+        : selectedOverlay.type === 'image'
+          ? 'image'
         : selectedOverlay.type === 'highlight'
           ? 'highlight'
           : selectedOverlay.type === 'underline'
@@ -2173,6 +2653,8 @@ export default function EditPDFPage() {
           ? 'Pan mode active'
           : tool === 'text'
             ? 'Add text mode active'
+            : tool === 'image'
+              ? 'Image mode active'
             : tool === 'signature'
               ? 'Signature mode active'
               : tool === 'highlight'
@@ -2199,7 +2681,7 @@ export default function EditPDFPage() {
         }
 
         if (field === 'width') {
-          if (current.type === 'signature') {
+          if (isMediaOverlay(current)) {
             const ratio = current.width / Math.max(current.height, 0.0001)
             const width = Math.min(Math.max(nextValue, minimum.width), Math.max(minimum.width, 1 - current.x))
             const height = Math.min(Math.max(width / ratio, minimum.height), Math.max(minimum.height, 1 - current.y))
@@ -2221,7 +2703,7 @@ export default function EditPDFPage() {
 
         if (current.type === 'text-overlay') return current
 
-        if (current.type === 'signature') {
+        if (isMediaOverlay(current)) {
           const ratio = current.width / Math.max(current.height, 0.0001)
           const height = Math.min(Math.max(nextValue, minimum.height), Math.max(minimum.height, 1 - current.y))
           const width = Math.min(Math.max(height * ratio, minimum.width), Math.max(minimum.width, 1 - current.x))
@@ -2241,16 +2723,50 @@ export default function EditPDFPage() {
     [getOverlayMinimumSize, selectedOverlay, updateOverlay],
   )
 
+  const setSelectedMediaMetric = useCallback(
+    (field: 'rotationDeg' | 'opacity', value: number) => {
+      if (!selectedOverlay || !isMediaOverlay(selectedOverlay)) return
+
+      updateOverlay(selectedOverlay.id, current => {
+        if (!isMediaOverlay(current)) return current
+
+        if (field === 'rotationDeg') {
+          return {
+            ...current,
+            rotationDeg: clampMediaOverlayRotationDeg(value),
+          }
+        }
+
+        return {
+          ...current,
+          opacity: clampMediaOverlayOpacity(value),
+        }
+      })
+    },
+    [selectedOverlay, updateOverlay],
+  )
+
   const toolbarButton = (mode: ToolMode, label: string, icon: string) => (
     <button
       key={mode}
       onClick={() => {
+        setSelectedOverlayId(null)
+        if (mode !== 'text') setQuickInsertDraft(null)
+
         if (mode === 'signature') {
           if (signatureDraft) {
             setTool('signature')
             return
           }
           setShowSignatureModal(true)
+          return
+        }
+        if (mode === 'image') {
+          if (imageDraft) {
+            setTool('image')
+            return
+          }
+          imageInputRef.current?.click()
           return
         }
         setTool(mode)
@@ -2342,7 +2858,7 @@ export default function EditPDFPage() {
           <span style={{ color: 'var(--amber)' }}>Without Uploading It</span>
         </h1>
         <p style={{ fontSize: 16, fontWeight: 300, color: 'var(--ink)', opacity: 0.7, maxWidth: 720, marginTop: 12, lineHeight: 1.7 }}>
-          Edit existing text in text-based PDFs, search and replace across pages, run OCR on scanned files, then add highlights, whiteout erase areas, extra text, and signatures in one local-first editor.
+          Edit existing text in text-based PDFs, search and replace across pages, run OCR on scanned files, then add highlights, whiteout erase areas, extra text, date or approval stamps, logos, screenshots, and signatures with rotation and opacity controls in one local-first editor.
         </p>
       </div>
 
@@ -2361,6 +2877,7 @@ export default function EditPDFPage() {
           {toolbarButton('select', 'Select', '↖')}
           {toolbarButton('pan', 'Pan', '✋')}
           {toolbarButton('text', 'Add Text', 'T')}
+          {toolbarButton('image', 'Image', '🖼')}
           {toolbarButton('highlight', 'Highlight', '🖍')}
           {toolbarButton('underline', 'Underline', '〰')}
           {toolbarButton('whiteout', 'Whiteout', '⬜')}
@@ -2518,6 +3035,135 @@ export default function EditPDFPage() {
             </button>
           )}
         </div>
+
+        {pageCount > 0 && (
+          <div
+            style={{
+              display: 'grid',
+              gap: 12,
+              padding: '14px 16px',
+              borderRadius: 12,
+              background: '#FFFBF4',
+              border: '1px solid #FCD34D',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ display: 'grid', gap: 4 }}>
+                <strong style={{ fontSize: 13, color: '#111827' }}>Quick Insert</strong>
+                <span style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.55 }}>
+                  Paste screenshots, logos, or signature images with Cmd/Ctrl + V, or place fast date and stamp text without typing from scratch.
+                </span>
+              </div>
+              {quickInsertDraft && (
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#92400E' }}>
+                  Ready to place: {quickInsertDraft.label}
+                </span>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => void handlePasteMediaFromClipboard('image')}
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #FCD34D',
+                  background: '#fff',
+                  color: '#92400E',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Paste Image
+              </button>
+              <button
+                type="button"
+                onClick={() => void handlePasteMediaFromClipboard('signature')}
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #FCD34D',
+                  background: '#fff',
+                  color: '#92400E',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Paste Signature
+              </button>
+              {(['today', 'approved', 'draft', 'received'] as const).map(kind => (
+                <button
+                  key={kind}
+                  type="button"
+                  onClick={() => queueQuickInsert(kind)}
+                  style={{
+                    padding: '9px 12px',
+                    borderRadius: 10,
+                    border: '1px solid #E5E7EB',
+                    background: '#fff',
+                    color: '#374151',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    textTransform: kind === 'today' ? 'none' : 'uppercase',
+                  }}
+                >
+                  {kind === 'today' ? 'Date' : kind}
+                </button>
+              ))}
+              <input
+                value={customQuickInsertText}
+                onChange={event => setCustomQuickInsertText(event.target.value)}
+                placeholder="Initials or custom stamp text"
+                style={{
+                  flex: '1 1 220px',
+                  minWidth: 220,
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #E5E7EB',
+                  background: '#fff',
+                  fontSize: 14,
+                  color: '#111827',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => queueQuickInsert('custom')}
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #E5E7EB',
+                  background: '#fff',
+                  color: '#374151',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Place Custom
+              </button>
+              {quickInsertDraft && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuickInsertDraft(null)
+                    setSaveNote('Quick insert cleared.')
+                  }}
+                  style={{
+                    padding: '9px 12px',
+                    borderRadius: 10,
+                    border: '1px solid #FECACA',
+                    background: '#FEF2F2',
+                    color: '#B91C1C',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Clear Queue
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {pageCount > 0 && (
           <div
@@ -2781,7 +3427,7 @@ export default function EditPDFPage() {
             )}
 
             <p style={{ margin: 0, fontSize: 12, color: '#6b7280', lineHeight: 1.6 }}>
-              Honest UX: when you edit existing text or erase an area with whiteout, Doclair can rebuild just those affected pages from a high-resolution render plus a clean searchable text layer so copied text matches the new content. Unedited pages stay in their original PDF form. The first OCR run may download language data before everything continues locally in your browser, and complex layouts, rare fonts, or tightly packed text may still need light touch-ups after export.
+              Honest UX: simple native-text edits can export through a direct rewrite that keeps the original PDF page intact. When a page is too complex, or when you erase an area with whiteout, Doclair rebuilds only those affected pages from a high-resolution render plus a clean searchable text layer so copied text matches the new content. Unedited pages stay in their original PDF form. The first OCR run may download language data before everything continues locally in your browser, and complex layouts, rare fonts, or tightly packed text may still need light touch-ups after export.
             </p>
           </div>
         )}
@@ -2810,6 +3456,9 @@ export default function EditPDFPage() {
               )}
               {qualitySummary.rebuild > 0 && (
                 <span style={{ fontSize: 12, color: '#9A3412' }}>{qualitySummary.rebuild} rebuilt</span>
+              )}
+              {qualitySummary.exact > 0 && (
+                <span style={{ fontSize: 12, color: '#0F766E' }}>{qualitySummary.exact} direct rewrite</span>
               )}
               {qualitySummary.attention > 0 && (
                 <span style={{ fontSize: 12, color: '#92400E' }}>{qualitySummary.attention} needs OCR</span>
@@ -2935,6 +3584,9 @@ export default function EditPDFPage() {
                 <span style={{ fontSize: 12, color: '#6B7280' }}>
                   Drag the box on the page or fine-tune it here. Resizing stays aligned with export.
                 </span>
+                <span style={{ fontSize: 11, color: '#92400E', lineHeight: 1.5 }}>
+                  Arrow keys nudge. Hold Shift for bigger moves. Cmd/Ctrl + D duplicates. Delete removes.
+                </span>
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button
@@ -3021,6 +3673,34 @@ export default function EditPDFPage() {
                   />
                 </label>
               )}
+              {isMediaOverlay(selectedOverlay) && (
+                <label style={{ display: 'grid', gap: 6, fontSize: 12, color: '#6B7280', fontWeight: 600 }}>
+                  Rotation (deg)
+                  <input
+                    type="number"
+                    min={-MAX_MEDIA_OVERLAY_ROTATION_DEG}
+                    max={MAX_MEDIA_OVERLAY_ROTATION_DEG}
+                    step={1}
+                    value={Math.round(getMediaOverlayRotationDeg(selectedOverlay))}
+                    onChange={event => setSelectedMediaMetric('rotationDeg', Number(event.target.value))}
+                    style={{ padding: '8px 10px', borderRadius: 9, border: '1px solid #E5E7EB', fontSize: 13 }}
+                  />
+                </label>
+              )}
+              {isMediaOverlay(selectedOverlay) && (
+                <label style={{ display: 'grid', gap: 6, fontSize: 12, color: '#6B7280', fontWeight: 600 }}>
+                  Opacity ({Math.round(getMediaOverlayOpacity(selectedOverlay) * 100)}%)
+                  <input
+                    type="range"
+                    min={Math.round(MIN_MEDIA_OVERLAY_OPACITY * 100)}
+                    max={100}
+                    step={1}
+                    value={Math.round(getMediaOverlayOpacity(selectedOverlay) * 100)}
+                    onChange={event => setSelectedMediaMetric('opacity', Number(event.target.value) / 100)}
+                    style={{ width: '100%', accentColor: '#F59E0B', cursor: 'pointer' }}
+                  />
+                </label>
+              )}
               {selectedOverlay.type === 'text-overlay' && (
                 <label style={{ display: 'grid', gap: 6, fontSize: 12, color: '#6B7280', fontWeight: 600 }}>
                   Text size
@@ -3036,6 +3716,49 @@ export default function EditPDFPage() {
                           ? {
                               ...current,
                               fontSize: Math.min(Math.max(Number(event.target.value) / EDIT_PREVIEW_SCALE, 8), 48),
+                            }
+                          : current,
+                      )
+                    }
+                    style={{ padding: '8px 10px', borderRadius: 9, border: '1px solid #E5E7EB', fontSize: 13 }}
+                  />
+                </label>
+              )}
+              {selectedOverlay.type === 'text-overlay' && (
+                <label style={{ display: 'grid', gap: 6, fontSize: 12, color: '#6B7280', fontWeight: 600 }}>
+                  Alignment
+                  <select
+                    value={selectedOverlay.textAlign}
+                    onChange={event =>
+                      updateOverlay(selectedOverlay.id, current =>
+                        current.type === 'text-overlay'
+                          ? { ...current, textAlign: event.target.value as EditableTextAlign }
+                          : current,
+                      )
+                    }
+                    style={{ padding: '8px 10px', borderRadius: 9, border: '1px solid #E5E7EB', fontSize: 13, background: '#fff' }}
+                  >
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                  </select>
+                </label>
+              )}
+              {selectedOverlay.type === 'text-overlay' && (
+                <label style={{ display: 'grid', gap: 6, fontSize: 12, color: '#6B7280', fontWeight: 600 }}>
+                  Line spacing
+                  <input
+                    type="number"
+                    min={0.9}
+                    max={1.8}
+                    step={0.05}
+                    value={selectedOverlay.lineHeightMultiplier.toFixed(2)}
+                    onChange={event =>
+                      updateOverlay(selectedOverlay.id, current =>
+                        current.type === 'text-overlay'
+                          ? {
+                              ...current,
+                              lineHeightMultiplier: Math.min(Math.max(Number(event.target.value) || 1, 0.9), 1.8),
                             }
                           : current,
                       )
@@ -3069,7 +3792,9 @@ export default function EditPDFPage() {
 
             <p style={{ margin: 0, fontSize: 12, color: '#6B7280', lineHeight: 1.6 }}>
               {selectedOverlay.type === 'signature' &&
-                'Signature resizing keeps its original aspect ratio so strokes do not look stretched.'}
+                'Signature resizing keeps its original aspect ratio so strokes do not look stretched, and rotation or opacity changes export the same way they preview here.'}
+              {selectedOverlay.type === 'image' &&
+                'Inserted images keep their original aspect ratio so logos, screenshots, and seals stay crisp while you resize them, and you can rotate or fade them without leaving the page.'}
               {selectedOverlay.type === 'text-overlay' &&
                 'Use the side handles or width control to reflow longer paragraphs into cleaner text boxes.'}
               {selectedOverlay.type === 'whiteout' &&
@@ -3228,9 +3953,9 @@ export default function EditPDFPage() {
                         : 'grab'
                       : tool === 'edit'
                         ? 'text'
-                        : tool === 'text'
+                      : tool === 'text'
                           ? 'text'
-                          : tool === 'signature'
+                          : tool === 'image' || tool === 'signature'
                             ? 'crosshair'
                             : tool === 'highlight' || tool === 'underline' || tool === 'whiteout'
                               ? 'crosshair'
@@ -3261,6 +3986,7 @@ export default function EditPDFPage() {
               const blockSearchMatches = searchMatchesByBlockId[block.id] ?? []
               const hasSearchHit = blockSearchMatches.length > 0
               const isActiveSearchHit = activeSearchMatch?.blockId === block.id
+              const editedBlockWidth = Math.max(width + 10, fontSizePx * 3.2)
 
               if (isActive) {
                 return (
@@ -3307,7 +4033,8 @@ export default function EditPDFPage() {
                           ? '0 0 0 3px rgba(59, 130, 246, 0.16), 0 10px 26px rgba(15, 23, 42, 0.12)'
                           : '0 10px 26px rgba(15, 23, 42, 0.12)',
                         fontSize: `${fontSizePx}px`,
-                        lineHeight: 1.24,
+                        lineHeight: block.lineHeightMultiplier,
+                        textAlign: block.textAlign,
                         color: block.textColor,
                         outline: 'none',
                         whiteSpace: 'pre-wrap',
@@ -3331,7 +4058,7 @@ export default function EditPDFPage() {
                       position: 'absolute',
                       left,
                       top,
-                      minWidth: width,
+                      width: editedBlockWidth,
                       minHeight: height,
                       padding: '4px 6px',
                       borderRadius: 6,
@@ -3343,7 +4070,8 @@ export default function EditPDFPage() {
                           : '1px solid rgba(59, 130, 246, 0.22)',
                       color: block.textColor,
                       fontSize: `${fontSizePx}px`,
-                      lineHeight: 1.18,
+                      lineHeight: block.lineHeightMultiplier,
+                      textAlign: block.textAlign,
                       cursor: tool === 'edit' ? 'text' : 'default',
                       zIndex: isActiveSearchHit ? 18 : 14,
                       whiteSpace: 'pre-wrap',
@@ -3463,6 +4191,31 @@ export default function EditPDFPage() {
                   >
                     Done
                   </button>
+                </div>
+
+                <div
+                  style={{
+                    display: 'grid',
+                    gap: 5,
+                    padding: '10px 12px',
+                    borderRadius: 12,
+                    background: 'rgba(30, 41, 59, 0.92)',
+                    border: '1px solid rgba(148, 163, 184, 0.18)',
+                  }}
+                >
+                  <span style={{ fontSize: 11, color: '#CBD5E1', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                    Detected Font
+                  </span>
+                  <span style={{ fontSize: 13, color: '#F8FAFC', lineHeight: 1.45 }}>
+                    {formatDetectedFont(sourceActiveBlock?.originalFontHint ?? activeBlock.originalFontHint)}
+                  </span>
+                  <span style={{ fontSize: 11, color: '#F8FAFC', lineHeight: 1.45 }}>
+                    Export match: {activeFontPresentation?.exportFamilyLabel ?? 'Arimo'}
+                    {activeFontPresentation && !activeFontPresentation.exactMatch ? ' fallback' : ''}
+                  </span>
+                  <span style={{ fontSize: 11, color: '#94A3B8', lineHeight: 1.45 }}>
+                    Auto-fit keeps edits on one line when possible, then wraps with tighter spacing and an embedded export font to stay closer to the original box.
+                  </span>
                 </div>
 
                 <label style={{ display: 'grid', gap: 6, fontSize: 11, color: '#CBD5E1', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
@@ -3597,6 +4350,60 @@ export default function EditPDFPage() {
 
                 <div style={{ display: 'grid', gap: 6 }}>
                   <span style={{ fontSize: 11, color: '#CBD5E1', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                    Alignment
+                  </span>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                    {([
+                      { value: 'left', label: 'Left' },
+                      { value: 'center', label: 'Center' },
+                      { value: 'right', label: 'Right' },
+                    ] as const).map(option => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => updateBlockStyle(current => ({ ...current, align: option.value }))}
+                        style={{
+                          borderRadius: 10,
+                          border: '1px solid rgba(148, 163, 184, 0.28)',
+                          background: blockStyleDraft.align === option.value ? '#334155' : 'rgba(30, 41, 59, 0.94)',
+                          color: '#F8FAFC',
+                          cursor: 'pointer',
+                          padding: '8px 0',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <label style={{ display: 'grid', gap: 6, fontSize: 11, color: '#CBD5E1', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  Line Spacing
+                  <input
+                    type="number"
+                    min={0.9}
+                    max={1.8}
+                    step={0.05}
+                    value={blockStyleDraft.lineHeightMultiplier.toFixed(2)}
+                    onChange={event =>
+                      updateBlockStyle(current => ({
+                        ...current,
+                        lineHeightMultiplier: Math.min(Math.max(Number(event.target.value) || 1, 0.9), 1.8),
+                      }))
+                    }
+                    style={{
+                      padding: '9px 10px',
+                      borderRadius: 10,
+                      border: '1px solid rgba(148, 163, 184, 0.28)',
+                      background: 'rgba(30, 41, 59, 0.94)',
+                      color: '#F8FAFC',
+                    }}
+                  />
+                </label>
+
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <span style={{ fontSize: 11, color: '#CBD5E1', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                     Color
                   </span>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -3681,6 +4488,7 @@ export default function EditPDFPage() {
                       boxShadow: isSelected ? '0 0 0 1px rgba(255,255,255,0.85)' : 'none',
                       zIndex: isSelected ? 19 : 8,
                       cursor: tool === 'select' ? 'move' : 'default',
+                      pointerEvents: tool === 'select' ? 'auto' : 'none',
                     }}
                   >
                     <button
@@ -3736,6 +4544,7 @@ export default function EditPDFPage() {
                       border: isSelected ? '1.5px solid rgba(245, 158, 11, 0.9)' : '1px dashed rgba(0,0,0,0.08)',
                       zIndex: isSelected ? 19 : 8,
                       cursor: tool === 'select' ? 'move' : 'default',
+                      pointerEvents: tool === 'select' ? 'auto' : 'none',
                     }}
                   >
                     <div
@@ -3803,6 +4612,7 @@ export default function EditPDFPage() {
                       boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.95)',
                       zIndex: isSelected ? 19 : 9,
                       cursor: tool === 'select' ? 'move' : 'default',
+                      pointerEvents: tool === 'select' ? 'auto' : 'none',
                     }}
                   >
                     <button
@@ -3860,6 +4670,7 @@ export default function EditPDFPage() {
                       cursor: tool === 'select' ? 'move' : 'text',
                       borderRadius: 8,
                       boxShadow: isSelected ? '0 0 0 1.5px rgba(245, 158, 11, 0.9)' : 'none',
+                      pointerEvents: tool === 'select' || isEditing ? 'auto' : 'none',
                     }}
                   >
                     {isEditing ? (
@@ -3893,7 +4704,8 @@ export default function EditPDFPage() {
                           background: 'rgba(255,255,255,0.96)',
                           fontSize: `${displayFontSize}px`,
                           color: overlay.color,
-                          lineHeight: 1.2,
+                          lineHeight: overlay.lineHeightMultiplier,
+                          textAlign: overlay.textAlign,
                           outline: 'none',
                           boxSizing: 'border-box',
                           resize: 'none',
@@ -3916,7 +4728,8 @@ export default function EditPDFPage() {
                           border: isSelected ? '1px dashed #F59E0B' : '1px dashed #d1d5db',
                           fontSize: `${displayFontSize}px`,
                           color: overlay.color,
-                          lineHeight: 1.2,
+                          lineHeight: overlay.lineHeightMultiplier,
+                          textAlign: overlay.textAlign,
                           whiteSpace: 'pre-wrap',
                         }}
                       >
@@ -3955,7 +4768,7 @@ export default function EditPDFPage() {
                 )
               }
 
-              if (overlay.type === 'signature') {
+              if (isMediaOverlay(overlay)) {
                 const isSelected = selectedOverlayId === overlay.id
                 return (
                   <div
@@ -3975,16 +4788,23 @@ export default function EditPDFPage() {
                       cursor: tool === 'select' ? 'move' : 'default',
                       borderRadius: 6,
                       boxShadow: isSelected ? '0 0 0 1.5px rgba(245, 158, 11, 0.9)' : 'none',
+                      overflow: 'visible',
+                      pointerEvents: tool === 'select' ? 'auto' : 'none',
                     }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={overlay.dataUrl}
-                      alt="signature"
+                      alt={overlay.type === 'signature' ? 'signature' : 'inserted image'}
                       style={{
                         width: '100%',
                         height: '100%',
                         display: 'block',
+                        opacity: getMediaOverlayOpacity(overlay),
+                        transform: `rotate(${getMediaOverlayRotationDeg(overlay)}deg)`,
+                        transformOrigin: 'center center',
+                        pointerEvents: 'none',
+                        userSelect: 'none',
                       }}
                       draggable={false}
                     />
@@ -4075,9 +4895,13 @@ export default function EditPDFPage() {
 
           <p style={{ color: '#6b7280', fontSize: 13, marginTop: 14, marginBottom: 0, lineHeight: 1.65 }}>
             {tool === 'edit' && 'Click existing text to edit it. Cmd/Ctrl + Enter saves the active text edit, and Cmd/Ctrl + F jumps into find and replace.'}
-            {tool === 'select' && 'Select any added box, signature, highlight, underline, or whiteout area to move it or resize it with the handles.'}
+            {tool === 'select' && 'Select any added box, image, signature, highlight, underline, or whiteout area to move it or resize it with the handles.'}
             {tool === 'pan' && 'Drag the page to move around at higher zoom levels, then jump between pages with the thumbnails above.'}
-            {tool === 'text' && 'Click anywhere to place a new text box. Use the side handles later to reflow longer paragraphs.'}
+            {tool === 'text' &&
+              (quickInsertDraft
+                ? `Click anywhere to place the ${quickInsertDraft.label}.`
+                : 'Click anywhere to place a new text box. Use the side handles later to reflow longer paragraphs.')}
+            {tool === 'image' && imageDraft && `Click anywhere on the page to place ${imageDraft.name || 'your image'}.`}
             {tool === 'signature' && signatureDraft && 'Click anywhere on the page to place your signature.'}
             {tool === 'highlight' && 'Drag across the page to create a highlight.'}
             {tool === 'underline' && 'Drag across the page to underline an area.'}
@@ -4094,7 +4918,7 @@ export default function EditPDFPage() {
           {[
             'Upload a PDF. Doclair scans the text layer and marks editable text regions automatically.',
             'If any page is image-based, run OCR first. Doclair will detect editable text blocks for those scanned pages.',
-            'Click existing text to edit, then add highlights, whiteout erase areas, new text boxes, or signatures where needed.',
+            'Click existing text to edit, then add highlights, whiteout erase areas, new text boxes, quick date or stamp inserts, images, or signatures where needed.',
             'Use Select to move or resize the overlays you added, then download the finished PDF with everything written back locally in the browser.',
           ].map((step, index) => (
             <div key={step} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
@@ -4129,9 +4953,17 @@ export default function EditPDFPage() {
           Rare embedded fonts may be matched to the closest standard PDF font on export. That keeps the file lightweight and searchable, but some visual drift can still happen in dense layouts or heavily designed documents.
         </p>
         <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--ink)', opacity: 0.72, marginBottom: 0 }}>
-          For deeply reflowed editing, full document redesign, or exact font preservation across every edge case, a desktop PDF editor can still be stronger. For fast local edits, resumes, contracts, invoices, forms, and signatures, this workflow is built to get you there without uploads.
+          For deeply reflowed editing, full document redesign, or exact font preservation across every edge case, a desktop PDF editor can still be stronger. For fast local edits, resumes, contracts, invoices, forms, logos, and signatures, this workflow is built to get you there without uploads.
         </p>
       </div>
+
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        onChange={event => void handleImageInput(event)}
+        style={{ display: 'none' }}
+      />
 
       <FAQ faqs={FAQS} />
 
