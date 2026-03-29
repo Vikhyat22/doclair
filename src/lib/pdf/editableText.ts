@@ -11,11 +11,23 @@ export const EDIT_PREVIEW_SCALE = 1.6
 export const EDIT_REBUILD_SCALE = 2.4
 
 export type TextBlockSource = 'native' | 'ocr'
+export type EditableFontFamily = 'sans' | 'serif' | 'mono'
+export type EditableFontWeight = 'regular' | 'bold'
+export type EditableFontStyle = 'normal' | 'italic'
+
+export interface EditableFontDescriptor {
+  family: EditableFontFamily
+  weight: EditableFontWeight
+  style: EditableFontStyle
+}
 
 export interface EditableTextBlock {
   id: string
   pageIndex: number
   originalText: string
+  originalFontHint: string
+  originalPdfFontSize: number
+  originalTextColor: string
   text: string
   source: TextBlockSource
   pdfX: number
@@ -29,6 +41,7 @@ export interface EditableTextBlock {
   previewFontSize: number
   pdfFontSize: number
   fontHint: string
+  textColor: string
   edited: boolean
 }
 
@@ -187,17 +200,21 @@ interface TesseractBlock {
   paragraphs?: TesseractParagraph[]
 }
 
-interface FontDescriptor {
-  family: 'sans' | 'serif' | 'mono'
-  weight: 'regular' | 'bold'
-  style: 'normal' | 'italic'
-}
-
 const LINE_BUCKET_SIZE = 3
 const OCR_RENDER_SCALE = 2.2
+const DEFAULT_TEXT_COLOR = '#111827'
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
+}
+
+function getCanvas2dContext(
+  canvas: HTMLCanvasElement,
+  options?: CanvasRenderingContext2DSettings,
+) {
+  const context = canvas.getContext('2d', options)
+  if (!context) throw new Error('Could not get 2D canvas context')
+  return context
 }
 
 function parseBbox(title: string | null): { x0: number; y0: number; x1: number; y1: number } | null {
@@ -226,24 +243,56 @@ async function getPdfJs() {
   return pdfjsLib
 }
 
-function classifyFont(fontHint: string): FontDescriptor {
+function normalizeHexColor(color: string) {
+  const trimmed = color.trim().toLowerCase()
+  if (/^#[0-9a-f]{6}$/i.test(trimmed)) return trimmed
+  if (/^#[0-9a-f]{3}$/i.test(trimmed)) {
+    return `#${trimmed[1]}${trimmed[1]}${trimmed[2]}${trimmed[2]}${trimmed[3]}${trimmed[3]}`
+  }
+  return DEFAULT_TEXT_COLOR
+}
+
+export function describeFontHint(fontHint: string): EditableFontDescriptor {
   const hint = fontHint.toLowerCase()
-  const family: FontDescriptor['family'] =
+  const family: EditableFontDescriptor['family'] =
     hint.includes('mono') || hint.includes('courier')
       ? 'mono'
       : hint.includes('times') || hint.includes('serif') || hint.includes('georgia')
         ? 'serif'
         : 'sans'
 
-  const weight: FontDescriptor['weight'] = hint.includes('bold') ? 'bold' : 'regular'
-  const style: FontDescriptor['style'] =
+  const weight: EditableFontDescriptor['weight'] = hint.includes('bold') ? 'bold' : 'regular'
+  const style: EditableFontDescriptor['style'] =
     hint.includes('italic') || hint.includes('oblique') ? 'italic' : 'normal'
 
   return { family, weight, style }
 }
 
+export function composeFontHint(descriptor: EditableFontDescriptor) {
+  return [descriptor.family, descriptor.weight === 'bold' ? 'bold' : '', descriptor.style === 'italic' ? 'italic' : '']
+    .filter(Boolean)
+    .join(' ')
+}
+
+export function isTextBlockEdited(
+  block: EditableTextBlock,
+  overrides?: Partial<Pick<EditableTextBlock, 'text' | 'fontHint' | 'pdfFontSize' | 'textColor'>>,
+) {
+  const nextText = (overrides?.text ?? block.text).replace(/\r/g, '')
+  const nextFontHint = overrides?.fontHint ?? block.fontHint
+  const nextPdfFontSize = overrides?.pdfFontSize ?? block.pdfFontSize
+  const nextTextColor = normalizeHexColor(overrides?.textColor ?? block.textColor)
+
+  return (
+    nextText !== block.originalText ||
+    nextFontHint !== block.originalFontHint ||
+    Math.abs(nextPdfFontSize - block.originalPdfFontSize) > 0.15 ||
+    nextTextColor !== normalizeHexColor(block.originalTextColor)
+  )
+}
+
 function standardFontForHint(fontHint: string) {
-  const descriptor = classifyFont(fontHint)
+  const descriptor = describeFontHint(fontHint)
 
   if (descriptor.family === 'mono') {
     if (descriptor.weight === 'bold' && descriptor.style === 'italic') return StandardFonts.CourierBoldOblique
@@ -320,6 +369,9 @@ function buildBlocksFromItems(
         id: crypto.randomUUID(),
         pageIndex,
         originalText: text.trim(),
+        originalFontHint: first.fontHint,
+        originalPdfFontSize: pdfFontSize,
+        originalTextColor: DEFAULT_TEXT_COLOR,
         text: text.trim(),
         source: 'native',
         pdfX: pdfLeft,
@@ -333,6 +385,7 @@ function buildBlocksFromItems(
         previewFontSize,
         pdfFontSize,
         fontHint: first.fontHint,
+        textColor: DEFAULT_TEXT_COLOR,
         edited: false,
       })
 
@@ -471,6 +524,9 @@ function createOcrBlock(
     id: crypto.randomUUID(),
     pageIndex,
     originalText: text,
+    originalFontHint: fontHint,
+    originalPdfFontSize: pdfFontSize,
+    originalTextColor: DEFAULT_TEXT_COLOR,
     text,
     source: 'ocr' as const,
     pdfX: box.x0 * pdfScaleX,
@@ -484,6 +540,7 @@ function createOcrBlock(
     previewFontSize: Math.max(previewBoxHeight * 0.82, 10),
     pdfFontSize,
     fontHint,
+    textColor: DEFAULT_TEXT_COLOR,
     edited: false,
   }
 }
@@ -708,8 +765,7 @@ export async function loadEditablePdf(
     const canvas = document.createElement('canvas')
     canvas.width = previewViewport.width
     canvas.height = previewViewport.height
-    const canvasContext = canvas.getContext('2d')
-    if (!canvasContext) throw new Error('Could not get 2D canvas context')
+    const canvasContext = getCanvas2dContext(canvas, { willReadFrequently: true })
 
     await page.render({
       canvas,
@@ -727,7 +783,21 @@ export async function loadEditablePdf(
       rawViewport.height,
       previewViewport.width,
       previewViewport.height,
-    )
+    ).map(block => {
+      const textColor = sampleCanvasTextColor(
+        canvasContext,
+        block.previewX,
+        block.previewY,
+        block.previewWidth,
+        block.previewHeight,
+      )
+
+      return {
+        ...block,
+        textColor,
+        originalTextColor: textColor,
+      }
+    })
 
     const pageWordCount = textBlocks.reduce((sum, block) => sum + countWords(block.text), 0)
     totalWordCount += pageWordCount
@@ -805,8 +875,7 @@ export async function runOcrForEditablePages(
     const canvas = document.createElement('canvas')
     canvas.width = viewport.width
     canvas.height = viewport.height
-    const canvasContext = canvas.getContext('2d')
-    if (!canvasContext) throw new Error('Could not get 2D canvas context')
+    const canvasContext = getCanvas2dContext(canvas)
 
     onProgress?.({
       current: index,
@@ -902,8 +971,7 @@ async function loadPreviewCanvas(page: EditablePdfPage) {
   const canvas = document.createElement('canvas')
   canvas.width = page.previewWidth
   canvas.height = page.previewHeight
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('Could not get 2D canvas context')
+  const ctx = getCanvas2dContext(canvas, { willReadFrequently: true })
   ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
   return canvas
 }
@@ -943,6 +1011,10 @@ function sampleBackgroundColor(
 
   if (!samples) return rgb(1, 1, 1)
   return rgb(r / samples / 255, g / samples / 255, b / samples / 255)
+}
+
+function normalizeSingleLineText(text: string) {
+  return text.replace(/\s*\n+\s*/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
 function wrapText(text: string, font: PDFFont, size: number, maxWidth: number) {
@@ -1000,11 +1072,7 @@ function wrapText(text: string, font: PDFFont, size: number, maxWidth: number) {
   return lines.length ? lines : ['']
 }
 
-function wrapCanvasText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  maxWidth: number,
-) {
+function wrapCanvasText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
   const splitWord = (word: string) => {
     if (!word) return ['']
     const segments: string[] = []
@@ -1057,7 +1125,7 @@ function wrapCanvasText(
 }
 
 function cssFontForHint(fontHint: string, fontSize: number) {
-  const descriptor = classifyFont(fontHint)
+  const descriptor = describeFontHint(fontHint)
   const family =
     descriptor.family === 'mono'
       ? '"Courier New", Courier, monospace'
@@ -1070,13 +1138,57 @@ function cssFontForHint(fontHint: string, fontSize: number) {
   return `${style} ${weight} ${fontSize}px ${family}`
 }
 
+function rgbToHex(red: number, green: number, blue: number) {
+  return `#${[red, green, blue]
+    .map(value => Math.round(clamp(value, 0, 255)).toString(16).padStart(2, '0'))
+    .join('')}`
+}
+
 function hexToRgb(color: string) {
-  const value = color.replace('#', '')
+  const value = normalizeHexColor(color).replace('#', '')
   return {
     red: parseInt(value.slice(0, 2), 16),
     green: parseInt(value.slice(2, 4), 16),
     blue: parseInt(value.slice(4, 6), 16),
   }
+}
+
+function sampleCanvasTextColor(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  const left = Math.floor(clamp(x, 0, ctx.canvas.width - 1))
+  const top = Math.floor(clamp(y, 0, ctx.canvas.height - 1))
+  const sampleWidth = Math.max(2, Math.ceil(clamp(width, 2, ctx.canvas.width - left)))
+  const sampleHeight = Math.max(2, Math.ceil(clamp(height, 2, ctx.canvas.height - top)))
+  const image = ctx.getImageData(left, top, sampleWidth, sampleHeight)
+  const candidates: Array<{ red: number; green: number; blue: number; brightness: number }> = []
+
+  for (let index = 0; index < image.data.length; index += 4) {
+    const alpha = image.data[index + 3]
+    if (alpha < 32) continue
+
+    const red = image.data[index]
+    const green = image.data[index + 1]
+    const blue = image.data[index + 2]
+    const brightness = (red + green + blue) / 3
+    if (brightness > 228) continue
+
+    candidates.push({ red, green, blue, brightness })
+  }
+
+  if (!candidates.length) return DEFAULT_TEXT_COLOR
+
+  candidates.sort((a, b) => a.brightness - b.brightness)
+  const sampleCount = Math.max(1, Math.ceil(candidates.length * 0.2))
+  const sample = candidates.slice(0, sampleCount)
+  const red = sample.reduce((sum, item) => sum + item.red, 0) / sample.length
+  const green = sample.reduce((sum, item) => sum + item.green, 0) / sample.length
+  const blue = sample.reduce((sum, item) => sum + item.blue, 0) / sample.length
+  return rgbToHex(red, green, blue)
 }
 
 function sampleCanvasFill(
@@ -1086,10 +1198,11 @@ function sampleCanvasFill(
   width: number,
   height: number,
 ) {
-  const left = Math.floor(clamp(x - 4, 0, ctx.canvas.width - 1))
-  const top = Math.floor(clamp(y - 4, 0, ctx.canvas.height - 1))
-  const sampleWidth = Math.max(2, Math.ceil(clamp(width + 8, 2, ctx.canvas.width - left)))
-  const sampleHeight = Math.max(2, Math.ceil(clamp(height + 8, 2, ctx.canvas.height - top)))
+  const padding = 6
+  const left = Math.floor(clamp(x - padding, 0, ctx.canvas.width - 1))
+  const top = Math.floor(clamp(y - padding, 0, ctx.canvas.height - 1))
+  const sampleWidth = Math.max(2, Math.ceil(clamp(width + padding * 2, 2, ctx.canvas.width - left)))
+  const sampleHeight = Math.max(2, Math.ceil(clamp(height + padding * 2, 2, ctx.canvas.height - top)))
   const image = ctx.getImageData(left, top, sampleWidth, sampleHeight)
 
   let r = 0
@@ -1098,6 +1211,18 @@ function sampleCanvasFill(
   let samples = 0
 
   for (let index = 0; index < image.data.length; index += 4) {
+    const pixelIndex = index / 4
+    const pixelX = pixelIndex % sampleWidth
+    const pixelY = Math.floor(pixelIndex / sampleWidth)
+    const absoluteX = left + pixelX
+    const absoluteY = top + pixelY
+    const insideEditedBox =
+      absoluteX >= x &&
+      absoluteX <= x + width &&
+      absoluteY >= y &&
+      absoluteY <= y + height
+    if (insideEditedBox) continue
+
     const alpha = image.data[index + 3]
     if (alpha < 8) continue
 
@@ -1105,7 +1230,7 @@ function sampleCanvasFill(
     const green = image.data[index + 1]
     const blue = image.data[index + 2]
     const brightness = (red + green + blue) / 3
-    if (brightness < 40) continue
+    if (brightness < 170) continue
 
     r += red
     g += green
@@ -1124,6 +1249,101 @@ function sampleCanvasFill(
     fill: `rgb(${Math.round(r / samples)}, ${Math.round(g / samples)}, ${Math.round(b / samples)})`,
     pdf: rgb(r / samples / 255, g / samples / 255, b / samples / 255),
   }
+}
+
+interface FittedTextLayout {
+  lines: string[]
+  fontSize: number
+  lineHeight: number
+  widestLine: number
+}
+
+function fitPdfTextLayout(
+  text: string,
+  font: PDFFont,
+  fontSize: number,
+  maxWidth: number,
+) {
+  const prefersSingleLine = !text.includes('\n')
+  const singleLineText = normalizeSingleLineText(text)
+  const minimumSize = Math.max(8, fontSize * 0.72)
+  let nextSize = fontSize
+
+  if (prefersSingleLine && singleLineText) {
+    while (nextSize >= minimumSize) {
+      const width = font.widthOfTextAtSize(singleLineText, nextSize)
+      if (width <= maxWidth) {
+        return {
+          lines: [singleLineText],
+          fontSize: nextSize,
+          lineHeight: nextSize * 1.18,
+          widestLine: width,
+        } satisfies FittedTextLayout
+      }
+
+      if (nextSize === minimumSize) break
+      nextSize = Math.max(minimumSize, Number((nextSize * 0.96).toFixed(2)))
+    }
+  }
+
+  const lines = wrapText(text, font, nextSize, Math.max(maxWidth, nextSize))
+  const lineHeight = nextSize * 1.18
+  const widestLine = lines.reduce(
+    (widest, line) => Math.max(widest, font.widthOfTextAtSize(line || ' ', nextSize)),
+    0,
+  )
+
+  return { lines, fontSize: nextSize, lineHeight, widestLine }
+}
+
+function fitCanvasTextLayout(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  fontSize: number,
+  maxWidth: number,
+  fontHint: string,
+) {
+  const prefersSingleLine = !text.includes('\n')
+  const singleLineText = normalizeSingleLineText(text)
+  const minimumSize = Math.max(8, fontSize * 0.72)
+  let nextSize = fontSize
+
+  if (prefersSingleLine && singleLineText) {
+    while (nextSize >= minimumSize) {
+      ctx.save()
+      ctx.font = cssFontForHint(fontHint, nextSize)
+      const width = ctx.measureText(singleLineText).width
+      ctx.restore()
+
+      if (width <= maxWidth) {
+        return {
+          lines: [singleLineText],
+          fontSize: nextSize,
+          lineHeight: nextSize * 1.18,
+          widestLine: width,
+        } satisfies FittedTextLayout
+      }
+
+      if (nextSize === minimumSize) break
+      nextSize = Math.max(minimumSize, Number((nextSize * 0.96).toFixed(2)))
+    }
+  }
+
+  ctx.save()
+  ctx.font = cssFontForHint(fontHint, nextSize)
+  const lines = wrapCanvasText(ctx, text, Math.max(maxWidth, nextSize))
+  const widestLine = lines.reduce(
+    (widest, line) => Math.max(widest, ctx.measureText(line || ' ').width),
+    0,
+  )
+  ctx.restore()
+
+  return {
+    lines,
+    fontSize: nextSize,
+    lineHeight: nextSize * 1.18,
+    widestLine,
+  } satisfies FittedTextLayout
 }
 
 function blockToCanvasMetrics(
@@ -1153,27 +1373,21 @@ function drawWrappedCanvasText(
   color: string,
   fontHint: string,
 ) {
+  const layout = fitCanvasTextLayout(ctx, text, fontSize, Math.max(maxWidth, fontSize), fontHint)
   ctx.save()
-  ctx.font = cssFontForHint(fontHint, fontSize)
+  ctx.font = cssFontForHint(fontHint, layout.fontSize)
   ctx.fillStyle = color
   ctx.textBaseline = 'top'
-  const lines = wrapCanvasText(ctx, text, Math.max(maxWidth, fontSize))
-  const lineHeight = fontSize * 1.18
-  let widestLine = 0
-
-  for (const line of lines) {
-    widestLine = Math.max(widestLine, ctx.measureText(line || ' ').width)
-  }
-
-  lines.forEach((line, index) => {
-    ctx.fillText(line, x, y + index * lineHeight)
+  layout.lines.forEach((line, index) => {
+    ctx.fillText(line, x, y + index * layout.lineHeight)
   })
   ctx.restore()
 
   return {
-    lineCount: lines.length,
-    lineHeight,
-    widestLine,
+    lineCount: layout.lines.length,
+    lineHeight: layout.lineHeight,
+    widestLine: layout.widestLine,
+    fontSize: layout.fontSize,
   }
 }
 
@@ -1197,8 +1411,7 @@ async function renderPdfPageForRebuild(
   const canvas = document.createElement('canvas')
   canvas.width = viewport.width
   canvas.height = viewport.height
-  const canvasContext = canvas.getContext('2d')
-  if (!canvasContext) throw new Error('Could not get 2D canvas context')
+  const canvasContext = getCanvas2dContext(canvas, { willReadFrequently: true })
 
   await page.render({
     canvas,
@@ -1215,8 +1428,7 @@ async function drawRebuiltPageCanvas(
   pageState: EditablePdfPage,
   pageOverlays: EditOverlay[],
 ) {
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('Could not get 2D canvas context')
+  const ctx = getCanvas2dContext(canvas)
 
   for (const overlay of pageOverlays) {
     if (overlay.type !== 'highlight') continue
@@ -1248,13 +1460,15 @@ async function drawRebuiltPageCanvas(
   for (const block of pageState.textBlocks.filter(item => item.edited)) {
     const metrics = blockToCanvasMetrics(block, pageState, canvas)
     const background = sampleCanvasFill(ctx, metrics.x, metrics.y, metrics.width, metrics.height)
+    const coverWidth = Math.max(metrics.width + 3, metrics.fontSize * 0.95)
+    const coverHeight = Math.max(metrics.height + 2, metrics.fontSize * 1.1)
     ctx.save()
     ctx.fillStyle = background.fill
     ctx.fillRect(
-      Math.max(0, metrics.x - 3),
-      Math.max(0, metrics.y - 2),
-      Math.min(canvas.width, metrics.width + 8),
-      Math.min(canvas.height, Math.max(metrics.height + 6, metrics.fontSize * 1.4)),
+      Math.max(0, metrics.x - 1.5),
+      Math.max(0, metrics.y - 1),
+      Math.min(canvas.width, coverWidth),
+      Math.min(canvas.height, coverHeight),
     )
     ctx.restore()
 
@@ -1265,7 +1479,7 @@ async function drawRebuiltPageCanvas(
       metrics.y,
       metrics.fontSize,
       metrics.width,
-      'rgb(20, 17, 14)',
+      block.textColor,
       block.fontHint,
     )
   }
@@ -1336,30 +1550,25 @@ function drawWrappedText(
   color: ReturnType<typeof rgb>,
   opacity = 1,
 ) {
-  const lines = wrapText(text, font, fontSize, Math.max(maxWidth, fontSize))
-  const lineHeight = fontSize * 1.18
-  let widestLine = 0
+  const layout = fitPdfTextLayout(text, font, fontSize, Math.max(maxWidth, fontSize))
 
-  lines.forEach(line => {
-    widestLine = Math.max(widestLine, font.widthOfTextAtSize(line || ' ', fontSize))
-  })
-
-  lines.forEach((line, index) => {
+  layout.lines.forEach((line, index) => {
     page.drawText(line, {
       x,
-      y: y - index * lineHeight,
+      y: y - index * layout.lineHeight,
       font,
-      size: fontSize,
+      size: layout.fontSize,
       color,
-      lineHeight,
+      lineHeight: layout.lineHeight,
       opacity,
     })
   })
 
   return {
-    lineCount: lines.length,
-    lineHeight,
-    widestLine,
+    lineCount: layout.lines.length,
+    lineHeight: layout.lineHeight,
+    widestLine: layout.widestLine,
+    fontSize: layout.fontSize,
   }
 }
 

@@ -10,6 +10,7 @@ import {
   type DragEvent,
   type KeyboardEvent,
   type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
   type TouchEvent as ReactTouchEvent,
 } from 'react'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
@@ -18,18 +19,23 @@ import ToolSidebar from '@/components/ui/ToolSidebar'
 import {
   EDIT_PREVIEW_SCALE,
   type AddedTextOverlay,
+  composeFontHint,
+  describeFontHint,
+  type EditableFontDescriptor,
   type EditablePdfPage,
+  type EditableTextBlock,
   type EditOverlay,
   type MarkupOverlay,
   type SignatureOverlay,
   type WhiteoutOverlay,
+  isTextBlockEdited,
   loadEditablePdf,
   runOcrForEditablePages,
   saveEditedPdf,
 } from '@/lib/pdf/editableText'
 import { OCR_LANGUAGES } from '@/lib/ocr/tesseract'
 
-type ToolMode = 'edit' | 'select' | 'text' | 'signature' | 'highlight' | 'underline' | 'whiteout'
+type ToolMode = 'edit' | 'select' | 'pan' | 'text' | 'signature' | 'highlight' | 'underline' | 'whiteout'
 type PageQualityTone = 'original' | 'overlay' | 'ocr' | 'rebuild' | 'attention'
 type ResizeHandle = 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
 
@@ -59,9 +65,21 @@ interface DragState {
   originHeight: number
 }
 
+interface PanState {
+  startX: number
+  startY: number
+  scrollLeft: number
+  scrollTop: number
+}
+
 interface PageFrame {
   width: number
   height: number
+}
+
+interface BlockStyleDraft extends EditableFontDescriptor {
+  fontSize: number
+  color: string
 }
 
 const FAQS = [
@@ -301,6 +319,43 @@ const RESIZE_HANDLE_STYLE: Record<
     cursor: 'nesw-resize',
     style: { left: -7, bottom: -7 },
   },
+}
+
+const EXISTING_TEXT_SWATCHES = ['#111827', '#0F766E', '#1D4ED8', '#7C3AED', '#C2410C', '#BE123C']
+const MIN_EDITOR_ZOOM = 0.75
+const MAX_EDITOR_ZOOM = 2.5
+const EDITOR_ZOOM_STEP = 0.25
+
+function clampZoom(value: number) {
+  return Math.min(MAX_EDITOR_ZOOM, Math.max(MIN_EDITOR_ZOOM, Number(value.toFixed(2))))
+}
+
+function blockStyleDraftFromBlock(block: EditableTextBlock, useOriginal = false): BlockStyleDraft {
+  const fontHint = useOriginal ? block.originalFontHint : block.fontHint
+  const fontSize = useOriginal ? block.originalPdfFontSize : block.pdfFontSize
+  const color = useOriginal ? block.originalTextColor : block.textColor
+  const descriptor = describeFontHint(fontHint)
+
+  return {
+    ...descriptor,
+    fontSize: Math.max(8, Math.round(fontSize)),
+    color,
+  }
+}
+
+function cssFontFromHint(fontHint: string) {
+  const descriptor = describeFontHint(fontHint)
+
+  return {
+    fontFamily:
+      descriptor.family === 'mono'
+        ? '"Courier New", Courier, monospace'
+        : descriptor.family === 'serif'
+          ? 'Georgia, "Times New Roman", serif'
+          : '"Helvetica Neue", Arial, sans-serif',
+    fontWeight: descriptor.weight === 'bold' ? 700 : 400,
+    fontStyle: descriptor.style === 'italic' ? 'italic' as const : 'normal' as const,
+  }
 }
 
 function SignatureModal({
@@ -543,35 +598,67 @@ export default function EditPDFPage() {
   const [overlays, setOverlays] = useState<EditOverlay[]>([])
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null)
   const [blockDraft, setBlockDraft] = useState('')
+  const [blockStyleDraft, setBlockStyleDraft] = useState<BlockStyleDraft | null>(null)
   const [editingOverlayId, setEditingOverlayId] = useState<string | null>(null)
   const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null)
   const [showSignatureModal, setShowSignatureModal] = useState(false)
   const [signatureDraft, setSignatureDraft] = useState<SignatureDraft | null>(null)
   const [dragging, setDragging] = useState<DragState | null>(null)
+  const [panning, setPanning] = useState<PanState | null>(null)
   const [pageFrame, setPageFrame] = useState<PageFrame>({ width: 0, height: 0 })
+  const [viewerWidth, setViewerWidth] = useState(0)
+  const [zoomLevel, setZoomLevel] = useState(1)
   const [markupDraft, setMarkupDraft] = useState<MarkupOverlay | WhiteoutOverlay | null>(null)
+  const viewerViewportRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const blockTextareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const blockEditorRef = useRef<HTMLDivElement | null>(null)
+  const blockInspectorRef = useRef<HTMLDivElement>(null)
   const overlayTextareaRef = useRef<HTMLTextAreaElement | null>(null)
   const markupStart = useRef<{ x: number; y: number } | null>(null)
+  const panStateRef = useRef<PanState | null>(null)
+
+  const applyDraftToBlock = useCallback(
+    (block: EditableTextBlock, nextTextOverride?: string) => {
+      if (block.id !== activeBlockId || !blockStyleDraft) return block
+
+      const nextText = (nextTextOverride ?? blockDraft).replace(/\r/g, '')
+      const nextPdfFontSize = Math.max(8, blockStyleDraft.fontSize)
+      const nextFontHint = composeFontHint(blockStyleDraft)
+      const nextColor = blockStyleDraft.color
+
+      return {
+        ...block,
+        text: nextText,
+        fontHint: nextFontHint,
+        pdfFontSize: nextPdfFontSize,
+        previewFontSize: nextPdfFontSize * EDIT_PREVIEW_SCALE,
+        pdfHeight: Math.max(block.pdfHeight, nextPdfFontSize * 1.2),
+        previewHeight: Math.max(block.previewHeight, nextPdfFontSize * EDIT_PREVIEW_SCALE * 1.2),
+        textColor: nextColor,
+        edited: isTextBlockEdited(block, {
+          text: nextText,
+          fontHint: nextFontHint,
+          pdfFontSize: nextPdfFontSize,
+          textColor: nextColor,
+        }),
+      }
+    },
+    [activeBlockId, blockDraft, blockStyleDraft],
+  )
+
+  const readLiveBlockDraft = useCallback(
+    () => blockEditorRef.current?.innerText.replace(/\r/g, '') ?? blockDraft.replace(/\r/g, ''),
+    [blockDraft],
+  )
 
   const previewPages = useMemo(() => {
-    if (!activeBlockId) return pages
+    if (!activeBlockId || !blockStyleDraft) return pages
 
-    const nextText = blockDraft.replace(/\r/g, '')
     return pages.map(page => ({
       ...page,
-      textBlocks: page.textBlocks.map(block =>
-        block.id === activeBlockId
-          ? {
-              ...block,
-              text: nextText,
-              edited: nextText !== block.originalText,
-            }
-          : block,
-      ),
+      textBlocks: page.textBlocks.map(block => applyDraftToBlock(block)),
     }))
-  }, [activeBlockId, blockDraft, pages])
+  }, [activeBlockId, applyDraftToBlock, blockStyleDraft, pages])
 
   const currentPageState = previewPages[currentPage] ?? null
   const pageCount = previewPages.length
@@ -591,6 +678,14 @@ export default function EditPDFPage() {
     () => currentOverlays.find(overlay => overlay.id === selectedOverlayId) ?? null,
     [currentOverlays, selectedOverlayId],
   )
+  const activeBlock = useMemo(
+    () => previewPages.flatMap(page => page.textBlocks).find(block => block.id === activeBlockId) ?? null,
+    [activeBlockId, previewPages],
+  )
+  const sourceActiveBlock = useMemo(
+    () => pages.flatMap(page => page.textBlocks).find(block => block.id === activeBlockId) ?? null,
+    [activeBlockId, pages],
+  )
   const qualitySummary = useMemo(
     () =>
       pageQualities.reduce(
@@ -608,6 +703,24 @@ export default function EditPDFPage() {
       ),
     [pageQualities],
   )
+  const fittedPageWidth = useMemo(() => {
+    if (!currentPageState) return 0
+    if (!viewerWidth) return currentPageState.previewWidth
+
+    return Math.min(
+      Math.max(viewerWidth - 28, 280),
+      currentPageState.previewWidth,
+    )
+  }, [currentPageState, viewerWidth])
+  const editorCanvasWidth = useMemo(
+    () => (fittedPageWidth > 0 ? fittedPageWidth * zoomLevel : 0),
+    [fittedPageWidth, zoomLevel],
+  )
+  const viewerSurfaceWidth = useMemo(() => {
+    if (!editorCanvasWidth) return 0
+    const minimumWidth = viewerWidth > 0 ? Math.max(viewerWidth - 32, 0) : editorCanvasWidth
+    return Math.max(editorCanvasWidth, minimumWidth)
+  }, [editorCanvasWidth, viewerWidth])
 
   const scaledByPreview = useCallback(
     (value: number) => {
@@ -616,6 +729,25 @@ export default function EditPDFPage() {
     },
     [currentPageState, pageFrame.width],
   )
+
+  const blockInspectorPosition = useMemo(() => {
+    if (!activeBlock || !currentPageState || !pageFrame.width) return null
+
+    const blockLeft = scaledByPreview(activeBlock.previewX)
+    const blockTop = scaledByPreview(activeBlock.previewY)
+    const blockWidth = Math.max(scaledByPreview(activeBlock.previewWidth), 20)
+    const inspectorWidth = 248
+    const gutter = 18
+    const placeRight = blockLeft + blockWidth + gutter + inspectorWidth <= pageFrame.width - 12
+
+    return {
+      left: placeRight
+        ? blockLeft + blockWidth + gutter
+        : Math.max(12, blockLeft - inspectorWidth - gutter),
+      top: Math.max(12, Math.min(blockTop - 8, pageFrame.height - 230)),
+      width: inspectorWidth,
+    }
+  }, [activeBlock, currentPageState, pageFrame.height, pageFrame.width, scaledByPreview])
 
   useEffect(() => {
     const node = containerRef.current
@@ -636,11 +768,38 @@ export default function EditPDFPage() {
   }, [currentPageState?.previewDataUrl])
 
   useEffect(() => {
-    const textarea = blockTextareaRef.current
-    if (!textarea) return
-    textarea.style.height = '0px'
-    textarea.style.height = `${Math.max(textarea.scrollHeight, 48)}px`
+    const node = viewerViewportRef.current
+    if (!node) return
+
+    const updateSize = () => {
+      setViewerWidth(node.clientWidth)
+    }
+
+    updateSize()
+    const observer = new ResizeObserver(updateSize)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [currentPageState?.previewDataUrl])
+
+  useEffect(() => {
+    const editor = blockEditorRef.current
+    if (!editor) return
+    if (editor.innerText !== blockDraft) editor.innerText = blockDraft
   }, [activeBlockId, blockDraft])
+
+  useEffect(() => {
+    const editor = blockEditorRef.current
+    if (!editor || !activeBlockId) return
+
+    editor.focus()
+    const selection = window.getSelection()
+    if (!selection) return
+    const range = document.createRange()
+    range.selectNodeContents(editor)
+    range.collapse(false)
+    selection.removeAllRanges()
+    selection.addRange(range)
+  }, [activeBlockId])
 
   useEffect(() => {
     const textarea = overlayTextareaRef.current
@@ -655,11 +814,14 @@ export default function EditPDFPage() {
     setCurrentPage(0)
     setOverlays([])
     setActiveBlockId(null)
+    setBlockStyleDraft(null)
     setEditingOverlayId(null)
     setSelectedOverlayId(null)
     setSignatureDraft(null)
     setDragging(null)
+    setPanning(null)
     setMarkupDraft(null)
+    setZoomLevel(1)
     setSaveError('')
     setSaveNote('')
     setTool('edit')
@@ -718,6 +880,7 @@ export default function EditPDFPage() {
       if (!block) return
       setActiveBlockId(blockId)
       setBlockDraft(block.text)
+      setBlockStyleDraft(blockStyleDraftFromBlock(block))
       setEditingOverlayId(null)
       setSelectedOverlayId(null)
     },
@@ -725,29 +888,42 @@ export default function EditPDFPage() {
   )
 
   const commitBlockEdit = useCallback(() => {
-    if (!activeBlockId) return
-
-    const nextText = blockDraft.replace(/\r/g, '')
+    if (!activeBlockId || !blockStyleDraft) return
+    const liveText = readLiveBlockDraft()
     updatePages(page => ({
       ...page,
-      textBlocks: page.textBlocks.map(block =>
-        block.id === activeBlockId
-          ? {
-              ...block,
-              text: nextText,
-              edited: nextText !== block.originalText,
-            }
-          : block,
-      ),
+      textBlocks: page.textBlocks.map(block => applyDraftToBlock(block, liveText)),
     }))
 
     setActiveBlockId(null)
     setBlockDraft('')
-  }, [activeBlockId, blockDraft, updatePages])
+    setBlockStyleDraft(null)
+  }, [activeBlockId, applyDraftToBlock, blockStyleDraft, readLiveBlockDraft, updatePages])
 
   const cancelBlockEdit = useCallback(() => {
     setActiveBlockId(null)
     setBlockDraft('')
+    setBlockStyleDraft(null)
+  }, [])
+
+  const keepBlockEditorOpen = useCallback((nextTarget: EventTarget | null) => {
+    const node = nextTarget as Node | null
+    return Boolean(
+      node &&
+        (blockInspectorRef.current?.contains(node) ||
+          blockEditorRef.current?.contains(node)),
+    )
+  }, [])
+
+  const updateBlockStyle = useCallback((updater: (current: BlockStyleDraft) => BlockStyleDraft) => {
+    setBlockStyleDraft(current => (current ? updater(current) : current))
+  }, [])
+
+  const updateZoom = useCallback((value: number | ((current: number) => number)) => {
+    setZoomLevel(current => {
+      const nextValue = typeof value === 'function' ? value(current) : value
+      return clampZoom(nextValue)
+    })
   }, [])
 
   const goToPage = useCallback(
@@ -755,6 +931,9 @@ export default function EditPDFPage() {
       if (activeBlockId) commitBlockEdit()
       setSelectedOverlayId(null)
       setCurrentPage(nextPage)
+      requestAnimationFrame(() => {
+        viewerViewportRef.current?.scrollTo({ left: 0, top: 0, behavior: 'smooth' })
+      })
     },
     [activeBlockId, commitBlockEdit],
   )
@@ -807,6 +986,84 @@ export default function EditPDFPage() {
       y: (clientY - rect.top) / rect.height,
     }
   }, [])
+
+  const beginPanning = useCallback(
+    (clientX: number, clientY: number) => {
+      if (tool !== 'pan') return false
+      const viewport = viewerViewportRef.current
+      if (!viewport) return false
+
+      setActiveBlockId(null)
+      setEditingOverlayId(null)
+      setSelectedOverlayId(null)
+      const nextPan = {
+        startX: clientX,
+        startY: clientY,
+        scrollLeft: viewport.scrollLeft,
+        scrollTop: viewport.scrollTop,
+      }
+      panStateRef.current = nextPan
+      setPanning(nextPan)
+      return true
+    },
+    [tool],
+  )
+
+  const updatePanPosition = useCallback((clientX: number, clientY: number) => {
+    const activePan = panStateRef.current
+    if (!activePan) return
+    const viewport = viewerViewportRef.current
+    if (!viewport) return
+
+    viewport.scrollLeft = activePan.scrollLeft - (clientX - activePan.startX)
+    viewport.scrollTop = activePan.scrollTop - (clientY - activePan.startY)
+  }, [])
+
+  const handleViewerMouseDown = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>) => {
+      if (!beginPanning(event.clientX, event.clientY)) return
+      event.preventDefault()
+    },
+    [beginPanning],
+  )
+
+  const handleViewerMouseMove = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>) => {
+      updatePanPosition(event.clientX, event.clientY)
+    },
+    [updatePanPosition],
+  )
+
+  const handleViewerPointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (!beginPanning(event.clientX, event.clientY)) return
+      event.preventDefault()
+      event.currentTarget.setPointerCapture(event.pointerId)
+    },
+    [beginPanning],
+  )
+
+  const handleViewerPointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      updatePanPosition(event.clientX, event.clientY)
+    },
+    [updatePanPosition],
+  )
+
+  const stopPanning = useCallback(() => {
+    panStateRef.current = null
+    setPanning(null)
+  }, [])
+
+  const handleViewerPointerUp = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId)
+      }
+      stopPanning()
+    },
+    [stopPanning],
+  )
 
   const getOverlayMinimumSize = useCallback((overlay: EditOverlay) => {
     if (overlay.type === 'text-overlay') return { width: 0.08, height: 0.04 }
@@ -927,6 +1184,7 @@ export default function EditPDFPage() {
   const handleCanvasClick = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
       if (!currentPageState) return
+      if (tool === 'pan') return
       if (tool === 'highlight' || tool === 'underline' || tool === 'whiteout') return
 
       const point = getRelativePoint(event.clientX, event.clientY)
@@ -1187,6 +1445,29 @@ export default function EditPDFPage() {
     }
   }, [dragging, getOverlayMinimumSize])
 
+  useEffect(() => {
+    if (!panning) return
+
+    const move = (event: MouseEvent) => {
+      const activePan = panStateRef.current
+      if (!activePan) return
+      const viewport = viewerViewportRef.current
+      if (!viewport) return
+
+      viewport.scrollLeft = activePan.scrollLeft - (event.clientX - activePan.startX)
+      viewport.scrollTop = activePan.scrollTop - (event.clientY - activePan.startY)
+    }
+
+    const stop = () => stopPanning()
+
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', stop)
+    return () => {
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseup', stop)
+    }
+  }, [panning, stopPanning])
+
   const handleRunOcr = useCallback(async () => {
     if (!pdfFile || !pages.length) return
     setRunningOcr(true)
@@ -1218,21 +1499,14 @@ export default function EditPDFPage() {
   }, [ocrLanguage, pages, pdfFile])
 
   const finalizePagesForSave = useCallback(() => {
-    if (!activeBlockId) return pages
+    if (!activeBlockId || !blockStyleDraft) return pages
+    const liveText = readLiveBlockDraft()
 
     return pages.map(page => ({
       ...page,
-      textBlocks: page.textBlocks.map(block =>
-        block.id === activeBlockId
-          ? {
-              ...block,
-              text: blockDraft.replace(/\r/g, ''),
-              edited: blockDraft.replace(/\r/g, '') !== block.originalText,
-            }
-          : block,
-      ),
+      textBlocks: page.textBlocks.map(block => applyDraftToBlock(block, liveText)),
     }))
-  }, [activeBlockId, blockDraft, pages])
+  }, [activeBlockId, applyDraftToBlock, blockStyleDraft, pages, readLiveBlockDraft])
 
   const handleSave = useCallback(async () => {
     if (!pdfFile || !pages.length) return
@@ -1243,6 +1517,8 @@ export default function EditPDFPage() {
     const pagesToSave = finalizePagesForSave()
     if (pagesToSave !== pages) setPages(pagesToSave)
     setActiveBlockId(null)
+    setBlockDraft('')
+    setBlockStyleDraft(null)
     setEditingOverlayId(null)
     setSelectedOverlayId(null)
 
@@ -1305,6 +1581,22 @@ export default function EditPDFPage() {
             ? 'underline'
             : 'whiteout area'
     : ''
+  const activeToolLabel =
+    tool === 'edit'
+      ? 'Edit mode active'
+      : tool === 'select'
+        ? 'Select mode active'
+        : tool === 'pan'
+          ? 'Pan mode active'
+          : tool === 'text'
+            ? 'Add text mode active'
+            : tool === 'signature'
+              ? 'Signature mode active'
+              : tool === 'highlight'
+                ? 'Highlight mode active'
+                : tool === 'underline'
+                  ? 'Underline mode active'
+                  : 'Whiteout mode active'
   const setSelectedOverlayMetric = useCallback(
     (field: 'x' | 'y' | 'width' | 'height', value: number) => {
       if (!selectedOverlay) return
@@ -1484,6 +1776,7 @@ export default function EditPDFPage() {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           {toolbarButton('edit', 'Edit Text', '✎')}
           {toolbarButton('select', 'Select', '↖')}
+          {toolbarButton('pan', 'Pan', '✋')}
           {toolbarButton('text', 'Add Text', 'T')}
           {toolbarButton('highlight', 'Highlight', '🖍')}
           {toolbarButton('underline', 'Underline', '〰')}
@@ -1512,6 +1805,77 @@ export default function EditPDFPage() {
             onChange={event => setFontColor(event.target.value)}
             style={{ width: 38, height: 38, borderRadius: 8, border: '1px solid #e5e7eb', cursor: 'pointer', padding: 2 }}
           />
+
+          <div style={{ width: 1, height: 40, background: '#e5e7eb', margin: '0 4px' }} />
+
+          <label style={{ fontSize: 12, fontWeight: 600, color: '#6b7280' }}>Zoom</label>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '4px',
+              borderRadius: 10,
+              border: '1px solid #E5E7EB',
+              background: '#fff',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => updateZoom(current => current - EDITOR_ZOOM_STEP)}
+              disabled={zoomLevel <= MIN_EDITOR_ZOOM}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 8,
+                border: '1px solid #E5E7EB',
+                background: '#fff',
+                color: '#374151',
+                cursor: 'pointer',
+                fontWeight: 700,
+              }}
+            >
+              -
+            </button>
+            <span style={{ minWidth: 54, textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#111827' }}>
+              {Math.round(zoomLevel * 100)}%
+            </span>
+            <button
+              type="button"
+              onClick={() => updateZoom(current => current + EDITOR_ZOOM_STEP)}
+              disabled={zoomLevel >= MAX_EDITOR_ZOOM}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 8,
+                border: '1px solid #E5E7EB',
+                background: '#fff',
+                color: '#374151',
+                cursor: 'pointer',
+                fontWeight: 700,
+              }}
+            >
+              +
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              updateZoom(1)
+              viewerViewportRef.current?.scrollTo({ left: 0, top: 0, behavior: 'smooth' })
+            }}
+            style={{
+              padding: '8px 12px',
+              borderRadius: 9,
+              border: '1px solid #E5E7EB',
+              background: '#fff',
+              color: '#374151',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            Fit
+          </button>
 
           <div style={{ flex: 1 }} />
 
@@ -1641,8 +2005,8 @@ export default function EditPDFPage() {
                     onClick={() => goToPage(pageIndex)}
                     type="button"
                     style={{
-                      minWidth: 160,
-                      padding: '12px 14px',
+                      minWidth: 150,
+                      padding: '10px',
                       borderRadius: 12,
                       border: `1.5px solid ${isActive ? style.borderColor : '#E5E7EB'}`,
                       background: isActive ? '#fff' : '#FCFCFD',
@@ -1654,6 +2018,28 @@ export default function EditPDFPage() {
                       flexShrink: 0,
                     }}
                   >
+                    <div
+                      style={{
+                        borderRadius: 10,
+                        overflow: 'hidden',
+                        border: '1px solid #E5E7EB',
+                        background: '#fff',
+                        aspectRatio: `${previewPages[pageIndex]?.previewWidth ?? 1} / ${previewPages[pageIndex]?.previewHeight ?? 1.3}`,
+                      }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={previewPages[pageIndex]?.previewDataUrl}
+                        alt={`Thumbnail for page ${pageIndex + 1}`}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                        }}
+                        draggable={false}
+                      />
+                    </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 12, fontWeight: 700, color: '#111827' }}>Page {pageIndex + 1}</span>
                       <span
@@ -1958,86 +2344,151 @@ export default function EditPDFPage() {
           }}
         >
           <div
-            ref={containerRef}
-            onClick={handleCanvasClick}
-            onMouseDown={handleCanvasMouseDown}
-            onMouseMove={handleCanvasMouseMove}
-            onMouseUp={handleCanvasMouseUp}
             style={{
-              position: 'relative',
-              width: '100%',
-              cursor:
-                tool === 'edit'
-                  ? 'text'
-                  : tool === 'text'
-                  ? 'text'
-                  : tool === 'signature'
-                      ? 'crosshair'
-                      : tool === 'highlight' || tool === 'underline' || tool === 'whiteout'
-                        ? 'crosshair'
-                        : 'default',
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 12,
+              alignItems: 'center',
+              marginBottom: 14,
+              flexWrap: 'wrap',
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={currentPageState.previewDataUrl}
-              alt={`Page ${currentPage + 1}`}
-              style={{
-                width: '100%',
-                display: 'block',
-                borderRadius: 6,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              }}
-              draggable={false}
-            />
+            <div style={{ display: 'grid', gap: 4 }}>
+              <strong style={{ fontSize: 13, color: '#111827' }}>Precision View</strong>
+              <span style={{ fontSize: 12, color: '#6B7280' }}>
+                Zoom in for dense documents, switch to Pan to move around the page, then jump with thumbnails below.
+              </span>
+            </div>
+            <span style={{ fontSize: 12, color: '#6B7280' }}>
+              Page canvas {Math.round(zoomLevel * 100)}% · {activeToolLabel}
+            </span>
+          </div>
 
-            {currentPageState.textBlocks.map(block => {
+          <div
+            ref={viewerViewportRef}
+            onMouseDown={handleViewerMouseDown}
+            onMouseMove={handleViewerMouseMove}
+            onMouseUp={stopPanning}
+            style={{
+              width: '100%',
+              maxHeight: '78vh',
+              overflow: 'auto',
+              borderRadius: 14,
+              border: '1px solid #E5E7EB',
+              background: tool === 'pan' ? '#F8FAFC' : '#FCFCFD',
+              cursor: tool === 'pan' ? (panning ? 'grabbing' : 'grab') : 'default',
+              userSelect: tool === 'pan' ? 'none' : 'auto',
+            }}
+          >
+            <div
+              style={{
+                width: viewerSurfaceWidth || '100%',
+                minHeight: '100%',
+                padding: 16,
+                boxSizing: 'border-box',
+              }}
+            >
+              <div
+                ref={containerRef}
+                onClick={handleCanvasClick}
+                onMouseDown={handleCanvasMouseDown}
+                onMouseMove={handleCanvasMouseMove}
+                onMouseUp={handleCanvasMouseUp}
+                style={{
+                  position: 'relative',
+                  width: editorCanvasWidth || '100%',
+                  flex: '0 0 auto',
+                  margin: '0 auto',
+                  cursor:
+                    tool === 'pan'
+                      ? panning
+                        ? 'grabbing'
+                        : 'grab'
+                      : tool === 'edit'
+                        ? 'text'
+                        : tool === 'text'
+                          ? 'text'
+                          : tool === 'signature'
+                            ? 'crosshair'
+                            : tool === 'highlight' || tool === 'underline' || tool === 'whiteout'
+                              ? 'crosshair'
+                              : 'default',
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={currentPageState.previewDataUrl}
+                  alt={`Page ${currentPage + 1}`}
+                  style={{
+                    width: '100%',
+                    display: 'block',
+                    borderRadius: 6,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                  }}
+                  draggable={false}
+                />
+
+                {currentPageState.textBlocks.map(block => {
               const left = scaledByPreview(block.previewX)
               const top = scaledByPreview(block.previewY)
               const width = Math.max(scaledByPreview(block.previewWidth), 20)
               const height = Math.max(scaledByPreview(block.previewHeight), 16)
               const fontSizePx = Math.max(scaledByPreview(block.previewFontSize), 10)
               const isActive = activeBlockId === block.id
+              const blockFontStyle = cssFontFromHint(block.fontHint)
 
               if (isActive) {
                 return (
-                  <textarea
+                  <div
                     key={block.id}
-                    ref={blockTextareaRef}
-                    autoFocus
-                    value={blockDraft}
-                    onChange={event => setBlockDraft(event.target.value)}
-                    onBlur={commitBlockEdit}
-                    onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => {
-                      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-                        event.preventDefault()
-                        commitBlockEdit()
-                      }
-                      if (event.key === 'Escape') {
-                        event.preventDefault()
-                        cancelBlockEdit()
-                      }
-                    }}
                     style={{
                       position: 'absolute',
                       left,
                       top,
-                      width: Math.max(width + 18, 120),
-                      minHeight: Math.max(height + 10, fontSizePx * 1.6),
-                      padding: '6px 8px',
-                      borderRadius: 8,
-                      border: '1px dashed #F59E0B',
-                      background: 'rgba(255,255,255,0.96)',
-                      fontSize: `${fontSizePx}px`,
-                      lineHeight: 1.2,
-                      color: '#111827',
-                      resize: 'none',
-                      overflow: 'hidden',
-                      outline: 'none',
+                      width: Math.max(width + 12, 140),
+                      minHeight: Math.max(height + 8, fontSizePx * 1.5),
                       boxSizing: 'border-box',
-                      zIndex: 20,
+                      zIndex: 24,
                     }}
-                  />
+                  >
+                    <div
+                      ref={blockEditorRef}
+                      contentEditable
+                      suppressContentEditableWarning
+                      spellCheck={false}
+                      onInput={event => setBlockDraft(event.currentTarget.innerText.replace(/\r/g, ''))}
+                      onBlur={event => {
+                        if (keepBlockEditorOpen(event.relatedTarget)) return
+                        commitBlockEdit()
+                      }}
+                      onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+                        if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                          event.preventDefault()
+                          commitBlockEdit()
+                        }
+                        if (event.key === 'Escape') {
+                          event.preventDefault()
+                          cancelBlockEdit()
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        minHeight: Math.max(height + 8, fontSizePx * 1.5),
+                        padding: '7px 9px',
+                        borderRadius: 10,
+                        border: '1px solid rgba(59, 130, 246, 0.45)',
+                        background: 'rgba(255,255,255,0.985)',
+                        boxShadow: '0 10px 26px rgba(15, 23, 42, 0.12)',
+                        fontSize: `${fontSizePx}px`,
+                        lineHeight: 1.24,
+                        color: block.textColor,
+                        outline: 'none',
+                        whiteSpace: 'pre-wrap',
+                        overflowWrap: 'anywhere',
+                        ...blockFontStyle,
+                      }}
+                    />
+                  </div>
                 )
               }
 
@@ -2058,13 +2509,16 @@ export default function EditPDFPage() {
                       padding: '4px 6px',
                       borderRadius: 6,
                       background: 'rgba(255,255,255,0.94)',
-                      border: '1px dashed #F59E0B',
-                      color: '#111827',
+                      border: '1px solid rgba(59, 130, 246, 0.22)',
+                      color: block.textColor,
                       fontSize: `${fontSizePx}px`,
                       lineHeight: 1.18,
                       cursor: tool === 'edit' ? 'text' : 'default',
                       zIndex: 14,
                       whiteSpace: 'pre-wrap',
+                      overflowWrap: 'anywhere',
+                      boxShadow: '0 3px 12px rgba(15, 23, 42, 0.06)',
+                      ...blockFontStyle,
                     }}
                   >
                     {block.text || <span style={{ color: '#9ca3af' }}>Text removed</span>}
@@ -2080,6 +2534,8 @@ export default function EditPDFPage() {
                     openBlockEditor(block.id)
                   }}
                   type="button"
+                  aria-label={`Edit text block: ${block.text || 'Empty text block'}`}
+                  title={block.text || 'Empty text block'}
                   style={{
                     position: 'absolute',
                     left,
@@ -2097,6 +2553,243 @@ export default function EditPDFPage() {
                 />
               )
             })}
+
+            {activeBlock && blockStyleDraft && blockInspectorPosition && tool === 'edit' && (
+              <div
+                ref={blockInspectorRef}
+                style={{
+                  position: 'absolute',
+                  left: blockInspectorPosition.left,
+                  top: blockInspectorPosition.top,
+                  width: blockInspectorPosition.width,
+                  padding: 14,
+                  borderRadius: 16,
+                  background: 'rgba(17, 24, 39, 0.96)',
+                  color: '#F9FAFB',
+                  boxShadow: '0 18px 40px rgba(15, 23, 42, 0.28)',
+                  zIndex: 36,
+                  display: 'grid',
+                  gap: 12,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                  <div style={{ display: 'grid', gap: 3 }}>
+                    <strong style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#CBD5E1' }}>
+                      Edit Text
+                    </strong>
+                    <span style={{ fontSize: 12, color: '#E5E7EB', lineHeight: 1.4 }}>
+                      {activeBlock.text || 'Empty text block'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={commitBlockEdit}
+                    style={{
+                      border: 'none',
+                      borderRadius: 999,
+                      padding: '8px 12px',
+                      background: '#F59E0B',
+                      color: '#111827',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Done
+                  </button>
+                </div>
+
+                <label style={{ display: 'grid', gap: 6, fontSize: 11, color: '#CBD5E1', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  Font Family
+                  <select
+                    value={blockStyleDraft.family}
+                    onChange={event =>
+                      updateBlockStyle(current => ({
+                        ...current,
+                        family: event.target.value as BlockStyleDraft['family'],
+                      }))
+                    }
+                    style={{
+                      padding: '9px 10px',
+                      borderRadius: 10,
+                      border: '1px solid rgba(148, 163, 184, 0.28)',
+                      background: 'rgba(30, 41, 59, 0.94)',
+                      color: '#F8FAFC',
+                    }}
+                  >
+                    <option value="sans">Helvetica</option>
+                    <option value="serif">Times</option>
+                    <option value="mono">Courier</option>
+                  </select>
+                </label>
+
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <span style={{ fontSize: 11, color: '#CBD5E1', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                    Size (pt)
+                  </span>
+                  <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 40px', gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => updateBlockStyle(current => ({ ...current, fontSize: Math.max(8, current.fontSize - 1) }))}
+                      style={{
+                        borderRadius: 10,
+                        border: '1px solid rgba(148, 163, 184, 0.28)',
+                        background: 'rgba(30, 41, 59, 0.94)',
+                        color: '#F8FAFC',
+                        cursor: 'pointer',
+                        fontSize: 18,
+                      }}
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      min={8}
+                      max={72}
+                      value={blockStyleDraft.fontSize}
+                      onChange={event =>
+                        updateBlockStyle(current => ({
+                          ...current,
+                          fontSize: Math.min(72, Math.max(8, Number(event.target.value) || current.fontSize)),
+                        }))
+                      }
+                      style={{
+                        padding: '9px 10px',
+                        borderRadius: 10,
+                        border: '1px solid rgba(148, 163, 184, 0.28)',
+                        background: 'rgba(30, 41, 59, 0.94)',
+                        color: '#F8FAFC',
+                        textAlign: 'center',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => updateBlockStyle(current => ({ ...current, fontSize: Math.min(72, current.fontSize + 1) }))}
+                      style={{
+                        borderRadius: 10,
+                        border: '1px solid rgba(148, 163, 184, 0.28)',
+                        background: 'rgba(30, 41, 59, 0.94)',
+                        color: '#F8FAFC',
+                        cursor: 'pointer',
+                        fontSize: 18,
+                      }}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <span style={{ fontSize: 11, color: '#CBD5E1', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                    Style
+                  </span>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateBlockStyle(current => ({
+                          ...current,
+                          weight: current.weight === 'bold' ? 'regular' : 'bold',
+                        }))
+                      }
+                      style={{
+                        flex: 1,
+                        borderRadius: 10,
+                        border: '1px solid rgba(148, 163, 184, 0.28)',
+                        background: blockStyleDraft.weight === 'bold' ? '#334155' : 'rgba(30, 41, 59, 0.94)',
+                        color: '#F8FAFC',
+                        cursor: 'pointer',
+                        fontWeight: 800,
+                        padding: '8px 0',
+                      }}
+                    >
+                      B
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateBlockStyle(current => ({
+                          ...current,
+                          style: current.style === 'italic' ? 'normal' : 'italic',
+                        }))
+                      }
+                      style={{
+                        flex: 1,
+                        borderRadius: 10,
+                        border: '1px solid rgba(148, 163, 184, 0.28)',
+                        background: blockStyleDraft.style === 'italic' ? '#334155' : 'rgba(30, 41, 59, 0.94)',
+                        color: '#F8FAFC',
+                        cursor: 'pointer',
+                        fontStyle: 'italic',
+                        padding: '8px 0',
+                      }}
+                    >
+                      I
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <span style={{ fontSize: 11, color: '#CBD5E1', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                    Color
+                  </span>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {EXISTING_TEXT_SWATCHES.map(color => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => updateBlockStyle(current => ({ ...current, color }))}
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: '50%',
+                          border: color === blockStyleDraft.color ? '2px solid #F8FAFC' : '1px solid rgba(255,255,255,0.24)',
+                          background: color,
+                          cursor: 'pointer',
+                        }}
+                      />
+                    ))}
+                    <input
+                      type="color"
+                      value={blockStyleDraft.color}
+                      onChange={event => updateBlockStyle(current => ({ ...current, color: event.target.value }))}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 8,
+                        border: '1px solid rgba(148, 163, 184, 0.28)',
+                        background: 'transparent',
+                        padding: 2,
+                        cursor: 'pointer',
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!sourceActiveBlock) return
+                      setBlockStyleDraft(blockStyleDraftFromBlock(sourceActiveBlock, true))
+                    }}
+                    style={{
+                      border: '1px solid rgba(148, 163, 184, 0.28)',
+                      borderRadius: 10,
+                      padding: '9px 12px',
+                      background: 'rgba(30, 41, 59, 0.94)',
+                      color: '#E5E7EB',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Reset Style
+                  </button>
+                  <span style={{ fontSize: 11, color: '#94A3B8', textAlign: 'right' }}>
+                    Cmd/Ctrl + Enter saves
+                  </span>
+                </div>
+              </div>
+            )}
 
             {currentOverlays.map(overlay => {
               if (overlay.type === 'highlight') {
@@ -2479,11 +3172,32 @@ export default function EditPDFPage() {
                 }}
               />
             )}
+
+            {tool === 'pan' && (
+              <div
+                onMouseDown={handleViewerMouseDown}
+                onMouseMove={handleViewerMouseMove}
+                onMouseUp={stopPanning}
+                onPointerDown={handleViewerPointerDown}
+                onPointerMove={handleViewerPointerMove}
+                onPointerUp={handleViewerPointerUp}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  zIndex: 42,
+                  cursor: panning ? 'grabbing' : 'grab',
+                  background: 'transparent',
+                }}
+              />
+            )}
+              </div>
+            </div>
           </div>
 
           <p style={{ color: '#6b7280', fontSize: 13, marginTop: 14, marginBottom: 0, lineHeight: 1.65 }}>
             {tool === 'edit' && 'Click existing text to edit it. Cmd/Ctrl + Enter saves the active text edit.'}
             {tool === 'select' && 'Select any added box, signature, highlight, underline, or whiteout area to move it or resize it with the handles.'}
+            {tool === 'pan' && 'Drag the page to move around at higher zoom levels, then jump between pages with the thumbnails above.'}
             {tool === 'text' && 'Click anywhere to place a new text box. Use the side handles later to reflow longer paragraphs.'}
             {tool === 'signature' && signatureDraft && 'Click anywhere on the page to place your signature.'}
             {tool === 'highlight' && 'Drag across the page to create a highlight.'}
