@@ -5,20 +5,20 @@ import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
-import { parseExcelFile, type SheetData } from '@/lib/pdf/excelToPdf'
+import { parseExcelFile, sheetsToPDF, type SheetData } from '@/lib/pdf/excelToPdf'
 
 const FAQS = [
   {
     q: 'Which Excel formats are supported?',
-    a: '.xlsx, .xls, and .xlsm files are supported. The spreadsheet is parsed using SheetJS and rendered as an HTML table for print.',
+    a: '.xlsx, .xls, and .xlsm files are supported. The spreadsheet is parsed locally with SheetJS and exported as a PDF on your device.',
   },
   {
     q: 'What happens with multiple sheets?',
-    a: 'Each sheet is shown as a separate tab. You can preview each sheet and print any single sheet as PDF.',
+    a: 'Each sheet is shown as a separate tab in the preview, and every sheet is included in the downloaded PDF in workbook order.',
   },
   {
     q: 'How does the PDF export work?',
-    a: 'Clicking "Save as PDF" opens your browser\'s print dialog. Select "Save as PDF" as the destination. The table is formatted for A4/Letter landscape.',
+    a: 'Clicking "Save as PDF" builds and downloads a real PDF file in your browser. Wide sheets are formatted for landscape pages automatically.',
   },
   {
     q: 'Are my files uploaded to a server?',
@@ -64,20 +64,12 @@ const SIDEBAR_RELATED = [
   { name: 'PDF to JSON',   slug: 'pdf-to-json',   icon: '{}', colorBg: '#DBEAFE', desc: 'Extract PDF data' },
 ]
 
-const PRINT_STYLES = `
-  @page { size: A4 landscape; margin: 0.5in; }
-  body { font-family: Arial, sans-serif; font-size: 9pt; }
-  table { border-collapse: collapse; width: 100%; }
-  td, th { border: 1px solid #ccc; padding: 3pt 5pt; text-align: left; }
-  tr:first-child td, tr:first-child th { background: #1a1612; color: white; font-weight: bold; }
-  tr:nth-child(even) { background: #f9f6f2; }
-`
-
 export default function ExcelToPDFPage() {
   const [sheets, setSheets]           = useState<SheetData[]>([])
   const [activeSheet, setActiveSheet] = useState(0)
   const [fileName, setFileName]       = useState('')
   const [loading, setLoading]         = useState(false)
+  const [saving, setSaving]           = useState(false)
   const [parseError, setParseError]   = useState('')
 
   const handleFiles = useCallback(async (files: File[]) => {
@@ -99,23 +91,30 @@ export default function ExcelToPDFPage() {
     }
   }, [])
 
-  const handlePrint = useCallback(() => {
-    const sheet = sheets[activeSheet]
-    if (!sheet) return
-    const win = window.open('', '_blank')
-    if (!win) return
-    win.document.write(`<!DOCTYPE html>
-<html><head>
-<meta charset="UTF-8">
-<title>${sheet.name}</title>
-<style>${PRINT_STYLES}</style>
-</head><body>${sheet.html}</body></html>`)
-    win.document.close()
-    setTimeout(() => { win.focus(); win.print() }, 500)
-  }, [sheets, activeSheet])
+  const handleSavePdf = useCallback(async () => {
+    if (sheets.length === 0 || saving) return
+    setSaving(true)
+    setParseError('')
+
+    try {
+      const pdfBytes = await sheetsToPDF(sheets)
+      const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `${fileName.replace(/\.(xlsx|xls|xlsm)$/i, '') || 'spreadsheet'}.pdf`
+      anchor.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error(err)
+      setParseError(err instanceof Error ? err.message : 'Failed to generate PDF from spreadsheet')
+    } finally {
+      setSaving(false)
+    }
+  }, [fileName, saving, sheets])
 
   const handleReset = useCallback(() => {
-    setSheets([]); setFileName(''); setActiveSheet(0)
+    setSheets([]); setFileName(''); setActiveSheet(0); setParseError(''); setSaving(false)
   }, [])
 
   return (
@@ -162,11 +161,11 @@ export default function ExcelToPDFPage() {
               <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                   <div style={{ fontWeight: 600, color: 'var(--ink)', fontSize: '14px' }}>📊 {fileName}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{sheets.length} sheet{sheets.length !== 1 ? 's' : ''}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{sheets.length} sheet{sheets.length !== 1 ? 's' : ''} • export includes every sheet</div>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={handlePrint} style={{ background: 'var(--ink)', color: 'white', padding: '10px 20px', borderRadius: '100px', fontSize: '13px', fontWeight: 500, border: 'none', cursor: 'pointer' }}>
-                    Save as PDF →
+                  <button onClick={handleSavePdf} disabled={saving} style={{ background: 'var(--ink)', color: 'white', padding: '10px 20px', borderRadius: '100px', fontSize: '13px', fontWeight: 500, border: 'none', cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.75 : 1 }}>
+                    {saving ? 'Building PDF…' : 'Save as PDF →'}
                   </button>
                   <button onClick={handleReset} style={{ background: 'none', border: '1px solid var(--border)', color: 'var(--muted)', padding: '10px 16px', borderRadius: '100px', fontSize: '13px', cursor: 'pointer' }}>
                     Change file
@@ -198,7 +197,7 @@ export default function ExcelToPDFPage() {
             </div>
 
             <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '12px', padding: '14px 18px', fontSize: '13px', color: '#92400E' }}>
-              <strong>📄 How to save as PDF:</strong> Click &quot;Save as PDF&quot; → browser print dialog opens → select &quot;Save as PDF&quot; as the destination.
+              <strong>📄 Export behavior:</strong> Doclair generates one PDF locally and includes every worksheet in workbook order. The selected tab only changes the preview.
             </div>
           </>
         )}

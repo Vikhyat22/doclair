@@ -6,7 +6,7 @@ import DropZone from '@/components/ui/DropZone'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import ErrorCard from '@/components/ui/ErrorCard'
-import { wordToHTML } from '@/lib/pdf/wordToPdf'
+import { wordHtmlToPdfBlob, wordToHTML } from '@/lib/pdf/wordToPdf'
 import type { WordConversionResult } from '@/lib/pdf/wordToPdf'
 
 type ConvertState = 'idle' | 'converting' | 'preview' | 'error'
@@ -56,6 +56,7 @@ export default function WordToPDFPage() {
   const [toolState, setToolState] = useState<ConvertState>('idle')
   const [showWarnings, setShowWarnings] = useState(false)
   const [convertStatus, setConvertStatus] = useState('')
+  const [savingPdf, setSavingPdf] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
   async function handleConvert(f?: File) {
@@ -90,54 +91,26 @@ export default function WordToPDFPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function handleSaveAsPDF() {
-    const printContent = document.getElementById('word-preview-content')
-    if (!printContent) return
-
-    const printWindow = window.open('', '_blank', 'width=800,height=600')
-    if (!printWindow) {
-      setErrorMessage('Please allow popups for this site to save as PDF')
-      return
-    }
-
+  async function handleSaveAsPDF() {
+    if (!conversionResult || savingPdf) return
     const docName = file?.name.replace(/\.(doc|docx)$/i, '') ?? 'document'
+    setSavingPdf(true)
+    setErrorMessage('')
 
-    printWindow.document.write(`<!DOCTYPE html>
-<html>
-<head>
-  <title>${docName}</title>
-  <meta charset="utf-8">
-  <style>
-    @page { margin: 1in; size: A4; }
-    * { box-sizing: border-box; }
-    body {
-      font-family: 'Georgia', 'Times New Roman', serif;
-      font-size: 12pt;
-      line-height: 1.6;
-      color: #111;
-      margin: 0;
+    try {
+      const blob = await wordHtmlToPdfBlob(conversionResult.html, docName)
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `${docName}.pdf`
+      anchor.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to generate PDF from document'
+      setErrorMessage(message)
+    } finally {
+      setSavingPdf(false)
     }
-    h1 { font-size: 20pt; font-weight: bold; margin: 16pt 0 8pt; }
-    h2 { font-size: 16pt; font-weight: bold; margin: 12pt 0 6pt; }
-    h3 { font-size: 13pt; font-weight: bold; margin: 10pt 0 4pt; }
-    p  { margin: 0 0 8pt; }
-    table { border-collapse: collapse; width: 100%; margin: 8pt 0; }
-    td, th { border: 1px solid #ccc; padding: 4pt 8pt; }
-    th { background: #f5f5f5; font-weight: bold; }
-    ul, ol { margin: 8pt 0; padding-left: 24pt; }
-    img { max-width: 100%; height: auto; }
-    .caption { font-size: 10pt; color: #666; font-style: italic; }
-  </style>
-</head>
-<body>${printContent.innerHTML}</body>
-</html>`)
-
-    printWindow.document.close()
-    printWindow.focus()
-    setTimeout(() => {
-      printWindow.print()
-      printWindow.close()
-    }, 500)
   }
 
   function handleReset() {
@@ -324,24 +297,33 @@ export default function WordToPDFPage() {
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <button
               onClick={handleSaveAsPDF}
+              disabled={savingPdf}
               style={{
                 background: 'var(--ink)', color: 'white', padding: '16px 24px',
                 borderRadius: '100px', fontFamily: 'var(--font-syne), Syne, sans-serif',
-                fontWeight: 700, fontSize: '17px', border: 'none', cursor: 'pointer',
+                fontWeight: 700, fontSize: '17px', border: 'none', cursor: savingPdf ? 'wait' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                transition: 'transform 0.15s',
+                transition: 'transform 0.15s', opacity: savingPdf ? 0.75 : 1,
               }}
-              onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.02)')}
+              onMouseEnter={e => !savingPdf && (e.currentTarget.style.transform = 'scale(1.02)')}
               onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
             >
-              Save as PDF →
+              {savingPdf ? 'Building PDF…' : 'Save as PDF →'}
             </button>
             <div style={{
               background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px',
               padding: '10px 14px', fontSize: '12px', color: '#92400E', lineHeight: 1.5,
             }}>
-              Your browser will open a print dialog. Select &lsquo;Save as PDF&rsquo; as the destination and click Save to download your converted PDF.
+              Doclair generates the PDF directly in your browser and downloads it without opening the print dialog.
             </div>
+            {errorMessage && (
+              <div style={{
+                background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px',
+                padding: '10px 14px', fontSize: '12px', color: '#B91C1C', lineHeight: 1.5,
+              }}>
+                {errorMessage}
+              </div>
+            )}
             <button
               onClick={handleReset}
               style={{
