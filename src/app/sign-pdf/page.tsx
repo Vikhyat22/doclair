@@ -11,7 +11,8 @@ const FAQS = [
   { q: 'How do I place my signature on a specific page?', a: 'Navigate to the desired page using the page controls, then click the "Add Signature" button and click anywhere on the page to place it.' },
   { q: 'Can I resize my signature after placing it?', a: 'Yes. Drag the amber handle in the bottom-right corner of your placed signature to resize it proportionally.' },
   { q: 'Can I sign PDF on iPhone or Android?', a: 'Yes. Doclair works in mobile Safari and Chrome. Touch works for drawing signatures and placing them on the page.' },
-  { q: 'Will the signed PDF have a watermark?', a: 'Never. Doclair adds zero watermarks to any output. The signed PDF downloads exactly as-is.' },
+  { q: 'Will signing flatten or compress my PDF?', a: 'No. Doclair keeps the original PDF pages intact and layers your signature on top, so text stays selectable and page quality does not get rebuilt into a screenshot.' },
+  { q: 'Will the signed PDF have a watermark?', a: 'Never. Doclair adds zero watermarks to any output.' },
 ]
 
 const JSON_LD_SCHEMA = {
@@ -23,7 +24,7 @@ const JSON_LD_SCHEMA = {
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
       url: 'https://doclair.in/sign-pdf',
-      description: 'Sign PDF documents online free. Draw, type or upload your signature and place it anywhere. No upload, no watermark.',
+      description: 'Sign PDF documents online free. Draw, type or upload your signature and place it anywhere without flattening the whole PDF. No upload, no watermark.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     },
     {
@@ -215,8 +216,38 @@ interface SigField {
   x: number // fraction
   y: number
   dataUrl: string
-  w: number  // display width px (on rendered canvas)
+  w: number  // fraction of rendered page width
   h: number
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value))
+}
+
+async function canvasToBlobUrl(canvas: HTMLCanvasElement, type: string) {
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(nextBlob => {
+      if (nextBlob) {
+        resolve(nextBlob)
+        return
+      }
+
+      reject(new Error('Could not prepare PDF preview'))
+    }, type)
+  })
+
+  return URL.createObjectURL(blob)
+}
+
+function revokeObjectUrls(urls: string[]) {
+  urls.forEach(url => {
+    if (url.startsWith('blob:')) URL.revokeObjectURL(url)
+  })
+}
+
+async function dataUrlToUint8Array(dataUrl: string) {
+  const response = await fetch(dataUrl)
+  return new Uint8Array(await response.arrayBuffer())
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -250,10 +281,15 @@ export default function SignPDFPage() {
       canvas.width = vp.width; canvas.height = vp.height
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (page.render as any)({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise
-      urls.push(canvas.toDataURL('image/jpeg', 0.92))
+      urls.push(await canvasToBlobUrl(canvas, 'image/png'))
     }
-    setPageUrls(urls)
+    setPageUrls(prev => {
+      revokeObjectUrls(prev)
+      return urls
+    })
   }, [])
+
+  useEffect(() => () => revokeObjectUrls(pageUrls), [pageUrls])
 
   const handleFile = (file: File) => { setPdfFile(file); loadPDF(file) }
 
@@ -265,11 +301,14 @@ export default function SignPDFPage() {
     // Scale signature to reasonable size on the page
     const scaledW = Math.min(pendingSig.w, rect.width * 0.35)
     const scaledH = (pendingSig.h / pendingSig.w) * scaledW
+    const widthFraction = scaledW / rect.width
+    const heightFraction = scaledH / rect.height
     setFields(prev => [...prev, {
       id: crypto.randomUUID(), pageIndex: currentPage,
-      x: fx, y: fy,
+      x: clamp(fx, 0, 1 - widthFraction),
+      y: clamp(fy, 0, 1 - heightFraction),
       dataUrl: pendingSig.dataUrl,
-      w: scaledW, h: scaledH,
+      w: widthFraction, h: heightFraction,
     }])
     setPendingSig(null)
     setPlacing(false)
@@ -289,8 +328,8 @@ export default function SignPDFPage() {
       const r = c.getBoundingClientRect()
       setFields(prev => prev.map(f => f.id === dragging.id ? {
         ...f,
-        x: dragging.ox + (e.clientX - dragging.sx) / r.width,
-        y: dragging.oy + (e.clientY - dragging.sy) / r.height,
+        x: clamp(dragging.ox + (e.clientX - dragging.sx) / r.width, 0, 1 - f.w),
+        y: clamp(dragging.oy + (e.clientY - dragging.sy) / r.height, 0, 1 - f.h),
       } : f))
     }
     const up = () => setDragging(null)
@@ -309,10 +348,21 @@ export default function SignPDFPage() {
   useEffect(() => {
     if (!resizing) return
     const move = (e: MouseEvent) => {
-      const dx = e.clientX - resizing.startX
-      const f = fields.find(x => x.id === resizing.id)!
+      const c = containerRef.current
+      if (!c) return
+
+      const r = c.getBoundingClientRect()
+      const dx = (e.clientX - resizing.startX) / r.width
+      const f = fields.find(x => x.id === resizing.id)
+      if (!f) return
+
       const ratio = f.h / f.w
-      const newW = Math.max(40, resizing.startW + dx)
+      const minWidth = 40 / r.width
+      let newW = Math.max(minWidth, resizing.startW + dx)
+      newW = Math.min(newW, 1 - f.x)
+      const maxWidthFromHeight = (1 - f.y) / ratio
+      newW = Math.min(newW, maxWidthFromHeight)
+
       setFields(prev => prev.map(x => x.id === resizing.id ? { ...x, w: newW, h: newW * ratio } : x))
     }
     const up = () => setResizing(null)
@@ -328,26 +378,34 @@ export default function SignPDFPage() {
     setSaving(true)
     setSaveError('')
     try {
+      if (!pdfFile) throw new Error('Choose a PDF first')
       const { PDFDocument } = await import('@cantoo/pdf-lib')
-      const out = await PDFDocument.create()
-      for (let pi = 0; pi < pageUrls.length; pi++) {
-        const img = new Image()
-        await new Promise<void>(r => { img.onload = () => r(); img.src = pageUrls[pi] })
-        const oc = document.createElement('canvas')
-        oc.width = img.naturalWidth; oc.height = img.naturalHeight
-        const ctx = oc.getContext('2d')!
-        ctx.drawImage(img, 0, 0)
-        for (const f of fields.filter(x => x.pageIndex === pi)) {
-          const si = new Image()
-          await new Promise<void>(r => { si.onload = () => r(); si.src = f.dataUrl })
-          ctx.drawImage(si, f.x * oc.width, f.y * oc.height, f.w * (oc.width / (containerRef.current?.getBoundingClientRect().width || 800)), f.h * (oc.width / (containerRef.current?.getBoundingClientRect().width || 800)))
-        }
-        const buf = await new Promise<ArrayBuffer>(r => oc.toBlob(async b => r(await b!.arrayBuffer()), 'image/jpeg', 0.94))
-        const pdfImg = await out.embedJpg(buf)
-        const page = out.addPage([pdfImg.width, pdfImg.height])
-        page.drawImage(pdfImg, { x: 0, y: 0, width: pdfImg.width, height: pdfImg.height })
+      const doc = await PDFDocument.load(await pdfFile.arrayBuffer(), {
+        forIncrementalUpdate: true,
+        throwOnInvalidObject: false,
+      })
+      const pages = doc.getPages()
+
+      for (const field of fields) {
+        const page = pages[field.pageIndex]
+        if (!page) continue
+
+        const imageBytes = await dataUrlToUint8Array(field.dataUrl)
+        const isJpeg = /^data:image\/jpe?g/i.test(field.dataUrl)
+        const embeddedImage = isJpeg ? await doc.embedJpg(imageBytes) : await doc.embedPng(imageBytes)
+        const pageWidth = page.getWidth()
+        const pageHeight = page.getHeight()
+        const drawWidth = field.w * pageWidth
+        const drawHeight = field.h * pageHeight
+        page.drawImage(embeddedImage, {
+          x: field.x * pageWidth,
+          y: pageHeight - field.y * pageHeight - drawHeight,
+          width: drawWidth,
+          height: drawHeight,
+        })
       }
-      const bytes = await out.save()
+
+      const bytes = await doc.save()
       const blob = new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a'); a.href = url
@@ -394,7 +452,7 @@ export default function SignPDFPage() {
           <span style={{ color: 'var(--amber)' }}>Online Free</span>
         </h1>
         <p style={{ fontSize: '16px', fontWeight: 300, color: 'var(--ink)', opacity: 0.65, maxWidth: '520px', marginTop: '12px', lineHeight: 1.6 }}>
-          Draw, type, or upload your signature and place it anywhere on the PDF. Fully private — nothing leaves your browser.
+          Draw, type, or upload your signature and place it anywhere on the PDF. Original PDF text stays crisp and searchable because Doclair signs the source file instead of flattening the whole page into an image.
         </p>
       </div>
 
@@ -503,9 +561,9 @@ export default function SignPDFPage() {
         <h2 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '22px', color: 'var(--ink)', marginBottom: '10px' }}>
           How to Sign a PDF Online — Free
         </h2>
-        <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
-          Adding your signature to a PDF takes seconds with Doclair. Here&apos;s how:
-        </p>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
+            Adding your signature to a PDF takes seconds with Doclair. Here&apos;s how:
+          </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
           {[
             'Open the tool and drop your PDF into the upload area above.',
@@ -534,6 +592,12 @@ export default function SignPDFPage() {
         </h3>
         <p style={{ fontSize: '14px', lineHeight: 1.65, color: 'var(--ink)', opacity: 0.65 }}>
           Doclair works in mobile Safari and Chrome. Touch support lets you draw your signature directly with your finger or stylus and tap the page to place it — no app download required.
+        </p>
+        <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '6px', marginTop: '20px' }}>
+          Does signing keep text selectable?
+        </h3>
+        <p style={{ fontSize: '14px', lineHeight: 1.65, color: 'var(--ink)', opacity: 0.65 }}>
+          Yes. Doclair adds your signature directly onto the original PDF page instead of rebuilding the whole page from a screenshot, so the underlying text layer and print quality stay intact.
         </p>
       </div>
 

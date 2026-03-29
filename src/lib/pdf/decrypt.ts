@@ -48,6 +48,9 @@ export async function pdfRequiresPasswordToOpen(bytes: Uint8Array): Promise<bool
  */
 export async function decryptPDF(file: File): Promise<DecryptResult> {
   const bytes = new Uint8Array(await file.arrayBuffer())
+  const loadOptions = {
+    throwOnInvalidObject: false,
+  } as const
 
   if (await pdfRequiresPasswordToOpen(bytes)) {
     return { ok: false, reason: 'user-password-required' }
@@ -57,17 +60,17 @@ export async function decryptPDF(file: File): Promise<DecryptResult> {
   let hadRestrictions = false
 
   try {
-    doc = await PDFDocument.load(bytes)
+    doc = await PDFDocument.load(bytes, loadOptions)
   } catch {
     try {
-      doc = await PDFDocument.load(bytes, { ignoreEncryption: true })
+      doc = await PDFDocument.load(bytes, { ...loadOptions, ignoreEncryption: true })
       hadRestrictions = true
     } catch {
       return { ok: false, reason: 'corrupt' }
     }
   }
 
-  const saved = await doc.save()
+  const saved = await doc.save({ rewrite: true, useObjectStreams: false })
   return { ok: true, bytes: saved, pageCount: doc.getPageCount(), hadRestrictions }
 }
 

@@ -15,10 +15,10 @@ import type { ToolState } from '@/types'
 const FAQS = [
   { q: 'Does Doclair crack or bypass PDF passwords?', a: 'No. If you provide the correct password, Doclair decrypts the file using it — the same way Adobe Reader would. For PDFs that only have permission locks (print/copy/edit) but still open without a password, Doclair removes those locks in one click with no password.' },
   { q: 'What is the difference between “user” and “owner” in a PDF?', a: 'In the PDF standard, the document-open password is stored as the “user” password — you must enter it before the file can be opened (typical bank or statement PDFs). “Owner” settings control permissions (printing, copying). Many files open without typing anything but still have owner restrictions; those are removed here without a password. If your file asks for a password when you open it in any reader, that is the document-open password and you must enter it in Doclair.' },
-  { q: 'The output PDF text is not selectable — why?', a: 'When a PDF is decrypted using the password path, each page is rendered to an image in your browser and assembled into a new PDF. This is the only way to decrypt such files without a server. The result is fully printable and shareable, but text is not selectable. If you need selectable text, use the PDF → Text tool on the original file before unlocking.' },
+  { q: 'Will the unlocked PDF stay searchable and selectable?', a: 'Yes. Doclair removes the encryption natively in your browser instead of rebuilding the document from screenshots, so the original text layer and page quality stay intact whenever the source PDF itself is intact.' },
   { q: 'Are my files uploaded?', a: 'Never. Decryption runs entirely in your browser using PDF.js and pdf-lib. Your password and your file never leave your device.' },
   { q: 'What if the PDF is not actually encrypted?', a: 'Doclair detects this and lets you download a clean copy directly.' },
-  { q: 'Will the unlocked PDF lose any content?', a: 'For permission-only PDFs (no open password): no — only restrictions are removed; text stays selectable. For password-to-open PDFs decrypted via the password path: all pages are preserved as images, so text is not selectable in the output.' },
+  { q: 'Will the unlocked PDF lose any content?', a: 'No. For both permission-only PDFs and password-to-open PDFs, Doclair keeps the original page content and removes only the encryption or restrictions metadata needed to unlock the file.' },
 ]
 
 const JSON_LD_SCHEMA = {
@@ -36,6 +36,7 @@ const JSON_LD_SCHEMA = {
         'Remove PDF owner-password / permissions restrictions',
         'Detect unencrypted PDFs automatically',
         'No file upload to server',
+        'Keeps original text and page quality intact',
         'No watermark on output',
         'No sign-up required',
         'Works on mobile',
@@ -81,7 +82,6 @@ export default function RemovePasswordPage() {
   const [password, setPassword]             = useState('')
   const [showPassword, setShowPassword]     = useState(false)
   const [passwordError, setPasswordError]   = useState<string | null>(null)
-  const [renderProgress, setRenderProgress] = useState<{ current: number; total: number } | null>(null)
   const passwordInputRef = useRef<HTMLInputElement>(null)
 
   const addFile = useCallback(async (files: File[]) => {
@@ -95,7 +95,6 @@ export default function RemovePasswordPage() {
     setNeedsPassword(false)
     setPassword('')
     setPasswordError(null)
-    setRenderProgress(null)
 
     const { encrypted: enc, needsDocumentOpenPassword } = await analyzePdfForUnlock(f)
     setEncrypted(enc)
@@ -131,19 +130,16 @@ export default function RemovePasswordPage() {
     if (!file || !password.trim()) return
     setToolState('merging')
     setPasswordError(null)
-    setRenderProgress(null)
 
     const result = await decryptWithPassword(
       file,
       password,
-      2, // 144 dpi — good balance of quality and file size
-      (p) => setRenderProgress(p),
+      2,
     )
 
     if (result.ok) {
       setResultBytes(result.bytes)
       setPageCount(result.pageCount)
-      setRenderProgress(null)
       setToolState('done')
     } else if (result.reason === 'wrong-password') {
       setPasswordError('Incorrect password. Please try again.')
@@ -182,7 +178,6 @@ export default function RemovePasswordPage() {
     setNeedsPassword(false)
     setPassword('')
     setPasswordError(null)
-    setRenderProgress(null)
   }
 
   const sidebar = (
@@ -462,28 +457,16 @@ export default function RemovePasswordPage() {
             borderTopColor: 'var(--amber)', borderRadius: '50%',
             animation: 'spin 0.8s linear infinite', margin: '0 auto 24px',
           }} />
-          {renderProgress ? (
+          {needsPassword ? (
             <>
               <div style={{
                 fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700,
-                fontSize: '24px', color: 'white', marginBottom: '10px',
+                fontSize: '24px', color: 'white', marginBottom: '6px',
               }}>Decrypting PDF…</div>
-              <div style={{
-                width: '200px', height: '4px', background: 'rgba(255,255,255,0.1)',
-                borderRadius: '2px', margin: '0 auto 12px', overflow: 'hidden',
-              }}>
-                <div style={{
-                  height: '100%', background: 'var(--amber)', borderRadius: '2px',
-                  width: `${Math.round((renderProgress.current / renderProgress.total) * 100)}%`,
-                  transition: 'width 0.2s ease',
-                }} />
-              </div>
               <div style={{
                 fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '12px',
                 color: 'rgba(255,255,255,0.45)',
-              }}>
-                Rendering page {renderProgress.current} of {renderProgress.total}
-              </div>
+              }}>Removing encryption while keeping the original PDF pages intact</div>
             </>
           ) : (
             <>
@@ -494,7 +477,7 @@ export default function RemovePasswordPage() {
               <div style={{
                 fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '12px',
                 color: 'rgba(255,255,255,0.45)',
-              }}>Stripping encryption and saving unrestricted PDF</div>
+              }}>Stripping encryption metadata and saving unrestricted PDF</div>
             </>
           )}
         </div>
@@ -566,10 +549,10 @@ export default function RemovePasswordPage() {
         </p>
 
         <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
-          Why is the decrypted PDF image-based?
+          Will text and print quality stay intact?
         </h3>
         <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>
-          When decrypting a user-password PDF, Doclair renders each page to a high-resolution image in your browser — the same way a printer would. The output is fully printable and shareable. If you need selectable text from the original, run the <strong>PDF → Text</strong> tool on it before unlocking.
+          Yes. Doclair now removes password protection directly from the PDF structure in your browser, so the unlocked file keeps its original text layer, print quality, and searchable content instead of flattening pages into images.
         </p>
       </div>
 
