@@ -82,6 +82,22 @@ interface BlockStyleDraft extends EditableFontDescriptor {
   color: string
 }
 
+interface DocumentSnapshot {
+  pages: EditablePdfPage[]
+  overlays: EditOverlay[]
+  currentPage: number
+}
+
+interface SearchMatch {
+  id: string
+  blockId: string
+  pageIndex: number
+  start: number
+  end: number
+  matchText: string
+  snippet: string
+}
+
 const FAQS = [
   {
     q: 'Can I edit the existing text inside my PDF?',
@@ -104,7 +120,7 @@ const FAQS = [
 const TOOL_SEO_NAME = 'Edit PDF Text + Sign'
 const TOOL_SLUG = 'edit-pdf'
 const TOOL_DESCRIPTION =
-  'Edit existing PDF text for text-based files, run OCR for scanned PDFs, and add text, highlights, whiteout erase areas, and signatures. No upload, no watermark, files stay in your browser.'
+  'Edit existing PDF text for text-based files, search and replace across pages, run OCR for scanned PDFs, and add text, highlights, whiteout erase areas, and signatures. No upload, no watermark, files stay in your browser.'
 
 const JSON_LD_SCHEMA = {
   '@context': 'https://schema.org',
@@ -119,6 +135,7 @@ const JSON_LD_SCHEMA = {
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       featureList: [
         'Edit existing PDF text for text-based files',
+        'Search and replace text across PDF pages',
         'Run OCR for scanned PDFs',
         'Add highlights, whiteout erase areas, new text, and signatures',
         'Browser-only, no upload, no watermark',
@@ -325,9 +342,89 @@ const EXISTING_TEXT_SWATCHES = ['#111827', '#0F766E', '#1D4ED8', '#7C3AED', '#C2
 const MIN_EDITOR_ZOOM = 0.75
 const MAX_EDITOR_ZOOM = 2.5
 const EDITOR_ZOOM_STEP = 0.25
+const MAX_HISTORY_STEPS = 60
 
 function clampZoom(value: number) {
   return Math.min(MAX_EDITOR_ZOOM, Math.max(MIN_EDITOR_ZOOM, Number(value.toFixed(2))))
+}
+
+function buildSearchSnippet(text: string, start: number, end: number) {
+  const radius = 28
+  const safeStart = Math.max(0, start)
+  const safeEnd = Math.min(text.length, end)
+  const prefixStart = Math.max(0, safeStart - radius)
+  const suffixEnd = Math.min(text.length, safeEnd + radius)
+  const prefix = text.slice(prefixStart, safeStart).trimStart()
+  const match = text.slice(safeStart, safeEnd)
+  const suffix = text.slice(safeEnd, suffixEnd).trimEnd()
+
+  return `${prefixStart > 0 ? '…' : ''}${prefix}${match}${suffix}${suffixEnd < text.length ? '…' : ''}`
+}
+
+function findLiteralMatches(text: string, query: string) {
+  const normalizedQuery = query.trim()
+  if (!normalizedQuery) return []
+
+  const matches: Array<{ start: number; end: number }> = []
+  const lowerText = text.toLocaleLowerCase()
+  const lowerQuery = normalizedQuery.toLocaleLowerCase()
+  let cursor = 0
+
+  while (cursor <= lowerText.length - lowerQuery.length) {
+    const index = lowerText.indexOf(lowerQuery, cursor)
+    if (index === -1) break
+
+    matches.push({
+      start: index,
+      end: index + normalizedQuery.length,
+    })
+    cursor = index + normalizedQuery.length
+  }
+
+  return matches
+}
+
+function replaceSingleLiteralMatch(text: string, start: number, end: number, replacement: string) {
+  return `${text.slice(0, start)}${replacement}${text.slice(end)}`
+}
+
+function replaceAllLiteralMatches(text: string, query: string, replacement: string) {
+  const matches = findLiteralMatches(text, query)
+  if (!matches.length) return { text, count: 0 }
+
+  let cursor = 0
+  let output = ''
+
+  for (const match of matches) {
+    output += text.slice(cursor, match.start)
+    output += replacement
+    cursor = match.end
+  }
+
+  output += text.slice(cursor)
+  return {
+    text: output,
+    count: matches.length,
+  }
+}
+
+function collectSearchMatches(pages: EditablePdfPage[], query: string): SearchMatch[] {
+  const normalizedQuery = query.trim()
+  if (!normalizedQuery) return []
+
+  return pages.flatMap(page =>
+    page.textBlocks.flatMap(block =>
+      findLiteralMatches(block.text, normalizedQuery).map((match, index) => ({
+        id: `${block.id}:${match.start}:${index}`,
+        blockId: block.id,
+        pageIndex: page.pageIndex,
+        start: match.start,
+        end: match.end,
+        matchText: block.text.slice(match.start, match.end),
+        snippet: buildSearchSnippet(block.text, match.start, match.end),
+      })),
+    ),
+  )
 }
 
 function blockStyleDraftFromBlock(block: EditableTextBlock, useOriginal = false): BlockStyleDraft {
@@ -596,6 +693,8 @@ export default function EditPDFPage() {
   const [saveError, setSaveError] = useState('')
   const [saveNote, setSaveNote] = useState('')
   const [overlays, setOverlays] = useState<EditOverlay[]>([])
+  const [undoStack, setUndoStack] = useState<DocumentSnapshot[]>([])
+  const [redoStack, setRedoStack] = useState<DocumentSnapshot[]>([])
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null)
   const [blockDraft, setBlockDraft] = useState('')
   const [blockStyleDraft, setBlockStyleDraft] = useState<BlockStyleDraft | null>(null)
@@ -609,13 +708,23 @@ export default function EditPDFPage() {
   const [viewerWidth, setViewerWidth] = useState(0)
   const [zoomLevel, setZoomLevel] = useState(1)
   const [markupDraft, setMarkupDraft] = useState<MarkupOverlay | WhiteoutOverlay | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [replaceQuery, setReplaceQuery] = useState('')
+  const [activeSearchMatchId, setActiveSearchMatchId] = useState<string | null>(null)
   const viewerViewportRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const blockEditorRef = useRef<HTMLDivElement | null>(null)
   const blockInspectorRef = useRef<HTMLDivElement>(null)
   const overlayTextareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const replaceInputRef = useRef<HTMLInputElement | null>(null)
   const markupStart = useRef<{ x: number; y: number } | null>(null)
   const panStateRef = useRef<PanState | null>(null)
+  const pagesRef = useRef<EditablePdfPage[]>([])
+  const overlaysRef = useRef<EditOverlay[]>([])
+  const currentPageRef = useRef(0)
+  const dragStartSnapshotRef = useRef<DocumentSnapshot | null>(null)
+  const overlayEditStartSnapshotsRef = useRef<Record<string, DocumentSnapshot>>({})
 
   const applyDraftToBlock = useCallback(
     (block: EditableTextBlock, nextTextOverride?: string) => {
@@ -650,6 +759,17 @@ export default function EditPDFPage() {
     () => blockEditorRef.current?.innerText.replace(/\r/g, '') ?? blockDraft.replace(/\r/g, ''),
     [blockDraft],
   )
+
+  const updateBlockText = useCallback((block: EditableTextBlock, text: string) => ({
+    ...block,
+    text,
+    edited: isTextBlockEdited(block, {
+      text,
+      fontHint: block.fontHint,
+      pdfFontSize: block.pdfFontSize,
+      textColor: block.textColor,
+    }),
+  }), [])
 
   const previewPages = useMemo(() => {
     if (!activeBlockId || !blockStyleDraft) return pages
@@ -686,6 +806,30 @@ export default function EditPDFPage() {
     () => pages.flatMap(page => page.textBlocks).find(block => block.id === activeBlockId) ?? null,
     [activeBlockId, pages],
   )
+  const searchMatches = useMemo(() => collectSearchMatches(previewPages, searchQuery), [previewPages, searchQuery])
+  const searchMatchesByBlockId = useMemo(
+    () =>
+      searchMatches.reduce<Record<string, SearchMatch[]>>((groups, match) => {
+        groups[match.blockId] = [...(groups[match.blockId] ?? []), match]
+        return groups
+      }, {}),
+    [searchMatches],
+  )
+  const activeSearchMatchIndex = useMemo(
+    () => searchMatches.findIndex(match => match.id === activeSearchMatchId),
+    [activeSearchMatchId, searchMatches],
+  )
+  const activeSearchMatch =
+    activeSearchMatchIndex >= 0 ? searchMatches[activeSearchMatchIndex] : (searchMatches[0] ?? null)
+  const activeSearchBlock = useMemo(
+    () =>
+      activeSearchMatch
+        ? previewPages
+            .flatMap(page => page.textBlocks)
+            .find(block => block.id === activeSearchMatch.blockId) ?? null
+        : null,
+    [activeSearchMatch, previewPages],
+  )
   const qualitySummary = useMemo(
     () =>
       pageQualities.reduce(
@@ -721,6 +865,10 @@ export default function EditPDFPage() {
     const minimumWidth = viewerWidth > 0 ? Math.max(viewerWidth - 32, 0) : editorCanvasWidth
     return Math.max(editorCanvasWidth, minimumWidth)
   }, [editorCanvasWidth, viewerWidth])
+  const canUndo = undoStack.length > 0
+  const canRedo = redoStack.length > 0
+  const hasSearchQuery = searchQuery.trim().length > 0
+  const hasSearchMatches = searchMatches.length > 0
 
   const scaledByPreview = useCallback(
     (value: number) => {
@@ -748,6 +896,12 @@ export default function EditPDFPage() {
       width: inspectorWidth,
     }
   }, [activeBlock, currentPageState, pageFrame.height, pageFrame.width, scaledByPreview])
+
+  useEffect(() => {
+    pagesRef.current = pages
+    overlaysRef.current = overlays
+    currentPageRef.current = currentPage
+  }, [currentPage, overlays, pages])
 
   useEffect(() => {
     const node = containerRef.current
@@ -788,6 +942,19 @@ export default function EditPDFPage() {
   }, [activeBlockId, blockDraft])
 
   useEffect(() => {
+    if (!searchMatches.length) {
+      if (activeSearchMatchId !== null) setActiveSearchMatchId(null)
+      return
+    }
+
+    if (activeSearchMatchId && searchMatches.some(match => match.id === activeSearchMatchId)) {
+      return
+    }
+
+    setActiveSearchMatchId(searchMatches[0].id)
+  }, [activeSearchMatchId, searchMatches])
+
+  useEffect(() => {
     const editor = blockEditorRef.current
     if (!editor || !activeBlockId) return
 
@@ -802,18 +969,97 @@ export default function EditPDFPage() {
   }, [activeBlockId])
 
   useEffect(() => {
+    if (!activeSearchMatch || activeSearchMatch.pageIndex !== currentPage) return
+    if (!activeSearchBlock || !pageFrame.width || !pageFrame.height) return
+
+    const viewport = viewerViewportRef.current
+    if (!viewport) return
+
+    const targetLeft = Math.max(0, scaledByPreview(activeSearchBlock.previewX) - viewport.clientWidth * 0.28)
+    const targetTop = Math.max(0, scaledByPreview(activeSearchBlock.previewY) - viewport.clientHeight * 0.24)
+
+    viewport.scrollTo({
+      left: targetLeft,
+      top: targetTop,
+      behavior: 'smooth',
+    })
+  }, [activeSearchBlock, activeSearchMatch, currentPage, pageFrame.height, pageFrame.width, scaledByPreview])
+
+  useEffect(() => {
     const textarea = overlayTextareaRef.current
     if (!textarea) return
     textarea.style.height = '0px'
     textarea.style.height = `${Math.max(textarea.scrollHeight, 42)}px`
   }, [editingOverlayId, currentOverlays])
 
+  const getCurrentSnapshot = useCallback(
+    (): DocumentSnapshot => ({
+      pages: pagesRef.current,
+      overlays: overlaysRef.current,
+      currentPage: currentPageRef.current,
+    }),
+    [],
+  )
+
+  const clearTransientEditorState = useCallback(() => {
+    markupStart.current = null
+    panStateRef.current = null
+    overlayEditStartSnapshotsRef.current = {}
+    dragStartSnapshotRef.current = null
+    setActiveBlockId(null)
+    setBlockDraft('')
+    setBlockStyleDraft(null)
+    setEditingOverlayId(null)
+    setSelectedOverlayId(null)
+    setDragging(null)
+    setPanning(null)
+    setMarkupDraft(null)
+  }, [])
+
+  const pushUndoSnapshot = useCallback((snapshot: DocumentSnapshot) => {
+    setUndoStack(previous => {
+      const last = previous[previous.length - 1]
+      if (
+        last &&
+        last.pages === snapshot.pages &&
+        last.overlays === snapshot.overlays &&
+        last.currentPage === snapshot.currentPage
+      ) {
+        return previous
+      }
+
+      const next = [...previous, snapshot]
+      return next.length > MAX_HISTORY_STEPS ? next.slice(next.length - MAX_HISTORY_STEPS) : next
+    })
+    setRedoStack([])
+  }, [])
+
+  const applySnapshot = useCallback(
+    (snapshot: DocumentSnapshot) => {
+      clearTransientEditorState()
+      setPages(snapshot.pages)
+      setOverlays(snapshot.overlays)
+      setCurrentPage(
+        snapshot.pages.length > 0
+          ? Math.min(snapshot.currentPage, snapshot.pages.length - 1)
+          : 0,
+      )
+      requestAnimationFrame(() => {
+        viewerViewportRef.current?.scrollTo({ left: 0, top: 0, behavior: 'smooth' })
+      })
+    },
+    [clearTransientEditorState],
+  )
+
   const loadFile = useCallback(async (file: File) => {
     setPdfFile(file)
     setPages([])
     setCurrentPage(0)
     setOverlays([])
+    setUndoStack([])
+    setRedoStack([])
     setActiveBlockId(null)
+    setBlockDraft('')
     setBlockStyleDraft(null)
     setEditingOverlayId(null)
     setSelectedOverlayId(null)
@@ -824,6 +1070,9 @@ export default function EditPDFPage() {
     setZoomLevel(1)
     setSaveError('')
     setSaveNote('')
+    setSearchQuery('')
+    setReplaceQuery('')
+    setActiveSearchMatchId(null)
     setTool('edit')
     setLoadingEditor(true)
 
@@ -834,6 +1083,9 @@ export default function EditPDFPage() {
       })
 
       setPages(loaded.pages)
+      setOverlays([])
+      setUndoStack([])
+      setRedoStack([])
       setCurrentPage(0)
       setLoadingMessage(
         loaded.scannedPageCount > 0
@@ -869,9 +1121,26 @@ export default function EditPDFPage() {
     [loadFile],
   )
 
-  const updatePages = useCallback((updater: (page: EditablePdfPage) => EditablePdfPage) => {
-    setPages(previous => previous.map(updater))
-  }, [])
+  const handleUndo = useCallback(() => {
+    if (!undoStack.length) return
+    const snapshot = undoStack[undoStack.length - 1]
+    const current = getCurrentSnapshot()
+    setUndoStack(previous => previous.slice(0, -1))
+    setRedoStack(previous => [...previous, current])
+    applySnapshot(snapshot)
+  }, [applySnapshot, getCurrentSnapshot, undoStack])
+
+  const handleRedo = useCallback(() => {
+    if (!redoStack.length) return
+    const snapshot = redoStack[redoStack.length - 1]
+    const current = getCurrentSnapshot()
+    setRedoStack(previous => previous.slice(0, -1))
+    setUndoStack(previous => {
+      const next = [...previous, current]
+      return next.length > MAX_HISTORY_STEPS ? next.slice(next.length - MAX_HISTORY_STEPS) : next
+    })
+    applySnapshot(snapshot)
+  }, [applySnapshot, getCurrentSnapshot, redoStack])
 
   const openBlockEditor = useCallback(
     (blockId: string) => {
@@ -890,15 +1159,38 @@ export default function EditPDFPage() {
   const commitBlockEdit = useCallback(() => {
     if (!activeBlockId || !blockStyleDraft) return
     const liveText = readLiveBlockDraft()
-    updatePages(page => ({
+    const snapshot = getCurrentSnapshot()
+    const currentBlock = snapshot.pages
+      .flatMap(page => page.textBlocks)
+      .find(block => block.id === activeBlockId)
+    const previewBlock = currentBlock ? applyDraftToBlock(currentBlock, liveText) : null
+    const changed =
+      currentBlock &&
+      previewBlock &&
+      (previewBlock.text !== currentBlock.text ||
+        previewBlock.fontHint !== currentBlock.fontHint ||
+        Math.abs(previewBlock.pdfFontSize - currentBlock.pdfFontSize) > 0.01 ||
+        previewBlock.textColor !== currentBlock.textColor ||
+        previewBlock.edited !== currentBlock.edited)
+
+    if (!changed) {
+      setActiveBlockId(null)
+      setBlockDraft('')
+      setBlockStyleDraft(null)
+      return
+    }
+
+    const nextPages = snapshot.pages.map(page => ({
       ...page,
       textBlocks: page.textBlocks.map(block => applyDraftToBlock(block, liveText)),
     }))
+    pushUndoSnapshot(snapshot)
+    setPages(nextPages)
 
     setActiveBlockId(null)
     setBlockDraft('')
     setBlockStyleDraft(null)
-  }, [activeBlockId, applyDraftToBlock, blockStyleDraft, readLiveBlockDraft, updatePages])
+  }, [activeBlockId, applyDraftToBlock, blockStyleDraft, getCurrentSnapshot, pushUndoSnapshot, readLiveBlockDraft])
 
   const cancelBlockEdit = useCallback(() => {
     setActiveBlockId(null)
@@ -926,6 +1218,47 @@ export default function EditPDFPage() {
     })
   }, [])
 
+  useEffect(() => {
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey)) return
+
+      const target = event.target as HTMLElement | null
+      const typingIntoField =
+        Boolean(target?.isContentEditable) ||
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.closest('[contenteditable="true"]') !== null
+
+      if (typingIntoField) return
+
+      const key = event.key.toLowerCase()
+
+      if (key === 'f') {
+        event.preventDefault()
+        searchInputRef.current?.focus()
+        searchInputRef.current?.select()
+        return
+      }
+
+      if (key === 'z') {
+        event.preventDefault()
+        if (event.shiftKey) {
+          handleRedo()
+        } else {
+          handleUndo()
+        }
+      }
+
+      if (key === 'y') {
+        event.preventDefault()
+        handleRedo()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleRedo, handleUndo])
+
   const goToPage = useCallback(
     (nextPage: number) => {
       if (activeBlockId) commitBlockEdit()
@@ -938,20 +1271,246 @@ export default function EditPDFPage() {
     [activeBlockId, commitBlockEdit],
   )
 
-  const updateOverlay = useCallback((id: string, updater: (overlay: EditOverlay) => EditOverlay) => {
-    setOverlays(previous => previous.map(overlay => (overlay.id === id ? updater(overlay) : overlay)))
-  }, [])
+  const selectSearchMatch = useCallback(
+    (matchId: string) => {
+      const nextMatch = searchMatches.find(match => match.id === matchId)
+      if (!nextMatch) return
+
+      if (activeBlockId) {
+        commitBlockEdit()
+      } else {
+        setActiveBlockId(null)
+        setBlockDraft('')
+        setBlockStyleDraft(null)
+      }
+
+      setTool('edit')
+      setEditingOverlayId(null)
+      setSelectedOverlayId(null)
+      setActiveSearchMatchId(nextMatch.id)
+
+      if (nextMatch.pageIndex !== currentPageRef.current) {
+        goToPage(nextMatch.pageIndex)
+      }
+    },
+    [activeBlockId, commitBlockEdit, goToPage, searchMatches],
+  )
+
+  const stepSearchMatch = useCallback(
+    (direction: 1 | -1) => {
+      if (!searchMatches.length) return
+      const baseIndex = activeSearchMatchIndex >= 0 ? activeSearchMatchIndex : 0
+      const nextIndex = (baseIndex + direction + searchMatches.length) % searchMatches.length
+      selectSearchMatch(searchMatches[nextIndex].id)
+    },
+    [activeSearchMatchIndex, searchMatches, selectSearchMatch],
+  )
+
+  const replaceCurrentSearchMatch = useCallback(() => {
+    if (!activeSearchMatch || !hasSearchQuery) return
+
+    const snapshot = getCurrentSnapshot()
+    let changed = false
+
+    const nextPages = previewPages.map(page => {
+      if (page.pageIndex !== activeSearchMatch.pageIndex) return page
+
+      let pageChanged = false
+      const nextBlocks = page.textBlocks.map(block => {
+        if (block.id !== activeSearchMatch.blockId) return block
+
+        const matchingOccurrence = findLiteralMatches(block.text, searchQuery).find(
+          match => match.start === activeSearchMatch.start && match.end === activeSearchMatch.end,
+        )
+        if (!matchingOccurrence) return block
+
+        const nextText = replaceSingleLiteralMatch(
+          block.text,
+          matchingOccurrence.start,
+          matchingOccurrence.end,
+          replaceQuery,
+        )
+        if (nextText === block.text) return block
+
+        changed = true
+        pageChanged = true
+        return updateBlockText(block, nextText)
+      })
+
+      return pageChanged ? { ...page, textBlocks: nextBlocks } : page
+    })
+
+    if (!changed) return
+
+    const nextMatches = collectSearchMatches(nextPages, searchQuery)
+    const nextSelectionIndex = activeSearchMatchIndex >= 0 ? activeSearchMatchIndex : 0
+    const nextSelection = nextMatches[Math.min(nextSelectionIndex, Math.max(nextMatches.length - 1, 0))] ?? null
+
+    pushUndoSnapshot(snapshot)
+    clearTransientEditorState()
+    setPages(nextPages)
+    setTool('edit')
+    setSaveError('')
+    setSaveNote(`Replaced 1 match on page ${activeSearchMatch.pageIndex + 1}.`)
+
+    if (nextSelection) {
+      setActiveSearchMatchId(nextSelection.id)
+      setCurrentPage(nextSelection.pageIndex)
+    } else {
+      setActiveSearchMatchId(null)
+    }
+  }, [
+    activeSearchMatch,
+    activeSearchMatchIndex,
+    clearTransientEditorState,
+    getCurrentSnapshot,
+    hasSearchQuery,
+    previewPages,
+    pushUndoSnapshot,
+    replaceQuery,
+    searchQuery,
+    updateBlockText,
+  ])
+
+  const replaceAllSearchMatches = useCallback(() => {
+    if (!hasSearchQuery || !searchMatches.length) return
+
+    const snapshot = getCurrentSnapshot()
+    let changed = false
+    let replacedCount = 0
+
+    const nextPages = previewPages.map(page => {
+      let pageChanged = false
+      const nextBlocks = page.textBlocks.map(block => {
+        const result = replaceAllLiteralMatches(block.text, searchQuery, replaceQuery)
+        if (!result.count) return block
+
+        changed = true
+        pageChanged = true
+        replacedCount += result.count
+        return updateBlockText(block, result.text)
+      })
+
+      return pageChanged ? { ...page, textBlocks: nextBlocks } : page
+    })
+
+    if (!changed) return
+
+    const nextMatches = collectSearchMatches(nextPages, searchQuery)
+    const nextSelection = nextMatches[0] ?? null
+
+    pushUndoSnapshot(snapshot)
+    clearTransientEditorState()
+    setPages(nextPages)
+    setTool('edit')
+    setSaveError('')
+    setSaveNote(`Replaced ${replacedCount} match${replacedCount === 1 ? '' : 'es'} across the PDF.`)
+
+    if (nextSelection) {
+      setActiveSearchMatchId(nextSelection.id)
+      setCurrentPage(nextSelection.pageIndex)
+    } else {
+      setActiveSearchMatchId(null)
+    }
+  }, [
+    clearTransientEditorState,
+    getCurrentSnapshot,
+    hasSearchQuery,
+    previewPages,
+    pushUndoSnapshot,
+    replaceQuery,
+    searchMatches.length,
+    searchQuery,
+    updateBlockText,
+  ])
+
+  const updateOverlay = useCallback(
+    (
+      id: string,
+      updater: (overlay: EditOverlay) => EditOverlay,
+      options?: { recordHistory?: boolean },
+    ) => {
+      const recordHistory = options?.recordHistory ?? true
+      const snapshot = recordHistory ? getCurrentSnapshot() : null
+
+      setOverlays(previous => {
+        let changed = false
+        const next = previous.map(overlay => {
+          if (overlay.id !== id) return overlay
+          const updated = updater(overlay)
+          if (updated !== overlay) changed = true
+          return updated
+        })
+
+        if (!changed) return previous
+        if (snapshot) pushUndoSnapshot(snapshot)
+        return next
+      })
+    },
+    [getCurrentSnapshot, pushUndoSnapshot],
+  )
+
+  const finishOverlayTextEdit = useCallback(
+    (id: string) => {
+      const startSnapshot = overlayEditStartSnapshotsRef.current[id]
+      if (!startSnapshot) {
+        setEditingOverlayId(null)
+        return
+      }
+
+      delete overlayEditStartSnapshotsRef.current[id]
+      const currentOverlay = overlaysRef.current.find(
+        overlay => overlay.id === id && overlay.type === 'text-overlay',
+      ) as AddedTextOverlay | undefined
+      const originalOverlay = startSnapshot.overlays.find(
+        overlay => overlay.id === id && overlay.type === 'text-overlay',
+      ) as AddedTextOverlay | undefined
+      const nextText = currentOverlay?.text.trim() ?? ''
+      const textChanged = originalOverlay
+        ? originalOverlay.text !== (currentOverlay?.text ?? '')
+        : nextText.length > 0
+
+      if (textChanged) {
+        pushUndoSnapshot(startSnapshot)
+      }
+
+      if (currentOverlay && nextText.length === 0) {
+        setOverlays(previous => previous.filter(overlay => overlay.id !== id))
+        setSelectedOverlayId(null)
+      }
+
+      setEditingOverlayId(null)
+    },
+    [pushUndoSnapshot],
+  )
+
+  const cancelOverlayTextEdit = useCallback(
+    (id: string) => {
+      const startSnapshot = overlayEditStartSnapshotsRef.current[id]
+      delete overlayEditStartSnapshotsRef.current[id]
+      if (startSnapshot) {
+        applySnapshot(startSnapshot)
+        return
+      }
+      setEditingOverlayId(null)
+    },
+    [applySnapshot],
+  )
 
   const deleteOverlay = useCallback((id: string) => {
+    const snapshot = getCurrentSnapshot()
     if (selectedOverlayId === id) setSelectedOverlayId(null)
     if (editingOverlayId === id) setEditingOverlayId(null)
+    delete overlayEditStartSnapshotsRef.current[id]
+    pushUndoSnapshot(snapshot)
     setOverlays(previous => previous.filter(overlay => overlay.id !== id))
-  }, [editingOverlayId, selectedOverlayId])
+  }, [editingOverlayId, getCurrentSnapshot, pushUndoSnapshot, selectedOverlayId])
 
   const duplicateOverlay = useCallback(
     (id: string) => {
       const source = overlays.find(overlay => overlay.id === id)
       if (!source) return
+      const snapshot = getCurrentSnapshot()
 
       const shiftX = 0.015
       const shiftY = 0.02
@@ -971,11 +1530,12 @@ export default function EditPDFPage() {
               y: Math.min(source.y + shiftY, Math.max(0, 1 - source.height)),
             }
 
+      pushUndoSnapshot(snapshot)
       setOverlays(previous => [...previous, duplicate])
       setSelectedOverlayId(duplicate.id)
       if (duplicate.type === 'text-overlay') setEditingOverlayId(null)
     },
-    [overlays],
+    [getCurrentSnapshot, overlays, pushUndoSnapshot],
   )
 
   const getRelativePoint = useCallback((clientX: number, clientY: number) => {
@@ -1137,17 +1697,19 @@ export default function EditPDFPage() {
     setMarkupDraft(previous => {
       if (!previous) return previous
       if (previous.width > 0.004 || previous.height > 0.004) {
+        const snapshot = getCurrentSnapshot()
         const nextOverlay = {
           ...previous,
           id: crypto.randomUUID(),
         }
+        pushUndoSnapshot(snapshot)
         setOverlays(current => [...current, nextOverlay])
         setSelectedOverlayId(nextOverlay.id)
       }
       return null
     })
     markupStart.current = null
-  }, [])
+  }, [getCurrentSnapshot, pushUndoSnapshot])
 
   useEffect(() => {
     if (!markupDraft || !markupStart.current) return
@@ -1201,6 +1763,7 @@ export default function EditPDFPage() {
       }
 
       if (tool === 'text') {
+        const startSnapshot = getCurrentSnapshot()
         const overlay: AddedTextOverlay = {
           id: crypto.randomUUID(),
           type: 'text-overlay',
@@ -1214,6 +1777,7 @@ export default function EditPDFPage() {
           editing: true,
         }
 
+        overlayEditStartSnapshotsRef.current[overlay.id] = startSnapshot
         setOverlays(previous => [...previous, overlay])
         setEditingOverlayId(overlay.id)
         setSelectedOverlayId(overlay.id)
@@ -1222,6 +1786,7 @@ export default function EditPDFPage() {
       }
 
       if (tool === 'signature' && signatureDraft) {
+        const snapshot = getCurrentSnapshot()
         const baseWidth = Math.min(Math.max(signatureDraft.widthPx / currentPageState.previewWidth, 0.12), 0.32)
         const baseHeight = Math.min(
           (signatureDraft.heightPx / signatureDraft.widthPx) * baseWidth * (currentPageState.previewWidth / currentPageState.previewHeight),
@@ -1239,13 +1804,14 @@ export default function EditPDFPage() {
           dataUrl: signatureDraft.dataUrl,
         }
 
+        pushUndoSnapshot(snapshot)
         setOverlays(previous => [...previous, overlay])
         setSignatureDraft(null)
         setSelectedOverlayId(overlay.id)
         setTool('select')
       }
     },
-    [currentPage, currentPageState, fontColor, fontSize, getRelativePoint, signatureDraft, tool],
+    [currentPage, currentPageState, fontColor, fontSize, getCurrentSnapshot, getRelativePoint, pushUndoSnapshot, signatureDraft, tool],
   )
 
   const startDrag = useCallback(
@@ -1263,6 +1829,7 @@ export default function EditPDFPage() {
 
       setSelectedOverlayId(overlay.id)
       setActiveBlockId(null)
+      dragStartSnapshotRef.current = getCurrentSnapshot()
       setDragging({
         kind: 'move',
         id: overlay.id,
@@ -1275,7 +1842,7 @@ export default function EditPDFPage() {
         originHeight,
       })
     },
-    [tool],
+    [getCurrentSnapshot, tool],
   )
 
   const startResize = useCallback(
@@ -1285,6 +1852,7 @@ export default function EditPDFPage() {
       event.stopPropagation()
       setSelectedOverlayId(overlay.id)
       setActiveBlockId(null)
+      dragStartSnapshotRef.current = getCurrentSnapshot()
       setDragging({
         kind: 'resize',
         id: overlay.id,
@@ -1298,7 +1866,7 @@ export default function EditPDFPage() {
         originHeight: overlay.type === 'text-overlay' ? 0.06 : overlay.height,
       })
     },
-    [tool],
+    [getCurrentSnapshot, tool],
   )
 
   useEffect(() => {
@@ -1435,7 +2003,17 @@ export default function EditPDFPage() {
       })
     }
 
-    const stop = () => setDragging(null)
+    const stop = () => {
+      const startSnapshot = dragStartSnapshotRef.current
+      dragStartSnapshotRef.current = null
+      setDragging(null)
+      if (
+        startSnapshot &&
+        overlaysRef.current !== startSnapshot.overlays
+      ) {
+        pushUndoSnapshot(startSnapshot)
+      }
+    }
 
     window.addEventListener('mousemove', move)
     window.addEventListener('mouseup', stop)
@@ -1443,7 +2021,7 @@ export default function EditPDFPage() {
       window.removeEventListener('mousemove', move)
       window.removeEventListener('mouseup', stop)
     }
-  }, [dragging, getOverlayMinimumSize])
+  }, [dragging, getOverlayMinimumSize, pushUndoSnapshot])
 
   useEffect(() => {
     if (!panning) return
@@ -1480,6 +2058,7 @@ export default function EditPDFPage() {
         setLoadingProgress(progress.total > 0 ? progress.current / progress.total : 0)
       })
 
+      pushUndoSnapshot(getCurrentSnapshot())
       setPages(result.pages)
       if (result.detectedBlockCount > 0) {
         setLoadingMessage(
@@ -1496,7 +2075,7 @@ export default function EditPDFPage() {
     } finally {
       setRunningOcr(false)
     }
-  }, [ocrLanguage, pages, pdfFile])
+  }, [getCurrentSnapshot, ocrLanguage, pages, pdfFile, pushUndoSnapshot])
 
   const finalizePagesForSave = useCallback(() => {
     if (!activeBlockId || !blockStyleDraft) return pages
@@ -1514,8 +2093,12 @@ export default function EditPDFPage() {
     setSaveError('')
     setSaveNote('')
 
+    const snapshot = getCurrentSnapshot()
     const pagesToSave = finalizePagesForSave()
-    if (pagesToSave !== pages) setPages(pagesToSave)
+    if (pagesToSave !== pages) {
+      pushUndoSnapshot(snapshot)
+      setPages(pagesToSave)
+    }
     setActiveBlockId(null)
     setBlockDraft('')
     setBlockStyleDraft(null)
@@ -1553,7 +2136,7 @@ export default function EditPDFPage() {
     } finally {
       setSaving(false)
     }
-  }, [finalizePagesForSave, overlays, pages, pdfFile])
+  }, [finalizePagesForSave, getCurrentSnapshot, overlays, pages, pdfFile, pushUndoSnapshot])
 
   const scannedPages = previewPages.filter(page => !page.hasTextLayer).length
   const ocrApplied = previewPages.some(page => page.ocrApplied)
@@ -1759,7 +2342,7 @@ export default function EditPDFPage() {
           <span style={{ color: 'var(--amber)' }}>Without Uploading It</span>
         </h1>
         <p style={{ fontSize: 16, fontWeight: 300, color: 'var(--ink)', opacity: 0.7, maxWidth: 720, marginTop: 12, lineHeight: 1.7 }}>
-          Edit existing text in text-based PDFs, run OCR on scanned files, then add highlights, whiteout erase areas, extra text, and signatures in one local-first editor.
+          Edit existing text in text-based PDFs, search and replace across pages, run OCR on scanned files, then add highlights, whiteout erase areas, extra text, and signatures in one local-first editor.
         </p>
       </div>
 
@@ -1782,6 +2365,43 @@ export default function EditPDFPage() {
           {toolbarButton('underline', 'Underline', '〰')}
           {toolbarButton('whiteout', 'Whiteout', '⬜')}
           {toolbarButton('signature', 'Sign', '✍')}
+
+          <div style={{ width: 1, height: 40, background: '#e5e7eb', margin: '0 4px' }} />
+
+          <button
+            type="button"
+            onClick={handleUndo}
+            disabled={!canUndo}
+            style={{
+              padding: '9px 12px',
+              borderRadius: 10,
+              border: '1px solid #E5E7EB',
+              background: canUndo ? '#fff' : '#F9FAFB',
+              color: canUndo ? '#374151' : '#9CA3AF',
+              fontWeight: 700,
+              cursor: canUndo ? 'pointer' : 'not-allowed',
+            }}
+            title="Undo (Cmd/Ctrl + Z)"
+          >
+            Undo
+          </button>
+          <button
+            type="button"
+            onClick={handleRedo}
+            disabled={!canRedo}
+            style={{
+              padding: '9px 12px',
+              borderRadius: 10,
+              border: '1px solid #E5E7EB',
+              background: canRedo ? '#fff' : '#F9FAFB',
+              color: canRedo ? '#374151' : '#9CA3AF',
+              fontWeight: 700,
+              cursor: canRedo ? 'pointer' : 'not-allowed',
+            }}
+            title="Redo (Shift + Cmd/Ctrl + Z)"
+          >
+            Redo
+          </button>
 
           <div style={{ width: 1, height: 40, background: '#e5e7eb', margin: '0 4px' }} />
 
@@ -1898,6 +2518,208 @@ export default function EditPDFPage() {
             </button>
           )}
         </div>
+
+        {pageCount > 0 && (
+          <div
+            style={{
+              display: 'grid',
+              gap: 12,
+              padding: '16px 18px',
+              borderRadius: 14,
+              background: '#F8FBFF',
+              border: '1px solid #BFDBFE',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ display: 'grid', gap: 4 }}>
+                <strong style={{ fontSize: 13, color: '#111827' }}>Find & Replace</strong>
+                <span style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.55 }}>
+                  Search existing PDF text across all pages. Cmd/Ctrl + F focuses search, replace actions land as a single undo step.
+                </span>
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: hasSearchMatches ? '#1D4ED8' : '#6B7280' }}>
+                {hasSearchQuery
+                  ? hasSearchMatches
+                    ? `${(activeSearchMatchIndex >= 0 ? activeSearchMatchIndex : 0) + 1} of ${searchMatches.length} matches`
+                    : 'No matches found'
+                  : 'Search native or OCR-detected text'}
+              </span>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 10,
+                alignItems: 'center',
+              }}
+            >
+              <input
+                ref={searchInputRef}
+                value={searchQuery}
+                onChange={event => setSearchQuery(event.target.value)}
+                onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    stepSearchMatch(event.shiftKey ? -1 : 1)
+                  }
+                }}
+                placeholder="Find text in the PDF…"
+                style={{
+                  flex: '1 1 240px',
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #BFDBFE',
+                  background: '#fff',
+                  fontSize: 14,
+                  color: '#111827',
+                }}
+              />
+              <input
+                ref={replaceInputRef}
+                value={replaceQuery}
+                onChange={event => setReplaceQuery(event.target.value)}
+                onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    replaceCurrentSearchMatch()
+                  }
+                }}
+                placeholder="Replace with…"
+                style={{
+                  flex: '1 1 220px',
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #BFDBFE',
+                  background: '#fff',
+                  fontSize: 14,
+                  color: '#111827',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => stepSearchMatch(-1)}
+                disabled={!hasSearchMatches}
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #BFDBFE',
+                  background: hasSearchMatches ? '#fff' : '#EFF6FF',
+                  color: hasSearchMatches ? '#1D4ED8' : '#93C5FD',
+                  fontWeight: 700,
+                  cursor: hasSearchMatches ? 'pointer' : 'not-allowed',
+                }}
+              >
+                Prev
+              </button>
+              <button
+                type="button"
+                onClick={() => stepSearchMatch(1)}
+                disabled={!hasSearchMatches}
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #BFDBFE',
+                  background: hasSearchMatches ? '#fff' : '#EFF6FF',
+                  color: hasSearchMatches ? '#1D4ED8' : '#93C5FD',
+                  fontWeight: 700,
+                  cursor: hasSearchMatches ? 'pointer' : 'not-allowed',
+                }}
+              >
+                Next
+              </button>
+              <button
+                type="button"
+                onClick={replaceCurrentSearchMatch}
+                disabled={!hasSearchMatches}
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #93C5FD',
+                  background: hasSearchMatches ? '#DBEAFE' : '#EFF6FF',
+                  color: hasSearchMatches ? '#1D4ED8' : '#93C5FD',
+                  fontWeight: 700,
+                  cursor: hasSearchMatches ? 'pointer' : 'not-allowed',
+                }}
+              >
+                Replace
+              </button>
+              <button
+                type="button"
+                onClick={replaceAllSearchMatches}
+                disabled={!hasSearchMatches}
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: hasSearchMatches ? '#1D4ED8' : '#BFDBFE',
+                  color: '#fff',
+                  fontWeight: 700,
+                  cursor: hasSearchMatches ? 'pointer' : 'not-allowed',
+                }}
+              >
+                Replace All
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('')
+                  setReplaceQuery('')
+                  setActiveSearchMatchId(null)
+                }}
+                disabled={!hasSearchQuery && !replaceQuery}
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #E5E7EB',
+                  background: '#fff',
+                  color: '#374151',
+                  fontWeight: 700,
+                  cursor: !hasSearchQuery && !replaceQuery ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Clear
+              </button>
+            </div>
+
+            {activeSearchMatch && (
+              <button
+                type="button"
+                onClick={() => selectSearchMatch(activeSearchMatch.id)}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  alignItems: 'center',
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  border: '1px solid #BFDBFE',
+                  background: '#fff',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                }}
+              >
+                <span style={{ fontSize: 13, color: '#374151', lineHeight: 1.55 }}>
+                  <strong style={{ color: '#111827' }}>Page {activeSearchMatch.pageIndex + 1}.</strong>{' '}
+                  {activeSearchMatch.snippet}
+                </span>
+                <span
+                  style={{
+                    flexShrink: 0,
+                    padding: '4px 8px',
+                    borderRadius: 999,
+                    background: '#DBEAFE',
+                    color: '#1D4ED8',
+                    fontSize: 11,
+                    fontWeight: 700,
+                  }}
+                >
+                  Jump to match
+                </span>
+              </button>
+            )}
+          </div>
+        )}
 
         {pageCount > 0 && (
           <div
@@ -2436,6 +3258,9 @@ export default function EditPDFPage() {
               const fontSizePx = Math.max(scaledByPreview(block.previewFontSize), 10)
               const isActive = activeBlockId === block.id
               const blockFontStyle = cssFontFromHint(block.fontHint)
+              const blockSearchMatches = searchMatchesByBlockId[block.id] ?? []
+              const hasSearchHit = blockSearchMatches.length > 0
+              const isActiveSearchHit = activeSearchMatch?.blockId === block.id
 
               if (isActive) {
                 return (
@@ -2476,9 +3301,11 @@ export default function EditPDFPage() {
                         minHeight: Math.max(height + 8, fontSizePx * 1.5),
                         padding: '7px 9px',
                         borderRadius: 10,
-                        border: '1px solid rgba(59, 130, 246, 0.45)',
+                        border: isActiveSearchHit ? '1px solid rgba(29, 78, 216, 0.72)' : '1px solid rgba(59, 130, 246, 0.45)',
                         background: 'rgba(255,255,255,0.985)',
-                        boxShadow: '0 10px 26px rgba(15, 23, 42, 0.12)',
+                        boxShadow: isActiveSearchHit
+                          ? '0 0 0 3px rgba(59, 130, 246, 0.16), 0 10px 26px rgba(15, 23, 42, 0.12)'
+                          : '0 10px 26px rgba(15, 23, 42, 0.12)',
                         fontSize: `${fontSizePx}px`,
                         lineHeight: 1.24,
                         color: block.textColor,
@@ -2509,19 +3336,43 @@ export default function EditPDFPage() {
                       padding: '4px 6px',
                       borderRadius: 6,
                       background: 'rgba(255,255,255,0.94)',
-                      border: '1px solid rgba(59, 130, 246, 0.22)',
+                      border: isActiveSearchHit
+                        ? '1.5px solid rgba(29, 78, 216, 0.72)'
+                        : hasSearchHit
+                          ? '1px solid rgba(96, 165, 250, 0.65)'
+                          : '1px solid rgba(59, 130, 246, 0.22)',
                       color: block.textColor,
                       fontSize: `${fontSizePx}px`,
                       lineHeight: 1.18,
                       cursor: tool === 'edit' ? 'text' : 'default',
-                      zIndex: 14,
+                      zIndex: isActiveSearchHit ? 18 : 14,
                       whiteSpace: 'pre-wrap',
                       overflowWrap: 'anywhere',
-                      boxShadow: '0 3px 12px rgba(15, 23, 42, 0.06)',
+                      boxShadow: isActiveSearchHit
+                        ? '0 0 0 3px rgba(59, 130, 246, 0.14), 0 3px 12px rgba(15, 23, 42, 0.06)'
+                        : '0 3px 12px rgba(15, 23, 42, 0.06)',
                       ...blockFontStyle,
                     }}
                   >
                     {block.text || <span style={{ color: '#9ca3af' }}>Text removed</span>}
+                    {hasSearchHit && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: -10,
+                          right: -8,
+                          padding: '3px 7px',
+                          borderRadius: 999,
+                          background: isActiveSearchHit ? '#1D4ED8' : '#DBEAFE',
+                          color: isActiveSearchHit ? '#fff' : '#1D4ED8',
+                          fontSize: 10,
+                          fontWeight: 800,
+                          letterSpacing: '0.01em',
+                        }}
+                      >
+                        {blockSearchMatches.length}
+                      </span>
+                    )}
                   </div>
                 )
               }
@@ -2543,12 +3394,27 @@ export default function EditPDFPage() {
                     width,
                     height,
                     borderRadius: 5,
-                    border: tool === 'edit' ? '1px solid rgba(245, 158, 11, 0.18)' : '1px solid transparent',
-                    background: tool === 'edit' ? 'rgba(245, 158, 11, 0.08)' : 'transparent',
+                    border:
+                      isActiveSearchHit
+                        ? '1.5px solid rgba(29, 78, 216, 0.82)'
+                        : hasSearchHit
+                          ? '1px solid rgba(96, 165, 250, 0.8)'
+                          : tool === 'edit'
+                            ? '1px solid rgba(245, 158, 11, 0.18)'
+                            : '1px solid transparent',
+                    background:
+                      isActiveSearchHit
+                        ? 'rgba(59, 130, 246, 0.18)'
+                        : hasSearchHit
+                          ? 'rgba(191, 219, 254, 0.36)'
+                          : tool === 'edit'
+                            ? 'rgba(245, 158, 11, 0.08)'
+                            : 'transparent',
                     cursor: tool === 'edit' ? 'text' : 'default',
-                    zIndex: 10,
-                    opacity: tool === 'edit' ? 1 : 0,
-                    pointerEvents: tool === 'edit' ? 'auto' : 'none',
+                    zIndex: isActiveSearchHit ? 16 : 10,
+                    opacity: tool === 'edit' || hasSearchHit ? 1 : 0,
+                    pointerEvents: tool === 'edit' || hasSearchHit ? 'auto' : 'none',
+                    boxShadow: isActiveSearchHit ? '0 0 0 3px rgba(59, 130, 246, 0.14)' : 'none',
                   }}
                 />
               )
@@ -2819,7 +3685,10 @@ export default function EditPDFPage() {
                   >
                     <button
                       type="button"
-                      onMouseDown={event => event.stopPropagation()}
+                      onMouseDown={event => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                      }}
                       onClick={event => {
                         event.stopPropagation()
                         deleteOverlay(overlay.id)
@@ -2882,7 +3751,10 @@ export default function EditPDFPage() {
                     />
                     <button
                       type="button"
-                      onMouseDown={event => event.stopPropagation()}
+                      onMouseDown={event => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                      }}
                       onClick={event => {
                         event.stopPropagation()
                         deleteOverlay(overlay.id)
@@ -2935,7 +3807,10 @@ export default function EditPDFPage() {
                   >
                     <button
                       type="button"
-                      onMouseDown={event => event.stopPropagation()}
+                      onMouseDown={event => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                      }}
                       onClick={event => {
                         event.stopPropagation()
                         deleteOverlay(overlay.id)
@@ -2996,20 +3871,17 @@ export default function EditPDFPage() {
                           updateOverlay(overlay.id, current => ({
                             ...current,
                             text: event.target.value,
-                          }))
+                          }), { recordHistory: false })
                         }
-                        onBlur={() => {
-                          setEditingOverlayId(null)
-                          if (!overlay.text.trim()) deleteOverlay(overlay.id)
-                        }}
+                        onBlur={() => finishOverlayTextEdit(overlay.id)}
                         onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => {
                           if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
                             event.preventDefault()
-                            setEditingOverlayId(null)
+                            finishOverlayTextEdit(overlay.id)
                           }
                           if (event.key === 'Escape') {
                             event.preventDefault()
-                            setEditingOverlayId(null)
+                            cancelOverlayTextEdit(overlay.id)
                           }
                         }}
                         style={{
@@ -3033,6 +3905,7 @@ export default function EditPDFPage() {
                         onDoubleClick={event => {
                           event.stopPropagation()
                           setSelectedOverlayId(overlay.id)
+                          overlayEditStartSnapshotsRef.current[overlay.id] = getCurrentSnapshot()
                           setEditingOverlayId(overlay.id)
                         }}
                         style={{
@@ -3052,7 +3925,10 @@ export default function EditPDFPage() {
                     )}
                     <button
                       type="button"
-                      onMouseDown={event => event.stopPropagation()}
+                      onMouseDown={event => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                      }}
                       onClick={event => {
                         event.stopPropagation()
                         deleteOverlay(overlay.id)
@@ -3114,7 +3990,10 @@ export default function EditPDFPage() {
                     />
                     <button
                       type="button"
-                      onMouseDown={event => event.stopPropagation()}
+                      onMouseDown={event => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                      }}
                       onClick={event => {
                         event.stopPropagation()
                         deleteOverlay(overlay.id)
@@ -3195,7 +4074,7 @@ export default function EditPDFPage() {
           </div>
 
           <p style={{ color: '#6b7280', fontSize: 13, marginTop: 14, marginBottom: 0, lineHeight: 1.65 }}>
-            {tool === 'edit' && 'Click existing text to edit it. Cmd/Ctrl + Enter saves the active text edit.'}
+            {tool === 'edit' && 'Click existing text to edit it. Cmd/Ctrl + Enter saves the active text edit, and Cmd/Ctrl + F jumps into find and replace.'}
             {tool === 'select' && 'Select any added box, signature, highlight, underline, or whiteout area to move it or resize it with the handles.'}
             {tool === 'pan' && 'Drag the page to move around at higher zoom levels, then jump between pages with the thumbnails above.'}
             {tool === 'text' && 'Click anywhere to place a new text box. Use the side handles later to reflow longer paragraphs.'}
