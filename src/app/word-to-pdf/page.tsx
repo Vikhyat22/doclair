@@ -6,17 +6,17 @@ import DropZone from '@/components/ui/DropZone'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import ErrorCard from '@/components/ui/ErrorCard'
-import { wordHtmlToPdfBlob, wordToHTML } from '@/lib/pdf/wordToPdf'
+import { wordDocumentToPdfBlob, wordToHTML } from '@/lib/pdf/wordToPdf'
 import type { WordConversionResult } from '@/lib/pdf/wordToPdf'
 
 type ConvertState = 'idle' | 'converting' | 'preview' | 'error'
 
 const FAQS = [
-  { q: 'Will my Word formatting be preserved when converting?', a: 'Yes. Mammoth.js extracts headings, bold, italic, tables, images, lists, and paragraph styles. Complex custom styles may simplify to their base equivalent, but standard formatting is fully preserved.' },
-  { q: 'Do I need Microsoft Word installed?', a: 'No. Doclair converts .docx and .doc files directly in your browser using Mammoth.js, a pure JavaScript library. Microsoft Word or any Office software is not required.' },
-  { q: 'Can I convert .doc as well as .docx files?', a: 'Yes. Both .doc (Word 97-2003) and .docx (Word 2007+) formats are supported. Simply drag your file into the upload area.' },
+  { q: 'Will my Word formatting be preserved when converting?', a: 'For modern .docx files, Doclair reads the Word document structure directly in your browser, preserving page size, margins, headings, lists, tables, images, and page breaks much more closely than a generic HTML export. Some advanced Office-only effects can still simplify.' },
+  { q: 'Do I need Microsoft Word installed?', a: 'No. Doclair converts Word documents locally in your browser. No Microsoft Word, Google Docs, or desktop Office software is required.' },
+  { q: 'Can I convert .doc as well as .docx files?', a: 'Yes. Modern .docx files use the highest-fidelity conversion path. Legacy .doc files fall back to a compatibility conversion path, which can simplify complex formatting more than .docx.' },
   { q: 'Is there a file size limit?', a: 'The maximum file size is 50 MB. Most Word documents are well under 10 MB, so this limit is rarely a concern.' },
-  { q: 'Are my Word documents uploaded to a server?', a: 'Never. Doclair converts your document entirely in your browser using WebAssembly. Your file is never transmitted to any server.' },
+  { q: 'Are my Word documents uploaded to a server?', a: 'Never. Doclair converts your document entirely in your browser. Your file is never transmitted to any server.' },
   { q: 'Can I convert a Word CV to PDF free?', a: 'Yes. This is one of the most common uses. Upload your .docx CV, review the preview to confirm formatting, then click "Save as PDF" to download a professional PDF version.' },
 ]
 
@@ -29,7 +29,7 @@ const JSON_LD = {
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
       url: 'https://doclair.in/word-to-pdf',
-      description: 'Convert Word .docx and .doc to PDF free online. Fonts, tables, images and layout preserved. No upload, no watermark.',
+      description: 'Convert Word .docx and .doc to PDF free online. Page settings, headings, lists, tables, images, and page breaks preserved locally in your browser. No upload, no watermark.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     },
     {
@@ -67,9 +67,9 @@ export default function WordToPDFPage() {
 
     try {
       await new Promise(r => setTimeout(r, 100))
-      setConvertStatus('Extracting content…')
+      setConvertStatus('Reading Word layout…')
       const result = await wordToHTML(target)
-      setConvertStatus('Preparing preview…')
+      setConvertStatus('Building preview and PDF model…')
       await new Promise(r => setTimeout(r, 50))
       setConversionResult(result)
       setToolState('preview')
@@ -98,7 +98,7 @@ export default function WordToPDFPage() {
     setErrorMessage('')
 
     try {
-      const blob = await wordHtmlToPdfBlob(conversionResult.html, docName)
+      const blob = await wordDocumentToPdfBlob(conversionResult.document, docName)
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
       anchor.href = url
@@ -121,9 +121,7 @@ export default function WordToPDFPage() {
     setErrorMessage('')
   }
 
-  const estimatedPages = conversionResult
-    ? Math.max(1, Math.ceil(conversionResult.wordCount / 300))
-    : 0
+  const estimatedPages = conversionResult?.pageCountEstimate ?? 0
 
   const sidebar = (
     <ToolSidebar
@@ -165,7 +163,7 @@ export default function WordToPDFPage() {
           fontSize: '16px', fontWeight: 300, color: 'var(--ink)', opacity: 0.65,
           maxWidth: '520px', marginTop: '12px', lineHeight: 1.6,
         }}>
-          Convert .doc and .docx files to PDF free. Fonts, tables, images and layout fully preserved. No upload, no watermark.
+          Convert .docx and .doc files to PDF free. Page settings, headings, lists, tables, images, and page breaks are preserved locally in your browser. No upload, no watermark.
         </p>
       </div>
 
@@ -224,6 +222,7 @@ export default function WordToPDFPage() {
             #word-preview-content ul, #word-preview-content ol { margin: 8pt 0; padding-left: 24pt; }
             #word-preview-content img { max-width: 100%; height: auto; margin: 8pt 0; }
             #word-preview-content .caption { font-size: 10pt; color: #666; font-style: italic; }
+            #word-preview-content .docx-page-break { border-top: 1px dashed #d1d5db; margin: 24pt 0; }
           `}</style>
 
           {/* Warnings panel */}
@@ -281,7 +280,7 @@ export default function WordToPDFPage() {
               }}>
                 <div
                   id="word-preview-content"
-                  dangerouslySetInnerHTML={{ __html: conversionResult.html }}
+                  dangerouslySetInnerHTML={{ __html: conversionResult.previewHtml }}
                   style={{
                     fontFamily: "'Georgia', 'Times New Roman', serif",
                     fontSize: '12pt',
@@ -352,9 +351,9 @@ export default function WordToPDFPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
           {[
             'Drop your .docx or .doc file into the upload area.',
-            'Doclair extracts the content and shows a live preview of your document.',
-            'Review the preview to confirm headings, tables, images and formatting.',
-            'Click <strong>Save as PDF →</strong> and select \'Save as PDF\' in your browser\'s print dialog.',
+            'Doclair reads the Word structure locally and shows a live preview of the PDF-ready layout.',
+            'Review the preview to confirm headings, lists, tables, images, and page breaks.',
+            'Click <strong>Save as PDF →</strong> to download the generated PDF directly, without opening the browser print dialog.',
           ].map((step, i) => (
             <div key={i} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
               <div style={{
@@ -378,7 +377,7 @@ export default function WordToPDFPage() {
           Will my formatting be preserved?
         </h3>
         <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
-          Yes. Mammoth.js faithfully extracts headings (H1–H4), bold and italic text, numbered and bulleted lists, tables with borders, embedded images, and captions. The preview shows you the result before you save.
+          For .docx files, yes in most practical cases. Doclair now reads Word page settings, paragraphs, run styling, numbering, tables, embedded images, and page breaks directly from the document package instead of flattening everything into generic HTML first. Legacy .doc files still use a compatibility path, so modern .docx remains the best choice for highest fidelity.
         </p>
 
         <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
