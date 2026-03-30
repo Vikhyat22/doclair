@@ -87,6 +87,8 @@ export async function generatePOSReceiptPDF(bill: POSBill, shop: POSShopProfile)
   const doc = await PDFDocument.create()
   const fontR = await doc.embedFont(StandardFonts.Helvetica)
   const fontB = await doc.embedFont(StandardFonts.HelveticaBold)
+  const fontMono = await doc.embedFont(StandardFonts.Courier)
+  const fontMonoB = await doc.embedFont(StandardFonts.CourierBold)
 
   const pageWidth = 226
   const pageHeight = estimateReceiptHeight(bill, shop, fontR)
@@ -173,9 +175,9 @@ export async function generatePOSReceiptPDF(bill: POSBill, shop: POSShopProfile)
     for (const [index, line] of nameLines.entries()) {
       page.drawText(line, { x: 10, y, size: 7, font: fontR, color: ink })
       if (index === 0) {
-        page.drawText(String(ci.qty), { x: qtyX + 2, y, size: 7, font: fontR, color: ink })
-        drawRightText(`Rs.${ci.product.price.toFixed(2)}`, priceRightX, 7, fontR)
-        drawRightText(`Rs.${lineTotal.toFixed(2)}`, totalRightX, 7, fontR)
+        page.drawText(String(ci.qty), { x: qtyX + 2, y, size: 7, font: fontMono, color: ink })
+        drawRightText(`Rs.${ci.product.price.toFixed(2)}`, priceRightX, 7, fontMono)
+        drawRightText(`Rs.${lineTotal.toFixed(2)}`, totalRightX, 7, fontMono)
       }
       y -= 10
     }
@@ -193,7 +195,7 @@ export async function generatePOSReceiptPDF(bill: POSBill, shop: POSShopProfile)
   drawLine()
 
   page.drawText('Subtotal', { x: 10, y, size: 7, font: fontR, color: muted })
-  drawRightText(`Rs.${bill.items.reduce((sum, item) => sum + item.product.price * item.qty * (1 - item.discount / 100), 0).toFixed(2)}`, totalRightX, 7, fontR, muted)
+  drawRightText(`Rs.${bill.items.reduce((sum, item) => sum + item.product.price * item.qty * (1 - item.discount / 100), 0).toFixed(2)}`, totalRightX, 7, fontMono, muted)
   y -= 12
 
   const gstEntries = Object.entries(bill.gstBreakup).filter(([, value]) => value > 0)
@@ -201,7 +203,7 @@ export async function generatePOSReceiptPDF(bill: POSBill, shop: POSShopProfile)
     const halfRate = Number(rate) / 2
     const label = Number(rate) === 0 ? 'GST @0%' : `CGST@${halfRate}% + SGST@${halfRate}%`
     page.drawText(label, { x: 10, y, size: 7, font: fontR, color: muted, maxWidth: 150 })
-    drawRightText(`Rs.${amount.toFixed(2)}`, totalRightX, 7, fontR, muted)
+    drawRightText(`Rs.${amount.toFixed(2)}`, totalRightX, 7, fontMono, muted)
     y -= 12
   }
 
@@ -211,7 +213,7 @@ export async function generatePOSReceiptPDF(bill: POSBill, shop: POSShopProfile)
   }
 
   page.drawText('GRAND TOTAL', { x: 10, y, size: 10, font: fontB, color: ink })
-  drawRightText(`Rs.${bill.total.toFixed(2)}`, totalRightX, 10, fontB, amber)
+  drawRightText(`Rs.${bill.total.toFixed(2)}`, totalRightX, 10, fontMonoB, amber)
   y -= 20
 
   drawLine()

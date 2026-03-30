@@ -115,6 +115,8 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
 
   const fontR = await doc.embedFont(StandardFonts.Helvetica)
   const fontB = await doc.embedFont(StandardFonts.HelveticaBold)
+  const fontMono = await doc.embedFont(StandardFonts.Courier)
+  const fontMonoB = await doc.embedFont(StandardFonts.CourierBold)
 
   const ink = rgb(0.10, 0.08, 0.07)
   const amber = rgb(0.91, 0.51, 0.05)
@@ -284,7 +286,8 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
         })
         return
       }
-      drawCellText(page, vals[ci], col.x, col.w, centeredY, fontR, 7.2, ink, col.align)
+      const cellFont = ci >= 3 ? fontMono : fontR
+      drawCellText(page, vals[ci], col.x, col.w, centeredY, cellFont, 7.2, ink, col.align)
     })
     y -= rowH
   })
@@ -309,10 +312,10 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   hsnCols.forEach(col => page.drawText(col.label, { x: col.x, y: hsnTop - 31, size: 6.5, font: fontB, color: muted }))
   let hsnY = hsnTop - 45
   for (const row of hsnRows) {
-    page.drawText(row.hsn, { x: hsnCols[0].x, y: hsnY, size: 7.2, font: fontR, color: ink })
-    page.drawText(formatAmount(row.taxable), { x: hsnCols[1].x, y: hsnY, size: 7.2, font: fontR, color: ink })
-    page.drawText(formatAmount(row.totalTax), { x: hsnCols[2].x, y: hsnY, size: 7.2, font: fontR, color: ink })
-    page.drawText(`${row.gstRate}%`, { x: hsnCols[3].x, y: hsnY, size: 7.2, font: fontR, color: ink })
+    page.drawText(row.hsn, { x: hsnCols[0].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
+    page.drawText(formatAmount(row.taxable), { x: hsnCols[1].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
+    page.drawText(formatAmount(row.totalTax), { x: hsnCols[2].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
+    page.drawText(`${row.gstRate}%`, { x: hsnCols[3].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
     hsnY -= 13
   }
 
@@ -340,17 +343,16 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
       page.drawRectangle({ x: totalsBoxX + 8, y: totalsY - 5, width: totalsBoxW - 16, height: 20, color: ink })
       page.drawText(row.label, { x: totalsBoxX + 14, y: totalsY + 1, size: 10, font: fontB, color: white })
       const totalValue = formatAmount(row.value)
-      page.drawText(totalValue, { x: totalsBoxX + totalsBoxW - 14 - fontB.widthOfTextAtSize(totalValue, 10), y: totalsY + 1, size: 10, font: fontB, color: amber })
+      page.drawText(totalValue, { x: totalsBoxX + totalsBoxW - 14 - fontMonoB.widthOfTextAtSize(totalValue, 10), y: totalsY + 1, size: 10, font: fontMonoB, color: amber })
       totalsY -= 20
       continue
     }
     page.drawText(row.label, { x: totalsBoxX + 12, y: totalsY, size: 8.5, font: fontR, color: muted })
     const value = formatAmount(row.value)
-    page.drawText(value, { x: totalsBoxX + totalsBoxW - 12 - fontR.widthOfTextAtSize(value, 8.5), y: totalsY, size: 8.5, font: fontR, color: muted })
+    page.drawText(value, { x: totalsBoxX + totalsBoxW - 12 - fontMono.widthOfTextAtSize(value, 8.5), y: totalsY, size: 8.5, font: fontMono, color: muted })
     totalsY -= 16
   }
 
-  const infoTop = Math.min(totalsBoxTop - totalsBoxHeight - 14, hsnTop - hsnBoxHeight - 14)
   const leftBoxX = 40
   const rightBoxX = 305
   const leftBoxW = 245
@@ -386,9 +388,7 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   const rightBoxTitle = paymentLines.length > 0 ? 'Payment Details' : 'Invoice Summary'
   const rightBoxHeight = Math.max(62, 34 + summaryLines.length * 10)
   const infoBoxHeight = Math.max(leftBoxHeight, rightBoxHeight)
-
-  drawInfoBox(leftBoxX, infoTop, leftBoxW, infoBoxHeight, 'Amount in Words', amountLines)
-  drawInfoBox(rightBoxX, infoTop, rightBoxW, infoBoxHeight, rightBoxTitle, summaryLines)
+  const availableInfoTop = Math.min(totalsBoxTop - totalsBoxHeight - 14, hsnTop - hsnBoxHeight - 14)
 
   const declarationParts = [
     data.notes ? `Notes: ${data.notes}` : '',
@@ -396,11 +396,18 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
     'This is a computer-generated invoice and does not require a handwritten signature.',
   ].filter(Boolean)
   const declarationLines = declarationParts.flatMap(part => wrapText(part, fontR, 8, width - 104))
-  const declarationTop = infoTop - infoBoxHeight - 16
   const declarationHeight = Math.max(66, 36 + declarationLines.length * 11)
+  const targetSignatureLineY = 58
+  const targetDeclarationTop = targetSignatureLineY + declarationHeight + 24
+  const targetInfoTop = targetDeclarationTop + infoBoxHeight + 14
+  const infoTop = Math.min(availableInfoTop, targetInfoTop)
+  const declarationTop = infoTop - infoBoxHeight - 14
+  const signatureTop = Math.max(46, declarationTop - declarationHeight - 24)
+
+  drawInfoBox(leftBoxX, infoTop, leftBoxW, infoBoxHeight, 'Amount in Words', amountLines)
+  drawInfoBox(rightBoxX, infoTop, rightBoxW, infoBoxHeight, rightBoxTitle, summaryLines)
   drawInfoBox(40, declarationTop, width - 80, declarationHeight, 'Notes & Declaration', declarationLines)
 
-  const signatureTop = declarationTop - declarationHeight - 26
   page.drawText(`For ${data.sellerName || 'Seller'}`, { x: width - 162, y: signatureTop + 8, size: 8, font: fontB, color: ink })
   page.drawLine({ start: { x: width - 190, y: signatureTop }, end: { x: width - 40, y: signatureTop }, thickness: 0.6, color: border })
   page.drawText('Authorized Signatory', { x: width - 162, y: signatureTop - 14, size: 8, font: fontB, color: ink })
