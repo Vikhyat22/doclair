@@ -98,7 +98,6 @@ export async function generatePOSReceiptPDF(bill: POSBill, shop: POSShopProfile)
   const ink = rgb(0.10, 0.08, 0.07)
   const muted = rgb(0.48, 0.43, 0.38)
   const amber = rgb(0.91, 0.51, 0.05)
-  const soft = rgb(0.97, 0.95, 0.92)
   const border = rgb(0.84, 0.80, 0.76)
   const qtyX = 118
   const priceRightX = 176
@@ -160,7 +159,7 @@ export async function generatePOSReceiptPDF(bill: POSBill, shop: POSShopProfile)
   y -= 4
   drawLine()
 
-  page.drawRectangle({ x: 10, y: y - 14, width: pageWidth - 20, height: 14, color: soft })
+  page.drawLine({ start: { x: 10, y: y + 8 }, end: { x: pageWidth - 10, y: y + 8 }, thickness: 0.5, color: border })
   page.drawText('Item', { x: 10, y, size: 7, font: fontB, color: muted })
   page.drawText('Qty', { x: qtyX, y, size: 7, font: fontB, color: muted })
   page.drawText('Price', { x: 139, y, size: 7, font: fontB, color: muted })

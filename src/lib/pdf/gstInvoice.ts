@@ -300,7 +300,7 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   const hsnTop = y
   const hsnBoxX = 40
   const hsnBoxW = 280
-  const hsnBoxHeight = Math.max(72, 32 + hsnRows.length * 13)
+  const hsnBoxHeight = Math.max(82, 58 + Math.max(hsnRows.length - 1, 0) * 13)
   page.drawRectangle({ x: hsnBoxX, y: hsnTop - hsnBoxHeight, width: hsnBoxW, height: hsnBoxHeight, borderColor: border, borderWidth: 1, color: panelBg })
   page.drawText('HSN / SAC SUMMARY', { x: hsnBoxX + 12, y: hsnTop - 17, size: 8, font: fontB, color: amber })
   const hsnCols = [
@@ -333,24 +333,37 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
     ...(data.roundOff !== 0 ? [{ label: 'Round Off', value: data.roundOff }] : []),
     { label: 'TOTAL', value: data.grandTotal, emphasize: true },
   ]
+  const summaryRows = totalRows.filter(row => !row.emphasize)
+  const totalRow = totalRows.find(row => row.emphasize)
   const totalsBoxTop = hsnTop
-  const totalsBoxHeight = 30 + totalRows.length * 16
+  const totalsBoxHeight = Math.max(92, 68 + summaryRows.length * 16)
   page.drawRectangle({ x: totalsBoxX, y: totalsBoxTop - totalsBoxHeight, width: totalsBoxW, height: totalsBoxHeight, borderColor: border, borderWidth: 1, color: panelBg })
   page.drawText('SUMMARY', { x: totalsBoxX + 12, y: totalsBoxTop - 17, size: 8, font: fontB, color: amber })
   let totalsY = totalsBoxTop - 35
-  for (const row of totalRows) {
-    if (row.emphasize) {
-      page.drawRectangle({ x: totalsBoxX + 8, y: totalsY - 5, width: totalsBoxW - 16, height: 20, color: ink })
-      page.drawText(row.label, { x: totalsBoxX + 14, y: totalsY + 1, size: 10, font: fontB, color: white })
-      const totalValue = formatAmount(row.value)
-      page.drawText(totalValue, { x: totalsBoxX + totalsBoxW - 14 - fontMonoB.widthOfTextAtSize(totalValue, 10), y: totalsY + 1, size: 10, font: fontMonoB, color: amber })
-      totalsY -= 20
-      continue
-    }
+  for (const row of summaryRows) {
     page.drawText(row.label, { x: totalsBoxX + 12, y: totalsY, size: 8.5, font: fontR, color: muted })
     const value = formatAmount(row.value)
     page.drawText(value, { x: totalsBoxX + totalsBoxW - 12 - fontMono.widthOfTextAtSize(value, 8.5), y: totalsY, size: 8.5, font: fontMono, color: muted })
     totalsY -= 16
+  }
+  if (totalRow) {
+    page.drawLine({
+      start: { x: totalsBoxX + 8, y: totalsY + 4 },
+      end: { x: totalsBoxX + totalsBoxW - 8, y: totalsY + 4 },
+      thickness: 0.5,
+      color: border,
+    })
+    totalsY -= 8
+    page.drawRectangle({ x: totalsBoxX + 8, y: totalsY - 6, width: totalsBoxW - 16, height: 22, color: ink })
+    page.drawText(totalRow.label, { x: totalsBoxX + 14, y: totalsY + 1, size: 10, font: fontB, color: white })
+    const totalValue = formatAmount(totalRow.value)
+    page.drawText(totalValue, {
+      x: totalsBoxX + totalsBoxW - 14 - fontMonoB.widthOfTextAtSize(totalValue, 10),
+      y: totalsY + 1,
+      size: 10,
+      font: fontMonoB,
+      color: amber,
+    })
   }
 
   const leftBoxX = 40
