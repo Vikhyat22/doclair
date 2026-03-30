@@ -49,3 +49,6 @@ scripts/emoji-cache/
 
 # implementation plans / local docs
 /docs/
+
+# local scratch / audit work
+/tmp/

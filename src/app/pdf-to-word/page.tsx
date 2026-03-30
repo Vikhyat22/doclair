@@ -8,10 +8,11 @@ import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import ErrorCard from '@/components/ui/ErrorCard'
 import { pdfToWord } from '@/lib/pdf/pdfToWord'
+import type { PdfToWordMode } from '@/lib/pdf/pdfToWord'
 import type { ToolState } from '@/types'
 
 const FAQS = [
-  { q: 'Will the formatting be preserved?', a: 'Text, basic headings and paragraphs are extracted. Complex layouts, tables and images are not preserved — PDF lacks the semantic data needed for perfect conversion.' },
+  { q: 'Will the formatting be preserved?', a: 'Doclair now supports three output modes. Editable mode rebuilds native Word paragraphs and tables, Balanced mixes native tables with layout-preserving text, and Preserve Layout keeps page geometry closest to the PDF. Embedded raster images are preserved in all modes.' },
   { q: 'What if my PDF is scanned?', a: 'Scanned PDFs contain images, not text. Run the OCR PDF tool first to add a searchable text layer, then convert.' },
   { q: 'Are my files uploaded?', a: 'Never. pdfjs-dist and docx both run entirely in your browser. No data leaves your device.' },
   { q: 'What is the output file format?', a: 'A standard .docx file compatible with Microsoft Word, Google Docs, LibreOffice and Pages.' },
@@ -27,10 +28,12 @@ const JSON_LD_SCHEMA = {
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
       url: 'https://doclair.in/pdf-to-word',
-      description: 'Convert PDF to editable Word (.docx) document. Text and headings extracted. No upload, no watermark.',
+      description: 'Convert PDF to editable Word (.docx) with editable, balanced, and preserve-layout modes. Tables and embedded images are preserved locally in your browser.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       featureList: [
-        'Text and heading extraction',
+        'Editable Word paragraphs and native tables',
+        'Preserve-layout Word export with positioned text boxes',
+        'Embedded raster image reconstruction',
         'No file upload to server',
         'No watermark on output',
         'No sign-up required',
@@ -71,6 +74,7 @@ export default function PDFToWordPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [progress, setProgress]   = useState<{ current: number; total: number }>({ current: 0, total: 0 })
   const [result, setResult]       = useState<{ blob: Blob; pageCount: number; wordCount: number; warnings: string[] } | null>(null)
+  const [mode, setMode]           = useState<PdfToWordMode>('balanced')
 
   const addFile = useCallback((files: File[]) => {
     const f = files[0]
@@ -86,7 +90,11 @@ export default function PDFToWordPage() {
     setToolState('merging')
     setProgress({ current: 0, total: 0 })
     try {
-      const res = await pdfToWord(file, (cur: number, tot: number) => setProgress({ current: cur, total: tot }))
+      const res = await pdfToWord(
+        file,
+        (cur: number, tot: number) => setProgress({ current: cur, total: tot }),
+        { mode },
+      )
       setResult(res)
       setToolState('done')
     } catch (err) {
@@ -113,6 +121,11 @@ export default function PDFToWordPage() {
   }
 
   const progressPct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0
+  const modeLabel = mode === 'layout'
+    ? 'Preserve layout'
+    : mode === 'editable'
+      ? 'Editable Word'
+      : 'Balanced hybrid'
 
   const sidebar = (
     <ToolSidebar
@@ -148,13 +161,13 @@ export default function PDFToWordPage() {
           fontSize: 'clamp(32px, 4vw, 52px)', lineHeight: 1.05, letterSpacing: '-1.5px',
         }}>
           <span style={{ color: 'var(--ink)' }}>PDF to Word </span>
-          <span style={{ color: 'var(--amber)' }}>Extract Text Instantly</span>
+          <span style={{ color: 'var(--amber)' }}>with Layout Control</span>
         </h1>
         <p style={{
           fontSize: '16px', fontWeight: 300, color: 'var(--ink)', opacity: 0.65,
           maxWidth: '520px', marginTop: '12px', lineHeight: 1.6,
         }}>
-          Convert PDF to editable Word (.docx) document. Text and headings extracted. No upload, no watermark.
+          Convert PDF to editable Word (.docx) with editable, balanced, or preserve-layout output. Tables and embedded images stay intact, with no upload and no watermark.
         </p>
       </div>
 
@@ -172,7 +185,7 @@ export default function PDFToWordPage() {
         />
       )}
 
-      {/* State: idle, file selected */}
+	      {/* State: idle, file selected */}
       {toolState === 'idle' && file && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {/* Selected file row */}
@@ -201,9 +214,66 @@ export default function PDFToWordPage() {
               onMouseEnter={e => { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.color = 'var(--red)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--muted)' }}
             >✕</button>
-          </div>
+	          </div>
 
-          {/* Convert button */}
+          <div style={{
+            background: 'white', border: '1px solid var(--border)', borderRadius: '12px',
+            padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '12px',
+          }}>
+            <div>
+              <div style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
+                Export Mode
+              </div>
+              <div style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.72, lineHeight: 1.6 }}>
+                Choose whether you want native Word editing, preserve-layout geometry, or the hybrid mode that mixes native tables with layout-preserving text.
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '10px' }}>
+              {[
+                {
+                  value: 'balanced' as const,
+                  title: 'Balanced',
+                  detail: 'Native tables where safe, preserve-layout fallback for the rest.',
+                },
+                {
+                  value: 'editable' as const,
+                  title: 'Editable',
+                  detail: 'More native Word paragraphs and tables. Best for editing after export.',
+                },
+                {
+                  value: 'layout' as const,
+                  title: 'Preserve Layout',
+                  detail: 'Keeps page geometry closest to the PDF using positioned text boxes.',
+                },
+              ].map(option => {
+                const active = mode === option.value
+                return (
+                  <button
+                    key={option.value}
+                    onClick={() => setMode(option.value)}
+                    style={{
+                      textAlign: 'left',
+                      borderRadius: '12px',
+                      border: active ? '1px solid var(--amber)' : '1px solid var(--border)',
+                      background: active ? '#FFF8ED' : '#FAFAFA',
+                      padding: '14px 14px 12px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <div style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '15px', color: 'var(--ink)', marginBottom: '6px' }}>
+                      {option.title}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--muted)', lineHeight: 1.55 }}>
+                      {option.detail}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+	
+	          {/* Convert button */}
           <button
             onClick={handleConvert}
             style={{
@@ -222,7 +292,7 @@ export default function PDFToWordPage() {
       )}
 
       {/* State: merging / converting */}
-      {toolState === 'merging' && (
+	      {toolState === 'merging' && (
         <div style={{
           background: 'var(--ink)', borderRadius: '16px', padding: '56px 32px', textAlign: 'center',
         }}>
@@ -239,7 +309,7 @@ export default function PDFToWordPage() {
             fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '12px',
             color: 'rgba(255,255,255,0.45)', marginBottom: '20px',
           }}>
-            {progress.total > 0 ? `${progress.current} / ${progress.total} pages` : 'Preparing…'}
+            {progress.total > 0 ? `${progress.current} / ${progress.total} pages · ${modeLabel}` : `Preparing ${modeLabel.toLowerCase()}…`}
           </div>
           {/* Progress bar */}
           <div style={{
@@ -281,7 +351,7 @@ export default function PDFToWordPage() {
               <div style={{
                 fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '10px',
                 color: 'var(--amber)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '8px',
-              }}>// Warnings</div>
+              }}>Warnings</div>
               <ul style={{ margin: 0, padding: '0 0 0 16px' }}>
                 {result.warnings.map((w, i) => (
                   <li key={i} style={{ fontSize: '13px', color: '#92400E', lineHeight: 1.6 }}>{w}</li>
@@ -320,7 +390,8 @@ export default function PDFToWordPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
           {[
             'Upload your PDF by clicking <strong>Drop your PDF here</strong> or dragging it into the upload area.',
-            'Click <strong>Convert to Word</strong> — Doclair extracts text and headings page by page entirely in your browser.',
+            'Choose <strong>Editable</strong>, <strong>Balanced</strong>, or <strong>Preserve Layout</strong> depending on whether you want easier editing or tighter page fidelity.',
+            'Click <strong>Convert to Word</strong> — Doclair rebuilds text, tables, and embedded raster images page by page entirely in your browser.',
             'Download your <strong>.docx file</strong> and open it in Microsoft Word, Google Docs, LibreOffice or Pages.',
           ].map((step, i) => (
             <div key={i} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
@@ -338,14 +409,14 @@ export default function PDFToWordPage() {
           How accurate is PDF to Word conversion?
         </h3>
         <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
-          Accuracy depends on the PDF source. Text-based PDFs converted from Word or exported from design tools convert well — text and paragraph structure are preserved faithfully. PDFs with complex multi-column layouts, embedded tables or heavy use of images will lose some formatting, since PDF does not store semantic layout information the way Word does.
+          Accuracy depends on the PDF source and the export mode you choose. Editable mode gives you more native Word structure for real editing, Balanced keeps native tables while preserving the rest of the layout, and Preserve Layout stays closest to the original page geometry. Embedded raster images are reconstructed, while pure vector artwork can still need manual cleanup in Word.
         </p>
 
         <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
           What if my converted document looks wrong?
         </h3>
         <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>
-          If the output is missing text, the PDF may be scanned (image-only). Use the <strong>OCR PDF</strong> tool first to add a searchable text layer, then convert. If the layout looks jumbled, the original PDF used absolute positioning — try copying and reformatting the text manually in Word after conversion.
+          If the output is missing text, the PDF may be scanned (image-only). Use the <strong>OCR PDF</strong> tool first to add a searchable text layer, then convert. If the layout looks too loose, switch to <strong>Preserve Layout</strong>. If you want fewer text boxes and easier editing, switch to <strong>Editable</strong>. For vector-heavy PDFs, a quick cleanup in Word may still be needed after export.
         </p>
       </div>
 
