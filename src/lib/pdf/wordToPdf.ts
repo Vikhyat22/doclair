@@ -3,7 +3,7 @@ import mammoth from 'mammoth'
 
 type WordAlignment = 'left' | 'center' | 'right' | 'justify'
 type PdfFontFaceStyle = 'normal' | 'bold' | 'italics' | 'bolditalics'
-type BundledPdfFontFamily = 'Roboto' | 'Arimo' | 'Carlito' | 'Cousine' | 'Tinos'
+type BundledPdfFontFamily = 'Roboto' | 'Arimo' | 'Carlito' | 'Cousine' | 'Tinos' | 'LibreBaskerville'
 type WordWrapMode = 'square' | 'tight' | 'through' | 'topAndBottom' | 'none'
 type WordWrapSide = 'bothSides' | 'left' | 'right' | 'largest'
 
@@ -36,6 +36,8 @@ interface WordRunStyle {
   bold?: boolean
   italics?: boolean
   underline?: boolean
+  smallCaps?: boolean
+  allCaps?: boolean
   color?: string
   fontSizePt?: number
   fontFamily?: string
@@ -54,8 +56,8 @@ interface WordParagraphFormatting {
   keepLines?: boolean
   widowControl?: boolean
   rightTabStopPt?: number
-  borderTop?: { color: string; widthPt: number }
-  borderBottom?: { color: string; widthPt: number }
+  borderTop?: { color: string; widthPt: number; spacePt?: number }
+  borderBottom?: { color: string; widthPt: number; spacePt?: number }
 }
 
 interface ResolvedWordStyle {
@@ -77,6 +79,11 @@ interface WordImageRun {
   alt?: string
   anchorAlignment?: 'left' | 'center' | 'right'
   placement?: WordDrawingPlacement
+}
+
+interface WordImageEffects {
+  grayscale?: boolean
+  biLevelThreshold?: number
 }
 
 interface WordObjectRun {
@@ -236,6 +243,7 @@ interface PdfRenderOptions {
   availableWidth?: number
   pageHeight?: number
   fontRegistry?: WordPdfFontRegistry
+  containerKind?: 'body' | 'header' | 'footer'
 }
 
 const DEFAULT_PAGE: WordPageSettings = {
@@ -339,10 +347,6 @@ const BUNDLED_PDF_FONTS = [
       'cambria',
       'georgia',
       'garamond',
-      'palatino',
-      'palatino linotype',
-      'bookman',
-      'bookman old style',
       'baskerville',
       'constantia',
       'tinos',
@@ -352,6 +356,22 @@ const BUNDLED_PDF_FONTS = [
       bold: '/editor-fonts/Tinos-Bold.ttf',
       italics: '/editor-fonts/Tinos-Italic.ttf',
       bolditalics: '/editor-fonts/Tinos-BoldItalic.ttf',
+    },
+  },
+  {
+    pdfName: 'LibreBaskerville',
+    aliases: [
+      'bookman',
+      'bookman old style',
+      'palatino',
+      'palatino linotype',
+      'libre baskerville',
+    ],
+    files: {
+      normal: '/editor-fonts/LibreBaskerville-Regular.ttf',
+      bold: '/editor-fonts/LibreBaskerville-Bold.ttf',
+      italics: '/editor-fonts/LibreBaskerville-Italic.ttf',
+      bolditalics: '/editor-fonts/LibreBaskerville-BoldItalic.ttf',
     },
   },
 ] as const satisfies Array<{
@@ -516,6 +536,8 @@ function mergeRunStyle(base: WordRunStyle, override?: WordRunStyle) {
     bold: override?.bold ?? base.bold,
     italics: override?.italics ?? base.italics,
     underline: override?.underline ?? base.underline,
+    smallCaps: override?.smallCaps ?? base.smallCaps,
+    allCaps: override?.allCaps ?? base.allCaps,
     color: override?.color ?? base.color,
     fontSizePt: override?.fontSizePt ?? base.fontSizePt,
     fontFamily: override?.fontFamily ?? base.fontFamily,
@@ -556,6 +578,8 @@ function parseRunStyle(node: Element | null) {
       const value = attr(underline, 'val')
       return value ? value !== 'none' : true
     })(),
+    smallCaps: onOff(firstChild(node, 'smallCaps')),
+    allCaps: onOff(firstChild(node, 'caps')),
     color: color && color !== 'auto' ? `#${color}` : undefined,
     fontSizePt: halfPointToPt(attr(firstChild(node, 'sz'), 'val')),
     fontFamily: attr(fonts, 'ascii') ?? attr(fonts, 'hAnsi') ?? attr(fonts, 'eastAsia'),
@@ -583,6 +607,7 @@ function parseParagraphFormatting(node: Element | null) {
         ? `#${attr(element, 'color')}`
         : '#CBD5E1',
       widthPt: size > 0 ? size / 8 : 0.5,
+      spacePt: Number(attr(element, 'space') ?? 0) || undefined,
     }
   }
 
@@ -1048,8 +1073,68 @@ function dataUrlFromBytes(bytes: Uint8Array, mimeType: string) {
   return `data:${mimeType};base64,${btoa(binary)}`
 }
 
-async function ensurePdfImageDataUrl(bytes: Uint8Array, mimeType: string) {
-  if (mimeType === 'image/png' || mimeType === 'image/jpeg') {
+function parseDrawingImageEffects(drawing: Element): WordImageEffects | undefined {
+  const blip = firstDescendant(drawing, 'blip')
+  if (!blip) return undefined
+
+  const grayscale = !!firstChild(blip, 'grayscl')
+  const biLevel = firstChild(blip, 'biLevel')
+  const thresholdValue = Number(attr(biLevel, 'thresh') ?? '')
+  const biLevelThreshold = Number.isFinite(thresholdValue) && thresholdValue > 0
+    ? Math.max(0, Math.min(1, thresholdValue / 100000))
+    : biLevel
+      ? 0.5
+      : undefined
+
+  if (!grayscale && typeof biLevelThreshold !== 'number') return undefined
+
+  return {
+    grayscale,
+    biLevelThreshold,
+  }
+}
+
+function applyImageEffects(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  effects?: WordImageEffects,
+) {
+  if (!effects?.grayscale && typeof effects?.biLevelThreshold !== 'number') return
+
+  const imageData = context.getImageData(0, 0, width, height)
+  const threshold = typeof effects.biLevelThreshold === 'number'
+    ? Math.round(Math.max(0, Math.min(1, effects.biLevelThreshold)) * 255)
+    : undefined
+
+  for (let index = 0; index < imageData.data.length; index += 4) {
+    const r = imageData.data[index]
+    const g = imageData.data[index + 1]
+    const b = imageData.data[index + 2]
+    const luminance = Math.round((0.299 * r) + (0.587 * g) + (0.114 * b))
+
+    if (typeof threshold === 'number') {
+      const next = luminance >= threshold ? 255 : 0
+      imageData.data[index] = next
+      imageData.data[index + 1] = next
+      imageData.data[index + 2] = next
+      continue
+    }
+
+    imageData.data[index] = luminance
+    imageData.data[index + 1] = luminance
+    imageData.data[index + 2] = luminance
+  }
+
+  context.putImageData(imageData, 0, 0)
+}
+
+async function ensurePdfImageDataUrl(
+  bytes: Uint8Array,
+  mimeType: string,
+  effects?: WordImageEffects,
+) {
+  if (!effects?.grayscale && typeof effects?.biLevelThreshold !== 'number') {
     return dataUrlFromBytes(bytes, mimeType)
   }
 
@@ -1069,6 +1154,7 @@ async function ensurePdfImageDataUrl(bytes: Uint8Array, mimeType: string) {
         const context = canvas.getContext('2d')
         if (!context) throw new Error('Canvas context unavailable')
         context.drawImage(image, 0, 0)
+        applyImageEffects(context, canvas.width, canvas.height, effects)
         resolve(canvas.toDataURL('image/png'))
       } catch (error) {
         reject(error)
@@ -1108,7 +1194,7 @@ async function loadImageRun(
   const heightPt = emuToPt(attr(extent, 'cy')) ?? 120
   const mimeType = slugToMimeType(zipPath)
   const bytes = await entry.async('uint8array')
-  const dataUrl = await ensurePdfImageDataUrl(bytes, mimeType)
+  const dataUrl = await ensurePdfImageDataUrl(bytes, mimeType, parseDrawingImageEffects(drawing))
   const docPr = firstDescendant(drawing, 'docPr')
   const placement = resolveDrawingPlacement(drawing)
   const anchorAlignment = resolveDrawingAnchorAlignment(placement)
@@ -1700,6 +1786,71 @@ function countWords(blocks: WordBlock[]): number {
     .match(/\b[\w'-]+\b/g)?.length ?? 0
 }
 
+function displayRunText(run: WordTextRun, currentPage = 1, pageCount = 1, mode: 'pdf' | 'html' = 'pdf') {
+  const text = replaceFieldTokens(run.text, currentPage, pageCount)
+  if (run.allCaps) return text.toUpperCase()
+  if (run.smallCaps && mode === 'pdf') return text.toUpperCase()
+  return text
+}
+
+function pdfFontSizeScale(fontName: string) {
+  if (fontName === 'LibreBaskerville') return 0.94
+  return 1
+}
+
+function effectivePdfRunFontSize(run: WordTextRun, fontRegistry: WordPdfFontRegistry = EMPTY_FONT_REGISTRY) {
+  const fontSize = run.fontSizePt ?? 11
+  const smallCapsAdjusted = run.smallCaps && !run.allCaps ? fontSize * 0.9 : fontSize
+  const resolvedFont = resolvePdfFontFamily(run.fontFamily, fontRegistry)
+  return smallCapsAdjusted * pdfFontSizeScale(resolvedFont)
+}
+
+function detectedParagraphFontSize(
+  block: WordParagraphBlock,
+  textRuns?: WordTextRun[],
+  fontRegistry: WordPdfFontRegistry = EMPTY_FONT_REGISTRY,
+) {
+  const runs = textRuns ?? block.runs.filter((run): run is WordTextRun => run.type === 'text')
+  const explicitRunSizes = runs
+    .map(run => effectivePdfRunFontSize(run, fontRegistry))
+    .filter(size => Number.isFinite(size) && size > 0)
+
+  if (explicitRunSizes.length > 0) {
+    return Math.max(...explicitRunSizes)
+  }
+
+  return block.headingLevel
+    ? ([20, 16, 13, 12][block.headingLevel - 1] ?? 11)
+    : 11
+}
+
+function effectiveParagraphLineHeight(
+  block: WordParagraphBlock,
+  textRuns?: WordTextRun[],
+  fontRegistry: WordPdfFontRegistry = EMPTY_FONT_REGISTRY,
+) {
+  if (typeof block.lineHeight === 'number') return block.lineHeight
+  const fontSize = detectedParagraphFontSize(block, textRuns, fontRegistry)
+  if (block.alignment === 'center' && !block.list) {
+    if (fontSize >= 30) return 1.05
+    if (fontSize >= 18) return 1.1
+    return 1.15
+  }
+  return 1.35
+}
+
+function resolvedParagraphLineHeight(
+  block: WordParagraphBlock,
+  textRuns: WordTextRun[],
+  options?: PdfRenderOptions,
+) {
+  const base = effectiveParagraphLineHeight(block, textRuns, options?.fontRegistry)
+  if (options?.containerKind && options.containerKind !== 'body' && block.alignment === 'center' && !block.list) {
+    return Math.min(base, 1.02)
+  }
+  return base
+}
+
 function blockHasImages(block: WordBlock): boolean {
   if (block.type === 'paragraph') {
     return block.runs.some(run =>
@@ -1718,12 +1869,37 @@ function renderTextRunHtml(run: WordTextRun) {
     run.bold ? 'font-weight:700' : '',
     run.italics ? 'font-style:italic' : '',
     run.underline ? 'text-decoration:underline' : '',
+    run.smallCaps ? 'font-variant:small-caps' : '',
+    run.allCaps ? 'text-transform:uppercase' : '',
     run.color ? `color:${run.color}` : '',
     run.fontSizePt ? `font-size:${run.fontSizePt}pt` : '',
-    run.fontFamily ? `font-family:${run.fontFamily}` : '',
+    run.fontFamily ? `font-family:${resolvePreviewFontFamily(run.fontFamily)}` : '',
   ].filter(Boolean).join(';')
 
-  return `<span${styles ? ` style="${styles}"` : ''}>${escapeHtml(replaceFieldTokens(run.text)).replace(/\n/g, '<br>')}</span>`
+  return `<span${styles ? ` style="${styles}"` : ''}>${escapeHtml(displayRunText(run, 1, 1, 'html')).replace(/\n/g, '<br>')}</span>`
+}
+
+function resolvePreviewFontFamily(fontFamily?: string | null) {
+  const normalized = normalizeFontFamily(fontFamily)
+
+  if (normalized.includes('bookman') || normalized.includes('palatino') || normalized.includes('baskerville')) {
+    return "'DoclairLibreBaskerville', Baskerville, 'Times New Roman', serif"
+  }
+  if (normalized.includes('cambria') || normalized.includes('georgia') || normalized.includes('garamond') || normalized.includes('times')) {
+    return "'DoclairTinos', 'Times New Roman', serif"
+  }
+  if (normalized.includes('arial') || normalized.includes('aptos') || normalized.includes('helvetica') || normalized.includes('calibri') || normalized.includes('carlito')) {
+    return "'DoclairArimo', Arial, sans-serif"
+  }
+  if (normalized.includes('courier') || normalized.includes('consolas') || normalized.includes('cousine')) {
+    return "'DoclairCousine', 'Courier New', monospace"
+  }
+
+  if (fontFamily && fontFamily.trim()) {
+    return `'${fontFamily.replace(/'/g, "\\'")}', Georgia, 'Times New Roman', serif`
+  }
+
+  return "Georgia, 'Times New Roman', serif"
 }
 
 function renderImageRunHtml(run: WordImageRun) {
@@ -1780,12 +1956,22 @@ function splitTextRunsAtFirstTab(runs: WordTextRun[]) {
 
 function renderParagraphHtml(block: WordParagraphBlock) {
   const tag = block.headingLevel ? `h${block.headingLevel}` : 'p'
+  const textRuns = block.runs.filter((run): run is WordTextRun => run.type === 'text')
+  const detectedFontSize = detectedParagraphFontSize(block, textRuns)
+  const detectedFontFamily = textRuns.find(run => run.fontFamily)?.fontFamily
+  const topBorderSpace = block.borderTop?.spacePt ?? 0
+  const bottomBorderSpace = block.borderBottom?.spacePt ?? 0
   const styles = [
     `text-align:${block.alignment ?? 'left'}`,
     `margin:${block.spacingBeforePt ?? 0}pt 0 ${block.spacingAfterPt ?? 8}pt`,
     `padding-left:${Math.max(0, (block.indentLeftPt ?? 0) + (block.list ? block.list.level * 18 : 0))}pt`,
     `text-indent:${block.firstLineIndentPt ?? 0}pt`,
-    block.lineHeight ? `line-height:${block.lineHeight}` : '',
+    `font-size:${detectedFontSize}pt`,
+    `font-family:${resolvePreviewFontFamily(detectedFontFamily)}`,
+    `font-weight:${textRuns.some(run => run.bold) || block.headingLevel ? 700 : 400}`,
+    `line-height:${effectiveParagraphLineHeight(block, textRuns)}`,
+    topBorderSpace > 0 ? `padding-top:${topBorderSpace}pt` : '',
+    bottomBorderSpace > 0 ? `padding-bottom:${bottomBorderSpace}pt` : '',
     block.borderTop ? `border-top:${block.borderTop.widthPt}pt solid ${block.borderTop.color}` : '',
     block.borderBottom ? `border-bottom:${block.borderBottom.widthPt}pt solid ${block.borderBottom.color}` : '',
   ].filter(Boolean).join(';')
@@ -1793,7 +1979,6 @@ function renderParagraphHtml(block: WordParagraphBlock) {
   const listPrefix = block.list
     ? `<span style="display:inline-block;min-width:${18 + block.list.level * 8}pt">${escapeHtml(block.list.label)} </span>`
     : ''
-  const textRuns = block.runs.filter((run): run is WordTextRun => run.type === 'text')
   const imageRuns = block.runs.filter((run): run is WordImageRun => run.type === 'image')
   const objectRuns = block.runs.filter((run): run is WordObjectRun => run.type === 'object')
   const { left: leftTextRuns, right: rightTextRuns, foundTab } = splitTextRunsAtFirstTab(textRuns)
@@ -1812,10 +1997,34 @@ function renderParagraphHtml(block: WordParagraphBlock) {
     const renderFloatingRun = (run: WordImageRun | WordObjectRun) => run.type === 'image'
       ? renderImageRunHtml(run)
       : renderObjectRunHtml(run)
-    return `<div style="${styles};display:flex;align-items:flex-start;justify-content:space-between;gap:12pt">
-      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:4pt;min-width:${leftAnchored.reduce((sum, run) => Math.max(sum, run.widthPt), 0)}pt">${leftAnchored.map(renderFloatingRun).join('')}</div>
-      <div style="flex:1;text-align:${block.alignment ?? 'left'}">${listPrefix}${content || '&nbsp;'}</div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4pt;min-width:${rightAnchored.reduce((sum, run) => Math.max(sum, run.widthPt), 0)}pt">${rightAnchored.map(renderFloatingRun).join('')}</div>
+    const leftWidth = leftAnchored.reduce((sum, run) => Math.max(sum, run.widthPt + (run.placement?.distanceLeftPt ?? 0) + (run.placement?.distanceRightPt ?? 0) + 4), 0)
+    const rightWidth = rightAnchored.reduce((sum, run) => Math.max(sum, run.widthPt + (run.placement?.distanceLeftPt ?? 0) + (run.placement?.distanceRightPt ?? 0) + 4), 0)
+    const anchorHeight = Math.max(
+      estimateParagraphTextHeight(block, textRuns),
+      ...[...leftAnchored, ...rightAnchored].map(run =>
+        run.heightPt
+        + (run.placement?.distanceTopPt ?? 0)
+        + (run.placement?.distanceBottomPt ?? 0),
+      ),
+    )
+    const visualTopOffset = [...leftAnchored, ...rightAnchored].length > 0
+      ? [...leftAnchored, ...rightAnchored].reduce((sum, run) => sum + ((run.placement?.distanceTopPt ?? 0) + (run.placement?.yOffsetPt ?? 0)), 0) / [...leftAnchored, ...rightAnchored].length
+      : 0
+    const textTopOffset = Math.max(0, Math.min(10, visualTopOffset * 0.35))
+    const textSideInsetLeft = leftWidth > 0 ? Math.max(18, leftWidth - 30) : 0
+    const textSideInsetRight = rightWidth > 0 ? Math.max(18, rightWidth - 30) : 0
+    const renderPositionedRun = (run: WordImageRun | WordObjectRun, side: 'left' | 'right') => {
+      const top = (run.placement?.distanceTopPt ?? 0) + (run.placement?.yOffsetPt ?? 0)
+      const xStyle = side === 'left'
+        ? `left:${(run.placement?.distanceLeftPt ?? 0) + (run.placement?.xOffsetPt ?? 0)}pt`
+        : `right:${(run.placement?.distanceRightPt ?? 0) - (run.placement?.xOffsetPt ?? 0)}pt`
+      return `<div style="position:absolute;top:${top}pt;${xStyle};width:${run.widthPt}pt;display:flex;justify-content:${side === 'left' ? 'flex-start' : 'flex-end'}">${renderFloatingRun(run)}</div>`
+    }
+
+    return `<div style="${styles};position:relative;min-height:${anchorHeight}pt">
+      ${leftAnchored.map(run => renderPositionedRun(run, 'left')).join('')}
+      ${rightAnchored.map(run => renderPositionedRun(run, 'right')).join('')}
+      <div style="text-align:${block.alignment ?? 'left'};padding:${textTopOffset}pt ${textSideInsetRight}pt 0 ${textSideInsetLeft}pt">${listPrefix}${content || '&nbsp;'}</div>
     </div>`
   }
 
@@ -1908,12 +2117,12 @@ function textRunsToPdfmakeText(
   for (const run of block.runs) {
     if (run.type !== 'text') continue
     content.push({
-      text: replaceFieldTokens(run.text, options?.currentPage, options?.pageCount),
+      text: displayRunText(run, options?.currentPage, options?.pageCount),
       bold: run.bold,
       italics: run.italics,
       decoration: run.underline ? 'underline' : undefined,
       color: run.color,
-      fontSize: run.fontSizePt,
+      fontSize: effectivePdfRunFontSize(run, options?.fontRegistry),
       font: resolvePdfFontFamily(run.fontFamily, options?.fontRegistry),
     })
   }
@@ -2038,12 +2247,12 @@ function floatingRunX(
   const rightGap = placement.distanceRightPt
 
   if (side === 'right') {
-    return Math.max(0, availableWidth - run.widthPt - rightGap + placement.xOffsetPt)
+    return availableWidth - run.widthPt - rightGap + placement.xOffsetPt
   }
   if (side === 'center') {
-    return Math.max(0, (availableWidth - run.widthPt) / 2 + placement.xOffsetPt)
+    return ((availableWidth - run.widthPt) / 2) + placement.xOffsetPt
   }
-  return Math.max(0, leftGap + placement.xOffsetPt)
+  return leftGap + placement.xOffsetPt
 }
 
 function floatingRunY(
@@ -2054,12 +2263,12 @@ function floatingRunY(
   if (!placement) return 0
 
   if (placement.verticalAlignment === 'bottom') {
-    return Math.max(0, anchorHeight - run.heightPt - placement.distanceBottomPt + placement.yOffsetPt)
+    return anchorHeight - run.heightPt - placement.distanceBottomPt + placement.yOffsetPt
   }
   if (placement.verticalAlignment === 'center') {
-    return Math.max(0, ((anchorHeight - run.heightPt) / 2) + placement.yOffsetPt)
+    return ((anchorHeight - run.heightPt) / 2) + placement.yOffsetPt
   }
-  return Math.max(0, placement.distanceTopPt + placement.yOffsetPt)
+  return placement.distanceTopPt + placement.yOffsetPt
 }
 
 function floatingRunToPdfmakeNode(
@@ -2083,6 +2292,100 @@ function floatingRunToPdfmakeNode(
       y: floatingRunY(run, anchorHeight) - (renderAfterFlow ? anchorHeight : 0),
     },
   }
+}
+
+function floatingRunColumnWidth(run: WordImageRun | WordObjectRun) {
+  const placement = run.placement
+  if (!placement) return run.widthPt
+  return run.widthPt + placement.distanceLeftPt + placement.distanceRightPt + 4
+}
+
+function anchoredColumnRunNode(
+  run: WordImageRun | WordObjectRun,
+  side: 'left' | 'center' | 'right',
+  options: PdfRenderOptions | undefined,
+) {
+  const baseNode = run.type === 'image'
+    ? imageRunToPdfmakeNode(run)
+    : objectRunToPdfmakeNode(run, options)
+
+  const placement = run.placement
+  const topMargin = (placement?.distanceTopPt ?? 0) + (placement?.yOffsetPt ?? 0)
+  const bottomMargin = placement?.distanceBottomPt ?? 0
+  const leftMargin = side === 'left'
+    ? (placement?.distanceLeftPt ?? 0) + (placement?.xOffsetPt ?? 0)
+    : 0
+  const rightMargin = side === 'right'
+    ? (placement?.distanceRightPt ?? 0) - (placement?.xOffsetPt ?? 0)
+    : 0
+
+  return {
+    ...baseNode,
+    alignment: side,
+    margin: [leftMargin, topMargin, rightMargin, bottomMargin],
+  }
+}
+
+function composeAnchoredColumnsParagraphNode(
+  block: WordParagraphBlock,
+  baseParagraph: Record<string, unknown>,
+  textRuns: WordTextRun[],
+  floatingRuns: Array<WordImageRun | WordObjectRun>,
+  margin: number[],
+  options: PdfRenderOptions | undefined,
+) {
+  if (block.alignment !== 'center' || floatingRuns.length === 0) return null
+
+  const leftRuns = floatingRuns.filter(run => floatingRunSide(run) === 'left')
+  const rightRuns = floatingRuns.filter(run => floatingRunSide(run) === 'right')
+  const centeredRuns = floatingRuns.filter(run => floatingRunSide(run) === 'center')
+
+  if (centeredRuns.length > 0 || (leftRuns.length === 0 && rightRuns.length === 0)) return null
+
+  const textHeight = estimateParagraphTextHeight(block, textRuns)
+  const anchorHeight = Math.max(
+    textHeight,
+    ...floatingRuns.map(run =>
+      run.heightPt
+      + (run.placement?.distanceTopPt ?? 0)
+      + (run.placement?.distanceBottomPt ?? 0),
+    ),
+  )
+  const leftWidth = leftRuns.length > 0 ? Math.max(...leftRuns.map(floatingRunColumnWidth)) : 0
+  const rightWidth = rightRuns.length > 0 ? Math.max(...rightRuns.map(floatingRunColumnWidth)) : 0
+  const visualTopOffset = floatingRuns.length > 0
+    ? floatingRuns.reduce((sum, run) => sum + ((run.placement?.distanceTopPt ?? 0) + (run.placement?.yOffsetPt ?? 0)), 0) / floatingRuns.length
+    : 0
+  const textTopOffset = Math.max(0, Math.min(18, visualTopOffset + ((anchorHeight - textHeight) / 2)))
+
+  return wrapParagraphDecorations(block, {
+    id: block.blockId,
+    margin,
+    columns: [
+      ...(leftWidth > 0
+        ? [{
+            width: leftWidth,
+            stack: leftRuns.map(run => anchoredColumnRunNode(run, 'left', options)),
+          }]
+        : []),
+      {
+        width: '*',
+        stack: [{
+          ...baseParagraph,
+          margin: [0, textTopOffset, 0, 0],
+        }],
+      },
+      ...(rightWidth > 0
+        ? [{
+            width: rightWidth,
+            stack: rightRuns.map(run => anchoredColumnRunNode(run, 'right', options)),
+          }]
+        : []),
+    ],
+    columnGap: 0,
+    unbreakable: !!(block.keepLines || (block.widowControl && estimateParagraphHeight(block) < ((options?.pageHeight ?? 720) * 0.72))),
+    pageBreak: block.pageBreakBefore ? 'before' : undefined,
+  }, margin, options)
 }
 
 function composeFloatingParagraphNode(
@@ -2154,7 +2457,7 @@ function wrapParagraphDecorations(
         lineWidth: block.borderTop.widthPt,
         lineColor: block.borderTop.color,
       }],
-      margin: [0, 0, 0, 3],
+      margin: [0, 0, 0, block.borderTop.spacePt ?? 3],
     })
   }
 
@@ -2171,7 +2474,7 @@ function wrapParagraphDecorations(
         lineWidth: block.borderBottom.widthPt,
         lineColor: block.borderBottom.color,
       }],
-      margin: [0, 3, 0, 0],
+      margin: [0, block.borderBottom.spacePt ?? 3, 0, 0],
     })
   }
 
@@ -2222,11 +2525,12 @@ function paragraphToPdfmake(
   const fallbackHeadingSize = block.headingLevel
     ? [20, 16, 13, 12][block.headingLevel - 1]
     : undefined
-  const detectedFontSize = Math.max(...textRuns.map(run => run.fontSizePt ?? 11), 11)
+  const detectedFontSize = detectedParagraphFontSize(block, textRuns, options?.fontRegistry)
   const detectedFontFamily = textRuns.find(run => run.fontFamily)?.fontFamily
-  const resolvedFontSize = block.headingLevel
+  const resolvedFontSize = textRuns.length === 0 && block.headingLevel
     ? Math.max(detectedFontSize, fallbackHeadingSize ?? detectedFontSize)
     : detectedFontSize
+  const resolvedLineHeight = resolvedParagraphLineHeight(block, textRuns, options)
 
   const baseParagraph: Record<string, unknown> = {
     id: block.blockId,
@@ -2238,14 +2542,20 @@ function paragraphToPdfmake(
     }, options),
     margin,
     alignment: block.alignment,
-    lineHeight: block.lineHeight,
+    lineHeight: resolvedLineHeight,
     fontSize: resolvedFontSize,
     font: resolvePdfFontFamily(detectedFontFamily, options?.fontRegistry),
     bold: block.headingLevel ? true : undefined,
-    headlineLevel: block.headingLevel,
+    headlineLevel: options?.containerKind === 'body' ? block.headingLevel : undefined,
     unbreakable: !!(block.keepLines || (block.widowControl && estimateParagraphHeight(block) < ((options?.pageHeight ?? 720) * 0.72))),
     pageBreak: block.type === 'paragraph' && block.pageBreakBefore ? 'before' : undefined,
   }
+
+  const anchoredColumnsNode = inlineImages.length === 0 && inlineObjects.length === 0
+    ? composeAnchoredColumnsParagraphNode(block, baseParagraph, textRuns, floatingRuns, margin, options)
+    : null
+
+  if (anchoredColumnsNode) return anchoredColumnsNode
 
   if (block.rightTabStopPt && foundTab) {
     return composeFloatingParagraphNode(block, {
@@ -2259,12 +2569,12 @@ function paragraphToPdfmake(
         {
           width: 'auto',
           text: rightTextRuns.map(run => ({
-            text: replaceFieldTokens(run.text, options?.currentPage, options?.pageCount),
+            text: displayRunText(run, options?.currentPage, options?.pageCount),
             bold: run.bold,
             italics: run.italics,
             decoration: run.underline ? 'underline' : undefined,
             color: run.color,
-            fontSize: run.fontSizePt,
+            fontSize: effectivePdfRunFontSize(run, options?.fontRegistry),
             font: resolvePdfFontFamily(run.fontFamily, options?.fontRegistry),
           })),
           alignment: 'right',
@@ -2375,38 +2685,63 @@ function blocksToPdfmake(
   return nodes
 }
 
-function estimateParagraphHeight(block: WordParagraphBlock) {
+function estimateParagraphHeight(block: WordParagraphBlock, options?: PdfRenderOptions) {
   const textRuns = block.runs.filter((run): run is WordTextRun => run.type === 'text')
   const imageRuns = block.runs.filter((run): run is WordImageRun => run.type === 'image')
   const objectRuns = block.runs.filter((run): run is WordObjectRun => run.type === 'object')
-  const fontSize = Math.max(...textRuns.map(run => run.fontSizePt ?? 11), 11)
-  const lineHeight = block.lineHeight ?? 1.35
-  const text = textRuns.map(run => run.text).join('')
-  const explicitLines = text.split('\n').length
-  const estimatedWrappedLines = Math.max(1, Math.ceil(text.length / 80))
-  const textHeight = fontSize * lineHeight * Math.max(explicitLines, estimatedWrappedLines)
+  const textHeight = estimateParagraphTextHeight(block, textRuns, options)
   const imageHeight = imageRuns.length > 0 ? Math.max(...imageRuns.map(run => run.heightPt)) : 0
   const objectHeight = objectRuns.length > 0 ? Math.max(...objectRuns.map(run => run.heightPt)) : 0
+  const floatingHeight = Math.max(
+    0,
+    ...[...imageRuns, ...objectRuns]
+      .filter((run): run is WordImageRun | WordObjectRun => !!run.placement)
+      .map(run =>
+        run.heightPt
+        + (run.placement?.distanceTopPt ?? 0)
+        + (run.placement?.distanceBottomPt ?? 0)
+        + Math.max(0, run.placement?.yOffsetPt ?? 0),
+      ),
+  )
+  const borderHeight =
+    (block.borderTop ? block.borderTop.widthPt + (block.borderTop.spacePt ?? 0) : 0)
+    + (block.borderBottom ? block.borderBottom.widthPt + (block.borderBottom.spacePt ?? 0) : 0)
 
-  return Math.max(textHeight, imageHeight, objectHeight) + (block.spacingBeforePt ?? 0) + (block.spacingAfterPt ?? 8)
+  return Math.max(textHeight, imageHeight, objectHeight, floatingHeight)
+    + borderHeight
+    + (block.spacingBeforePt ?? 0)
+    + (block.spacingAfterPt ?? 8)
 }
 
-function estimateTableHeight(block: WordTableBlock): number {
+function estimateParagraphTextHeight(
+  block: WordParagraphBlock,
+  textRuns: WordTextRun[],
+  options?: PdfRenderOptions,
+) {
+  const fontSize = detectedParagraphFontSize(block, textRuns, options?.fontRegistry)
+  const lineHeight = resolvedParagraphLineHeight(block, textRuns, options)
+  const text = textRuns.map(run => displayRunText(run)).join('')
+  const explicitLines = text.split('\n').length
+  const estimatedWrappedLines = Math.max(1, Math.ceil(text.length / 80))
+  return fontSize * lineHeight * Math.max(explicitLines, estimatedWrappedLines)
+}
+
+function estimateTableHeight(block: WordTableBlock, options?: PdfRenderOptions): number {
   return block.rows.reduce((sum, row) => {
     const rowHeight = Math.max(
       ...row.cells
         .filter(cell => cell.colSpan !== 0)
-        .map(cell => estimateBlocksHeight(cell.blocks) + 12),
+        .map(cell => estimateBlocksHeight(cell.blocks, options) + 12),
       24,
     )
     return sum + rowHeight
   }, 12)
 }
 
-function estimateBlocksHeight(blocks: WordBlock[]): number {
+function estimateBlocksHeight(blocks: WordBlock[], options?: PdfRenderOptions): number {
   return blocks.reduce((sum, block) => {
-    if (block.type === 'paragraph') return sum + estimateParagraphHeight(block)
-    if (block.type === 'table') return sum + estimateTableHeight(block)
+    if (block.type === 'paragraph') return sum + estimateParagraphHeight(block, options)
+    if (block.type === 'table') return sum + estimateTableHeight(block, options)
     return sum + 12
   }, 0)
 }
@@ -2786,11 +3121,25 @@ export async function wordToHTML(file: File): Promise<WordConversionResult> {
 
 function maxHeaderFooterHeight(headerFooter: WordHeaderFooterSet) {
   return Math.max(
-    estimateBlocksHeight(headerFooter.defaultBlocks),
-    estimateBlocksHeight(headerFooter.firstBlocks),
-    estimateBlocksHeight(headerFooter.evenBlocks),
+    estimateBlocksHeight(headerFooter.defaultBlocks, { containerKind: 'header' }),
+    estimateBlocksHeight(headerFooter.firstBlocks, { containerKind: 'header' }),
+    estimateBlocksHeight(headerFooter.evenBlocks, { containerKind: 'header' }),
     0,
   )
+}
+
+function sanitizeHeaderFooterPdfNode(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sanitizeHeaderFooterPdfNode)
+  }
+
+  if (!value || typeof value !== 'object') return value
+
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([key]) => !['id', 'headlineLevel', 'pageBreak', 'unbreakable'].includes(key))
+    .map(([key, childValue]) => [key, sanitizeHeaderFooterPdfNode(childValue)] as const)
+
+  return Object.fromEntries(entries)
 }
 
 function buildSectionHeaderFooterNode(
@@ -2811,31 +3160,81 @@ function buildSectionHeaderFooterNode(
   if (blocks.length === 0) return undefined
 
   return {
-    stack: blocksToPdfmake(blocks, {
+    stack: sanitizeHeaderFooterPdfNode(blocksToPdfmake(blocks, {
       currentPage,
       pageCount,
       availableWidth: sectionBodyAvailableWidth(section),
       pageHeight: sectionBodyAvailableHeight(section),
       fontRegistry,
-    }),
+      containerKind: kind,
+    })) as Record<string, unknown>[],
     margin: kind === 'header'
-      ? [section.page.marginLeftPt, Math.max(4, section.page.headerDistancePt - 8), section.page.marginRightPt, 0]
-      : [section.page.marginLeftPt, 0, section.page.marginRightPt, Math.max(4, section.page.footerDistancePt - 8)],
+      ? [section.page.marginLeftPt, Math.max(0, section.page.headerDistancePt), section.page.marginRightPt, 0]
+      : [section.page.marginLeftPt, 0, section.page.marginRightPt, Math.max(0, section.page.footerDistancePt)],
   }
+}
+
+function shouldInlineSectionHeaderFooter(
+  document: StructuredWordDocument,
+  section: WordDocumentSection,
+  kind: 'header' | 'footer',
+) {
+  if (document.sections.length !== 1) return false
+  if (countWords(section.blocks) > 250) return false
+
+  const headerFooter = kind === 'header' ? section.header : section.footer
+  const blocks = resolveSectionHeaderFooterBlocks(
+    headerFooter,
+    1,
+    section.titlePage,
+    section.evenAndOddHeaders,
+  )
+
+  return blocks.some(block => {
+    if (block.type !== 'paragraph') return false
+    return block.runs.some(run => run.type !== 'text')
+  })
 }
 
 function buildPdfmakeSections(document: StructuredWordDocument) {
   return document.sections.map(section => {
     const headerHeight = maxHeaderFooterHeight(section.header)
     const footerHeight = maxHeaderFooterHeight(section.footer)
+    const inlineHeader = shouldInlineSectionHeaderFooter(document, section, 'header')
+    const inlineFooter = shouldInlineSectionHeaderFooter(document, section, 'footer')
+    const firstPageHeaderBlocks = inlineHeader
+      ? resolveSectionHeaderFooterBlocks(section.header, 1, section.titlePage, section.evenAndOddHeaders)
+      : []
+    const firstPageFooterBlocks = inlineFooter
+      ? resolveSectionHeaderFooterBlocks(section.footer, 1, section.titlePage, section.evenAndOddHeaders)
+      : []
 
     return {
       section: {
-        stack: blocksToPdfmake(section.blocks, {
-          availableWidth: sectionBodyAvailableWidth(section),
-          pageHeight: sectionBodyAvailableHeight(section),
-          fontRegistry: document.fontRegistry,
-        }),
+        stack: [
+          ...(inlineHeader
+            ? sanitizeHeaderFooterPdfNode(blocksToPdfmake(firstPageHeaderBlocks, {
+                availableWidth: sectionBodyAvailableWidth(section),
+                pageHeight: sectionBodyAvailableHeight(section),
+                fontRegistry: document.fontRegistry,
+                containerKind: 'header',
+              })) as Record<string, unknown>[]
+            : []),
+          ...blocksToPdfmake(section.blocks, {
+            availableWidth: sectionBodyAvailableWidth(section),
+            pageHeight: sectionBodyAvailableHeight(section),
+            fontRegistry: document.fontRegistry,
+            containerKind: 'body',
+          }),
+          ...(inlineFooter
+            ? sanitizeHeaderFooterPdfNode(blocksToPdfmake(firstPageFooterBlocks, {
+                availableWidth: sectionBodyAvailableWidth(section),
+                pageHeight: sectionBodyAvailableHeight(section),
+                fontRegistry: document.fontRegistry,
+                containerKind: 'footer',
+              })) as Record<string, unknown>[]
+            : []),
+        ],
       },
       pageSize: {
         width: section.page.widthPt,
@@ -2844,12 +3243,20 @@ function buildPdfmakeSections(document: StructuredWordDocument) {
       pageOrientation: section.page.orientation,
       pageMargins: [
         section.page.marginLeftPt,
-        Math.max(section.page.marginTopPt, section.page.headerDistancePt + headerHeight + 6),
+        inlineHeader
+          ? section.page.marginTopPt
+          : Math.max(section.page.marginTopPt, section.page.headerDistancePt + headerHeight + 16),
         section.page.marginRightPt,
-        Math.max(section.page.marginBottomPt, section.page.footerDistancePt + footerHeight + 6),
+        inlineFooter
+          ? section.page.marginBottomPt
+          : Math.max(section.page.marginBottomPt, section.page.footerDistancePt + footerHeight + 12),
       ],
-      header: (currentPage: number, pageCount: number) => buildSectionHeaderFooterNode(section, 'header', currentPage, pageCount, document.fontRegistry),
-      footer: (currentPage: number, pageCount: number) => buildSectionHeaderFooterNode(section, 'footer', currentPage, pageCount, document.fontRegistry),
+      header: inlineHeader
+        ? undefined
+        : (currentPage: number, pageCount: number) => buildSectionHeaderFooterNode(section, 'header', currentPage, pageCount, document.fontRegistry),
+      footer: inlineFooter
+        ? undefined
+        : (currentPage: number, pageCount: number) => buildSectionHeaderFooterNode(section, 'footer', currentPage, pageCount, document.fontRegistry),
     }
   })
 }
@@ -2917,10 +3324,14 @@ export async function wordDocumentToPdfBlob(
 
   const pdfMake = (pdfMakeModule.default ?? pdfMakeModule) as unknown as PdfMakeLike
   const pdfFonts = (pdfFontsModule.default ?? pdfFontsModule) as Record<string, string>
+  console.time?.('word-to-pdf:configure-fonts')
   await configurePdfMakeFonts(pdfMake, pdfFonts, document.fontRegistry)
+  console.timeEnd?.('word-to-pdf:configure-fonts')
+  console.time?.('word-to-pdf:build-sections')
   const content = buildPdfmakeSections(document)
-
-  return pdfMake.createPdf({
+  console.timeEnd?.('word-to-pdf:build-sections')
+  console.time?.('word-to-pdf:create-pdf')
+  const definition = {
     info: {
       title,
       author: 'Doclair',
@@ -2934,5 +3345,18 @@ export async function wordDocumentToPdfBlob(
       color: '#111111',
     },
     content,
-  }).getBlob()
+  }
+
+  const timeoutMs = document.sections.length === 1 && countWords(document.sections[0]?.blocks ?? []) <= 250
+    ? 15000
+    : 30000
+
+  const blob = await Promise.race([
+    pdfMake.createPdf(definition).getBlob(),
+    new Promise<Blob>((_, reject) => {
+      window.setTimeout(() => reject(new Error('word-to-pdf-structured-timeout')), timeoutMs)
+    }),
+  ])
+  console.timeEnd?.('word-to-pdf:create-pdf')
+  return blob
 }

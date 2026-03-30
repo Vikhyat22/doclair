@@ -1,6 +1,8 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
+import { PDFDocument, StandardFonts, type PDFFont } from '@cantoo/pdf-lib'
+import { toPng } from 'html-to-image'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import DropZone from '@/components/ui/DropZone'
 import FAQ from '@/components/ui/FAQ'
@@ -50,6 +52,576 @@ const JSON_LD = {
   ],
 }
 
+const PREVIEW_CONTENT_CSS = `
+  @font-face {
+    font-family: 'DoclairArimo';
+    src: url('/editor-fonts/Arimo-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'DoclairArimo';
+    src: url('/editor-fonts/Arimo-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'DoclairTinos';
+    src: url('/editor-fonts/Tinos-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'DoclairTinos';
+    src: url('/editor-fonts/Tinos-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'DoclairCousine';
+    src: url('/editor-fonts/Cousine-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'DoclairLibreBaskerville';
+    src: url('/editor-fonts/LibreBaskerville-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'DoclairLibreBaskerville';
+    src: url('/editor-fonts/LibreBaskerville-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+  }
+  #word-preview-content h1 { font-size: 20pt; font-weight: bold; margin: 16pt 0 8pt; }
+  #word-preview-content h2 { font-size: 16pt; font-weight: bold; margin: 12pt 0 6pt; }
+  #word-preview-content h3 { font-size: 13pt; font-weight: bold; margin: 10pt 0 4pt; }
+  #word-preview-content p  { margin: 0 0 8pt; }
+  #word-preview-content table { border-collapse: collapse; width: 100%; margin: 8pt 0; }
+  #word-preview-content td, #word-preview-content th { border: 1px solid #ccc; padding: 4pt 8pt; }
+  #word-preview-content th { background: #f5f5f5; font-weight: bold; }
+  #word-preview-content ul, #word-preview-content ol { margin: 8pt 0; padding-left: 24pt; }
+  #word-preview-content img { max-width: 100%; height: auto; margin: 8pt 0; }
+  #word-preview-content .caption { font-size: 10pt; color: #666; font-style: italic; }
+  #word-preview-content .docx-page-break { border-top: 1px dashed #d1d5db; margin: 24pt 0; }
+`
+
+async function previewElementToPdfBlob(
+  previewElement: HTMLElement,
+  conversionResult: WordConversionResult,
+) {
+  const scale = Math.max(2, Math.ceil(window.devicePixelRatio || 1))
+  let pngDataUrl: string
+
+  try {
+    pngDataUrl = await toPng(previewElement, {
+      cacheBust: true,
+      pixelRatio: scale,
+      backgroundColor: '#FFFFFF',
+      skipFonts: false,
+    })
+  } catch {
+    throw new Error('Failed to rasterize Word preview')
+  }
+
+  const pdfDoc = await PDFDocument.create()
+  const pageSettings = conversionResult.document.source === 'docx-structured'
+    ? conversionResult.document.sections[0]?.page
+    : null
+  const pageWidthPt = pageSettings?.widthPt ?? 595.28
+  const pageHeightPt = pageSettings?.heightPt ?? 841.89
+  const pngImage = await pdfDoc.embedPng(pngDataUrl)
+  const embeddedWidthPx = pngImage.width
+  const embeddedHeightPx = pngImage.height
+  const scaledHeightPt = (embeddedHeightPx / embeddedWidthPx) * pageWidthPt
+  const pageCount = Math.max(1, Math.ceil(scaledHeightPt / pageHeightPt))
+
+  for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
+    const page = pdfDoc.addPage([pageWidthPt, pageHeightPt])
+    page.drawImage(pngImage, {
+      x: 0,
+      y: pageHeightPt - scaledHeightPt + (pageIndex * pageHeightPt),
+      width: pageWidthPt,
+      height: scaledHeightPt,
+    })
+  }
+
+  const bytes = await pdfDoc.save()
+  const copy = new Uint8Array(bytes.byteLength)
+  copy.set(bytes)
+  return new Blob([copy], { type: 'application/pdf' })
+}
+
+async function docxPreviewToPdfBlob(
+  file: File,
+  conversionResult: WordConversionResult,
+) {
+  function collectTextBlocks(pageElement: HTMLElement) {
+    const selector = 'p, li, td, th, h1, h2, h3, h4, h5, h6'
+    const pageRect = pageElement.getBoundingClientRect()
+
+    return Array.from(pageElement.querySelectorAll<HTMLElement>(selector))
+      .filter(element => {
+        const text = element.innerText || element.textContent || ''
+        if (!text.trim()) return false
+        return !Array.from(element.querySelectorAll<HTMLElement>(selector))
+          .some(child => child !== element && !!(child.innerText || child.textContent || '').trim())
+      })
+      .map(element => {
+        const rect = element.getBoundingClientRect()
+        const computed = window.getComputedStyle(element)
+        return {
+          text: (element.innerText || element.textContent || '')
+            .replace(/\u00a0/g, ' ')
+            .replace(/[ \t]+\n/g, '\n')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim(),
+          x: rect.left - pageRect.left,
+          y: rect.top - pageRect.top,
+          width: rect.width,
+          height: rect.height,
+          fontSizePx: Number.parseFloat(computed.fontSize) || 16,
+          lineHeightPx: Number.parseFloat(computed.lineHeight) || ((Number.parseFloat(computed.fontSize) || 16) * 1.2),
+          fontFamily: computed.fontFamily,
+          fontWeight: computed.fontWeight,
+          fontStyle: computed.fontStyle,
+          textAlign: computed.textAlign,
+        }
+      })
+      .filter(block => block.text.length > 0 && block.width > 0 && block.height > 0)
+  }
+
+  async function collectImageOverlays(pageElement: HTMLElement, pixelRatio: number) {
+    const pageRect = pageElement.getBoundingClientRect()
+    const imageElements = Array.from(pageElement.querySelectorAll<HTMLImageElement>('img'))
+      .filter(element => {
+        const rect = element.getBoundingClientRect()
+        const computed = window.getComputedStyle(element)
+        return rect.width > 0
+          && rect.height > 0
+          && computed.display !== 'none'
+          && computed.visibility !== 'hidden'
+          && (Number.parseFloat(computed.opacity) || 1) > 0
+      })
+
+    const overlays = await Promise.all(imageElements.map(async element => {
+      const rect = element.getBoundingClientRect()
+      const computed = window.getComputedStyle(element)
+      let dataUrl = ''
+
+      try {
+        dataUrl = await toPng(element, {
+          cacheBust: true,
+          pixelRatio: Math.max(2, Math.min(4, pixelRatio)),
+          backgroundColor: 'rgba(0,0,0,0)',
+          skipFonts: true,
+        })
+      } catch {
+        const src = element.currentSrc || element.src || ''
+        if (/^data:image\/(?:png|jpe?g);base64,/i.test(src)) {
+          dataUrl = src
+        }
+      }
+
+      if (!dataUrl) {
+        return null
+      }
+
+      return {
+        element,
+        dataUrl,
+        x: rect.left - pageRect.left,
+        y: rect.top - pageRect.top,
+        width: rect.width,
+        height: rect.height,
+        opacity: Math.min(1, Math.max(0, Number.parseFloat(computed.opacity) || 1)),
+      }
+    }))
+
+    return overlays.filter((overlay): overlay is NonNullable<typeof overlay> => !!overlay)
+  }
+
+  function hideCapturedImages(overlays: Array<{
+    element: HTMLElement
+  }>) {
+    const previousState = overlays.map(({ element }) => ({
+      element,
+      visibility: element.style.visibility,
+      opacity: element.style.opacity,
+    }))
+
+    overlays.forEach(({ element }) => {
+      element.style.visibility = 'hidden'
+      element.style.opacity = '0'
+    })
+
+    return () => {
+      previousState.forEach(({ element, visibility, opacity }) => {
+        element.style.visibility = visibility
+        element.style.opacity = opacity
+      })
+    }
+  }
+
+  function resolveStructuredHeaderFooterBlocks(
+    blocks: {
+      defaultBlocks: unknown[]
+      firstBlocks: unknown[]
+      evenBlocks: unknown[]
+    },
+    pageNumber: number,
+    titlePage: boolean,
+    evenAndOddHeaders: boolean,
+  ) {
+    if (titlePage && pageNumber === 1 && blocks.firstBlocks.length > 0) return blocks.firstBlocks
+    if (evenAndOddHeaders && pageNumber % 2 === 0 && blocks.evenBlocks.length > 0) return blocks.evenBlocks
+    return blocks.defaultBlocks
+  }
+
+  function collectStructuredHeaderImageOverlays(
+    pageNumber: number,
+    pageWidthPt: number,
+    pageHeightPt: number,
+  ) {
+    const document = conversionResult.document
+    if (document.source !== 'docx-structured') return []
+
+    const section = document.sections[Math.min(pageNumber - 1, document.sections.length - 1)]
+    if (!section) return []
+
+    const page = section.page
+    const paragraphBlocks = resolveStructuredHeaderFooterBlocks(
+      section.header,
+      pageNumber,
+      section.titlePage,
+      section.evenAndOddHeaders,
+    )
+
+    const resolveHorizontal = (run: {
+      widthPt: number
+      placement?: {
+        xOffsetPt: number
+        distanceLeftPt: number
+        distanceRightPt: number
+        horizontalAlignment?: 'left' | 'center' | 'right'
+        horizontalRelativeTo?: string
+      }
+    }) => {
+      const placement = run.placement
+      if (!placement) return null
+
+      const relativeTo = placement.horizontalRelativeTo ?? 'margin'
+      const rangeStart = relativeTo === 'page'
+        ? 0
+        : page.marginLeftPt
+      const rangeWidth = relativeTo === 'page'
+        ? pageWidthPt
+        : Math.max(0, pageWidthPt - page.marginLeftPt - page.marginRightPt)
+
+      if (placement.horizontalAlignment === 'right') {
+        return rangeStart + rangeWidth - run.widthPt + placement.xOffsetPt
+      }
+      if (placement.horizontalAlignment === 'center') {
+        return rangeStart + ((rangeWidth - run.widthPt) / 2) + placement.xOffsetPt
+      }
+      return rangeStart + placement.xOffsetPt
+    }
+
+    const resolveVertical = (run: {
+      heightPt: number
+      placement?: {
+        yOffsetPt: number
+        distanceTopPt: number
+        distanceBottomPt: number
+        verticalAlignment?: 'top' | 'center' | 'bottom'
+        verticalRelativeTo?: string
+      }
+    }) => {
+      const placement = run.placement
+      if (!placement) return null
+
+      const relativeTo = placement.verticalRelativeTo ?? 'page'
+      const rangeStart = relativeTo === 'margin'
+        ? page.marginTopPt
+        : Math.max(0, Math.min(page.marginTopPt * 0.4, page.headerDistancePt * 0.35))
+      const rangeHeight = relativeTo === 'margin'
+        ? Math.max(0, pageHeightPt - page.marginTopPt - page.marginBottomPt)
+        : pageHeightPt
+
+      if (placement.verticalAlignment === 'bottom') {
+        return rangeStart + rangeHeight - run.heightPt - placement.distanceBottomPt + placement.yOffsetPt
+      }
+      if (placement.verticalAlignment === 'center') {
+        return rangeStart + ((rangeHeight - run.heightPt) / 2) + placement.yOffsetPt
+      }
+      return rangeStart + placement.distanceTopPt + placement.yOffsetPt
+    }
+
+    return paragraphBlocks.flatMap(block => {
+      if (!block || typeof block !== 'object' || !('type' in block) || block.type !== 'paragraph' || !('runs' in block) || !Array.isArray(block.runs)) {
+        return []
+      }
+
+      return block.runs.flatMap(run => {
+        if (!run || typeof run !== 'object' || !('type' in run) || run.type !== 'image' || !('placement' in run) || !run.placement) {
+          return []
+        }
+
+        const x = resolveHorizontal(run)
+        const y = resolveVertical(run)
+        if (x === null || y === null) return []
+
+        return [{
+          dataUrl: run.dataUrl,
+          x,
+          y,
+          width: run.widthPt,
+          height: run.heightPt,
+          opacity: 1,
+        }]
+      })
+    })
+  }
+
+  async function resolvePdfTextFont(pdfDoc: PDFDocument, cache: Map<string, PDFFont>, block: {
+    fontFamily: string
+    fontWeight: string
+    fontStyle: string
+  }) {
+    const family = block.fontFamily.toLowerCase()
+    const isBold = /^(bold|[6-9]00)$/.test(block.fontWeight)
+    const isItalic = block.fontStyle.includes('italic')
+    let standardFont = StandardFonts.Helvetica
+
+    if (family.includes('courier') || family.includes('mono') || family.includes('cousine')) {
+      standardFont = isBold && isItalic
+        ? StandardFonts.CourierBoldOblique
+        : isBold
+          ? StandardFonts.CourierBold
+          : isItalic
+            ? StandardFonts.CourierOblique
+            : StandardFonts.Courier
+    } else if (
+      family.includes('times')
+      || family.includes('georgia')
+      || family.includes('garamond')
+      || family.includes('palatino')
+      || family.includes('bookman')
+      || family.includes('baskerville')
+      || family.includes('tinos')
+    ) {
+      standardFont = isBold && isItalic
+        ? StandardFonts.TimesRomanBoldItalic
+        : isBold
+          ? StandardFonts.TimesRomanBold
+          : isItalic
+            ? StandardFonts.TimesRomanItalic
+            : StandardFonts.TimesRoman
+    } else {
+      standardFont = isBold && isItalic
+        ? StandardFonts.HelveticaBoldOblique
+        : isBold
+          ? StandardFonts.HelveticaBold
+          : isItalic
+            ? StandardFonts.HelveticaOblique
+            : StandardFonts.Helvetica
+    }
+
+    if (!cache.has(standardFont)) {
+      cache.set(standardFont, await pdfDoc.embedFont(standardFont))
+    }
+
+    return cache.get(standardFont) as PDFFont
+  }
+
+  const { renderAsync } = await import('docx-preview')
+  const renderHost = document.createElement('div')
+  renderHost.style.position = 'fixed'
+  renderHost.style.left = '-20000px'
+  renderHost.style.top = '0'
+  renderHost.style.background = '#FFFFFF'
+  renderHost.style.zIndex = '-1'
+  renderHost.style.padding = '0'
+  renderHost.style.margin = '0'
+  const renderFonts = document.createElement('style')
+  renderFonts.textContent = `
+    @font-face {
+      font-family: 'Bookman Old Style';
+      src: url('/editor-fonts/LibreBaskerville-Regular.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Bookman Old Style';
+      src: url('/editor-fonts/LibreBaskerville-Bold.ttf') format('truetype');
+      font-weight: 700;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Times New Roman';
+      src: url('/editor-fonts/Tinos-Regular.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Times New Roman';
+      src: url('/editor-fonts/Tinos-Bold.ttf') format('truetype');
+      font-weight: 700;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Arial';
+      src: url('/editor-fonts/Arimo-Regular.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Arial';
+      src: url('/editor-fonts/Arimo-Bold.ttf') format('truetype');
+      font-weight: 700;
+      font-style: normal;
+    }
+  `
+  renderHost.appendChild(renderFonts)
+  document.body.appendChild(renderHost)
+
+  try {
+    const buffer = await file.arrayBuffer()
+    await renderAsync(buffer, renderHost, renderHost, {
+      inWrapper: true,
+      breakPages: true,
+      ignoreLastRenderedPageBreak: false,
+      renderHeaders: true,
+      renderFooters: true,
+      useBase64URL: true,
+      ignoreFonts: false,
+      debug: false,
+    })
+
+    const images = Array.from(renderHost.querySelectorAll('img'))
+    await Promise.all(images.map(image => {
+      if (image.complete) return Promise.resolve()
+      return new Promise<void>(resolve => {
+        image.addEventListener('load', () => resolve(), { once: true })
+        image.addEventListener('error', () => resolve(), { once: true })
+      })
+    }))
+    if ('fonts' in document) {
+      await (document.fonts as FontFaceSet).ready.catch(() => undefined)
+    }
+    await new Promise(resolve => window.requestAnimationFrame(() => resolve(undefined)))
+    await new Promise(resolve => window.requestAnimationFrame(() => resolve(undefined)))
+
+    const pageElements = Array.from(renderHost.querySelectorAll('section.docx')) as HTMLElement[]
+    const captureTargets = pageElements.length > 0 ? pageElements : [renderHost]
+    const scale = Math.max(3, Math.ceil(window.devicePixelRatio || 1))
+    const pdfDoc = await PDFDocument.create()
+    const standardFontCache = new Map<string, PDFFont>()
+    const firstPageSettings = conversionResult.document.source === 'docx-structured'
+      ? conversionResult.document.sections[0]?.page
+      : null
+
+    for (const [pageIndex, pageElement] of captureTargets.entries()) {
+      const imageOverlays = await collectImageOverlays(pageElement, scale)
+      const restoreImages = hideCapturedImages(imageOverlays)
+      let pngDataUrl = ''
+
+      try {
+        pngDataUrl = await toPng(pageElement, {
+          cacheBust: true,
+          pixelRatio: scale,
+          backgroundColor: '#FFFFFF',
+          skipFonts: false,
+        })
+      } finally {
+        restoreImages()
+      }
+
+      const pngImage = await pdfDoc.embedPng(pngDataUrl)
+      const rect = pageElement.getBoundingClientRect()
+      const pageWidthPt = firstPageSettings?.widthPt ?? 595.28
+      const pageHeightPt = firstPageSettings?.heightPt ?? (pageWidthPt * (rect.height / Math.max(rect.width, 1)))
+      const page = pdfDoc.addPage([pageWidthPt, pageHeightPt])
+      const scaleX = pageWidthPt / Math.max(rect.width, 1)
+      const scaleY = pageHeightPt / Math.max(rect.height, 1)
+      const textBlocks = collectTextBlocks(pageElement)
+      const headerImageOverlays = imageOverlays.some(overlay => overlay.y < rect.height * 0.25)
+        ? []
+        : collectStructuredHeaderImageOverlays(pageIndex + 1, pageWidthPt, pageHeightPt)
+
+      for (const block of textBlocks) {
+        const font = await resolvePdfTextFont(pdfDoc, standardFontCache, block)
+        const fontSizePt = Math.max(7, block.fontSizePx * 0.75)
+        const lineHeightPt = Math.max(fontSizePt * 1.1, block.lineHeightPx * 0.75)
+        const lines = block.text.split(/\n+/).map(line => line.trim()).filter(Boolean)
+        const baseX = block.x * scaleX
+        const baseYTop = block.y * scaleY
+        const blockWidthPt = block.width * scaleX
+
+        lines.forEach((line, lineIndex) => {
+          const textWidth = font.widthOfTextAtSize(line, fontSizePt)
+          let x = baseX
+          if (block.textAlign === 'center') {
+            x = baseX + Math.max(0, (blockWidthPt - textWidth) / 2)
+          } else if (block.textAlign === 'right' || block.textAlign === 'end') {
+            x = baseX + Math.max(0, blockWidthPt - textWidth)
+          }
+          const y = pageHeightPt - baseYTop - fontSizePt - (lineIndex * lineHeightPt)
+          page.drawText(line, {
+            x,
+            y,
+            size: fontSizePt,
+            font,
+            lineHeight: lineHeightPt,
+          })
+        })
+      }
+
+      page.drawImage(pngImage, {
+        x: 0,
+        y: 0,
+        width: pageWidthPt,
+        height: pageHeightPt,
+      })
+
+      for (const overlay of imageOverlays) {
+        const overlayImage = overlay.dataUrl.startsWith('data:image/jpeg') || overlay.dataUrl.startsWith('data:image/jpg')
+          ? await pdfDoc.embedJpg(overlay.dataUrl)
+          : await pdfDoc.embedPng(overlay.dataUrl)
+        page.drawImage(overlayImage, {
+          x: overlay.x * scaleX,
+          y: pageHeightPt - ((overlay.y + overlay.height) * scaleY),
+          width: overlay.width * scaleX,
+          height: overlay.height * scaleY,
+          opacity: overlay.opacity,
+        })
+      }
+
+      for (const overlay of headerImageOverlays) {
+        const overlayImage = overlay.dataUrl.startsWith('data:image/jpeg') || overlay.dataUrl.startsWith('data:image/jpg')
+          ? await pdfDoc.embedJpg(overlay.dataUrl)
+          : await pdfDoc.embedPng(overlay.dataUrl)
+        page.drawImage(overlayImage, {
+          x: overlay.x,
+          y: pageHeightPt - overlay.y - overlay.height,
+          width: overlay.width,
+          height: overlay.height,
+          opacity: overlay.opacity,
+        })
+      }
+    }
+
+    const bytes = await pdfDoc.save()
+    const copy = new Uint8Array(bytes.byteLength)
+    copy.set(bytes)
+    return new Blob([copy], { type: 'application/pdf' })
+  } finally {
+    renderHost.remove()
+  }
+}
+
 export default function WordToPDFPage() {
   const [file, setFile] = useState<File | null>(null)
   const [conversionResult, setConversionResult] = useState<WordConversionResult | null>(null)
@@ -58,6 +630,7 @@ export default function WordToPDFPage() {
   const [convertStatus, setConvertStatus] = useState('')
   const [savingPdf, setSavingPdf] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const previewPaperRef = useRef<HTMLDivElement | null>(null)
 
   async function handleConvert(f?: File) {
     const target = f ?? file
@@ -98,13 +671,38 @@ export default function WordToPDFPage() {
     setErrorMessage('')
 
     try {
-      const blob = await wordDocumentToPdfBlob(conversionResult.document, docName)
+      let blob: Blob
+      try {
+        blob = await Promise.race([
+          wordDocumentToPdfBlob(conversionResult.document, docName),
+          new Promise<Blob>((_, reject) => {
+            window.setTimeout(() => reject(new Error('word-to-pdf-render-timeout')), 25000)
+          }),
+        ])
+      } catch (error) {
+        if (file && /\.docx$/i.test(file.name)) {
+          try {
+            blob = await docxPreviewToPdfBlob(file, conversionResult)
+          } catch {
+            if (!previewPaperRef.current) throw error
+            blob = await previewElementToPdfBlob(previewPaperRef.current, conversionResult)
+          }
+        } else {
+          if (!previewPaperRef.current) throw error
+          blob = await previewElementToPdfBlob(previewPaperRef.current, conversionResult)
+        }
+      }
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
       anchor.href = url
       anchor.download = `${docName}.pdf`
+      anchor.style.display = 'none'
+      document.body.appendChild(anchor)
       anchor.click()
-      URL.revokeObjectURL(url)
+      window.setTimeout(() => {
+        URL.revokeObjectURL(url)
+        anchor.remove()
+      }, 2000)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to generate PDF from document'
       setErrorMessage(message)
@@ -211,19 +809,7 @@ export default function WordToPDFPage() {
       {/* State: preview */}
       {toolState === 'preview' && conversionResult && (
         <>
-          <style>{`
-            #word-preview-content h1 { font-size: 20pt; font-weight: bold; margin: 16pt 0 8pt; }
-            #word-preview-content h2 { font-size: 16pt; font-weight: bold; margin: 12pt 0 6pt; }
-            #word-preview-content h3 { font-size: 13pt; font-weight: bold; margin: 10pt 0 4pt; }
-            #word-preview-content p  { margin: 0 0 8pt; }
-            #word-preview-content table { border-collapse: collapse; width: 100%; margin: 8pt 0; }
-            #word-preview-content td, #word-preview-content th { border: 1px solid #ccc; padding: 4pt 8pt; }
-            #word-preview-content th { background: #f5f5f5; font-weight: bold; }
-            #word-preview-content ul, #word-preview-content ol { margin: 8pt 0; padding-left: 24pt; }
-            #word-preview-content img { max-width: 100%; height: auto; margin: 8pt 0; }
-            #word-preview-content .caption { font-size: 10pt; color: #666; font-style: italic; }
-            #word-preview-content .docx-page-break { border-top: 1px dashed #d1d5db; margin: 24pt 0; }
-          `}</style>
+          <style>{PREVIEW_CONTENT_CSS}</style>
 
           {/* Warnings panel */}
           {conversionResult.warnings.length > 0 && (
@@ -277,7 +863,7 @@ export default function WordToPDFPage() {
                 padding: '48px',
                 maxWidth: '680px',
                 margin: '0 auto',
-              }}>
+              }} ref={previewPaperRef}>
                 <div
                   id="word-preview-content"
                   dangerouslySetInnerHTML={{ __html: conversionResult.previewHtml }}
