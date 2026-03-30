@@ -121,12 +121,15 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   const muted = rgb(0.48, 0.43, 0.38)
   const white = rgb(1, 1, 1)
   const lightBg = rgb(0.98, 0.97, 0.95)
+  const panelBg = rgb(0.995, 0.992, 0.985)
   const border = rgb(0.85, 0.83, 0.80)
 
   const interState = isInterState(data.sellerState, data.placeOfSupply)
   const logoImage = data.logoDataUrl ? await embedDataUrlImage(doc, data.logoDataUrl) : undefined
 
-  let y = height - 30
+  page.drawRectangle({ x: 28, y: 26, width: width - 56, height: height - 52, borderColor: border, borderWidth: 1, color: white })
+
+  let y = height - 38
 
   const typeLabels: Record<string, string> = {
     'tax-invoice': 'TAX INVOICE',
@@ -135,19 +138,22 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
     'debit-note': 'DEBIT NOTE',
   }
   const typeLabel = typeLabels[data.invoiceType] ?? 'TAX INVOICE'
-  const labelW = fontB.widthOfTextAtSize(typeLabel, 14) + 24
-  page.drawRectangle({ x: (width - labelW) / 2, y: y - 20, width: labelW, height: 20, color: ink })
+  const labelW = fontB.widthOfTextAtSize(typeLabel, 14) + 32
+  page.drawRectangle({ x: (width - labelW) / 2, y: y - 24, width: labelW, height: 22, color: ink })
   page.drawText(typeLabel, {
     x: (width - fontB.widthOfTextAtSize(typeLabel, 14)) / 2,
-    y: y - 15,
+    y: y - 17,
     size: 14,
     font: fontB,
     color: white,
   })
-  y -= 30
+  y -= 36
 
-  const colW = (width - 80) / 3
+  const colW = (width - 96) / 3
   const colY = y
+  const columnXs = [40, 40 + colW + 8, 40 + (colW + 8) * 2]
+
+  page.drawRectangle({ x: 40, y: colY - 118, width: width - 80, height: 126, color: panelBg })
 
   let ys = colY
   if (logoImage) {
@@ -157,42 +163,42 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
     page.drawImage(logoImage, { x: 40, y: ys - logoH + 2, width: logoW, height: logoH })
     ys -= logoH + 10
   }
-  page.drawText('FROM:', { x: 40, y: ys, size: 7, font: fontB, color: amber })
+  page.drawText('FROM', { x: columnXs[0], y: ys, size: 7, font: fontB, color: amber })
   ys -= 12
-  page.drawText(data.sellerName, { x: 40, y: ys, size: 10, font: fontB, color: ink, maxWidth: colW - 10 })
-  ys -= 12
+  page.drawText(data.sellerName, { x: columnXs[0], y: ys, size: 11, font: fontB, color: ink, maxWidth: colW - 10 })
+  ys -= 14
   if (data.sellerLegalName) {
-    page.drawText(`Legal: ${data.sellerLegalName}`, { x: 40, y: ys, size: 8, font: fontR, color: muted, maxWidth: colW - 10 })
+    page.drawText(`Legal: ${data.sellerLegalName}`, { x: columnXs[0], y: ys, size: 8, font: fontR, color: muted, maxWidth: colW - 10 })
     ys -= 10
   }
-  ys = drawParagraph(page, wrapText(data.sellerAddress, fontR, 8, colW - 10), 40, ys, fontR, 8, muted)
+  ys = drawParagraph(page, wrapText(data.sellerAddress, fontR, 8, colW - 10), columnXs[0], ys, fontR, 8, muted)
   if (data.sellerPhone) {
-    page.drawText(`Ph: ${data.sellerPhone}`, { x: 40, y: ys, size: 8, font: fontR, color: muted })
+    page.drawText(`Ph: ${data.sellerPhone}`, { x: columnXs[0], y: ys, size: 8, font: fontR, color: muted })
     ys -= 10
   }
   if (data.sellerEmail) {
-    page.drawText(data.sellerEmail, { x: 40, y: ys, size: 8, font: fontR, color: muted })
+    page.drawText(data.sellerEmail, { x: columnXs[0], y: ys, size: 8, font: fontR, color: muted })
     ys -= 10
   }
   if (data.sellerWebsite) {
-    page.drawText(data.sellerWebsite, { x: 40, y: ys, size: 8, font: fontR, color: muted })
+    page.drawText(data.sellerWebsite, { x: columnXs[0], y: ys, size: 8, font: fontR, color: muted })
     ys -= 10
   }
   if (data.sellerGSTIN) {
-    page.drawText(`GSTIN ${data.sellerGSTIN}`, { x: 40, y: ys, size: 8, font: fontB, color: ink })
+    page.drawText(`GSTIN ${data.sellerGSTIN}`, { x: columnXs[0], y: ys, size: 8, font: fontB, color: ink })
     ys -= 10
   }
   if (data.sellerPAN) {
-    page.drawText(`PAN ${data.sellerPAN}`, { x: 40, y: ys, size: 8, font: fontR, color: muted })
+    page.drawText(`PAN ${data.sellerPAN}`, { x: columnXs[0], y: ys, size: 8, font: fontR, color: muted })
     ys -= 10
   }
 
   let yb = colY
-  const bx = 40 + colW
-  page.drawText('BILL TO:', { x: bx, y: yb, size: 7, font: fontB, color: amber })
+  const bx = columnXs[1]
+  page.drawText('BILL TO', { x: bx, y: yb, size: 7, font: fontB, color: amber })
   yb -= 12
-  page.drawText(data.buyerName, { x: bx, y: yb, size: 10, font: fontB, color: ink, maxWidth: colW - 10 })
-  yb -= 12
+  page.drawText(data.buyerName, { x: bx, y: yb, size: 11, font: fontB, color: ink, maxWidth: colW - 10 })
+  yb -= 14
   yb = drawParagraph(page, wrapText(data.buyerAddress, fontR, 8, colW - 10), bx, yb, fontR, 8, muted)
   page.drawText(`State: ${data.buyerState}`, { x: bx, y: yb, size: 8, font: fontR, color: muted })
   yb -= 10
@@ -210,7 +216,7 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   }
 
   let yi = colY
-  const mx = 40 + colW * 2
+  const mx = columnXs[2]
   const metaRows = [
     ['INVOICE NO', data.invoiceNumber],
     ['DATE', data.invoiceDate],
@@ -229,9 +235,9 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
     yi -= 12
   }
 
-  y = Math.min(ys, yb, yi) - 12
+  y = Math.min(ys, yb, yi) - 18
   page.drawLine({ start: { x: 40, y }, end: { x: width - 40, y }, thickness: 0.5, color: border })
-  y -= 6
+  y -= 10
 
   const cols = [
     { label: '#', x: 40, w: 18, align: 'left' as const },
@@ -246,18 +252,19 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
     { label: 'Total', x: 480, w: 55, align: 'right' as const },
   ]
 
-  page.drawRectangle({ x: 40, y: y - 14, width: width - 80, height: 14, color: ink })
-  cols.forEach(col => drawCellText(page, col.label, col.x, col.w, y - 10, fontB, 6.5, white, col.align))
-  y -= 16
+  page.drawRectangle({ x: 40, y: y - 16, width: width - 80, height: 16, color: ink })
+  cols.forEach(col => drawCellText(page, col.label, col.x, col.w, y - 11, fontB, 6.5, white, col.align))
+  y -= 20
 
   data.items.forEach((item, idx) => {
-    const rowH = 18
+    const descriptionLines = wrapText(item.description, fontR, 7.2, cols[1].w - 4)
+    const rowH = Math.max(22, descriptionLines.length * 9 + 8)
     if (idx % 2 === 0) {
       page.drawRectangle({ x: 40, y: y - rowH, width: width - 80, height: rowH, color: lightBg })
     }
     const vals = [
       String(idx + 1),
-      item.description,
+      '',
       item.hsn || '—',
       String(item.qty),
       item.unit,
@@ -267,37 +274,46 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
       formatAmount(item.totalTax),
       formatAmount(item.total),
     ]
+    const centeredY = y - 13 - Math.max(0, (rowH - 22) / 2)
     cols.forEach((col, ci) => {
-      drawCellText(page, vals[ci], col.x, col.w, y - 11, fontR, 6.8, ink, col.align)
+      if (ci === 1) {
+        let descY = y - 13
+        descriptionLines.forEach(line => {
+          drawCellText(page, line, col.x, col.w, descY, fontR, 7.2, ink, col.align)
+          descY -= 9
+        })
+        return
+      }
+      drawCellText(page, vals[ci], col.x, col.w, centeredY, fontR, 7.2, ink, col.align)
     })
     y -= rowH
   })
 
-  y -= 4
+  y -= 8
   page.drawLine({ start: { x: 40, y }, end: { x: width - 40, y }, thickness: 0.5, color: border })
-  y -= 10
+  y -= 14
 
   const hsnRows = summarizeHSNRows(data.items)
   const hsnTop = y
   const hsnBoxX = 40
   const hsnBoxW = 280
-  const hsnBoxHeight = Math.max(64, 28 + hsnRows.length * 12)
-  page.drawRectangle({ x: hsnBoxX, y: hsnTop - hsnBoxHeight, width: hsnBoxW, height: hsnBoxHeight, borderColor: border, borderWidth: 1, color: white })
-  page.drawText('HSN / SAC SUMMARY', { x: hsnBoxX + 12, y: hsnTop - 15, size: 8, font: fontB, color: amber })
+  const hsnBoxHeight = Math.max(72, 32 + hsnRows.length * 13)
+  page.drawRectangle({ x: hsnBoxX, y: hsnTop - hsnBoxHeight, width: hsnBoxW, height: hsnBoxHeight, borderColor: border, borderWidth: 1, color: panelBg })
+  page.drawText('HSN / SAC SUMMARY', { x: hsnBoxX + 12, y: hsnTop - 17, size: 8, font: fontB, color: amber })
   const hsnCols = [
     { label: 'HSN/SAC', x: hsnBoxX + 12 },
     { label: 'Taxable', x: hsnBoxX + 86 },
     { label: 'Tax', x: hsnBoxX + 150 },
     { label: 'Rate', x: hsnBoxX + 210 },
   ]
-  hsnCols.forEach(col => page.drawText(col.label, { x: col.x, y: hsnTop - 28, size: 6.5, font: fontB, color: muted }))
-  let hsnY = hsnTop - 40
+  hsnCols.forEach(col => page.drawText(col.label, { x: col.x, y: hsnTop - 31, size: 6.5, font: fontB, color: muted }))
+  let hsnY = hsnTop - 45
   for (const row of hsnRows) {
-    page.drawText(row.hsn, { x: hsnCols[0].x, y: hsnY, size: 7, font: fontR, color: ink })
-    page.drawText(formatAmount(row.taxable), { x: hsnCols[1].x, y: hsnY, size: 7, font: fontR, color: ink })
-    page.drawText(formatAmount(row.totalTax), { x: hsnCols[2].x, y: hsnY, size: 7, font: fontR, color: ink })
-    page.drawText(`${row.gstRate}%`, { x: hsnCols[3].x, y: hsnY, size: 7, font: fontR, color: ink })
-    hsnY -= 12
+    page.drawText(row.hsn, { x: hsnCols[0].x, y: hsnY, size: 7.2, font: fontR, color: ink })
+    page.drawText(formatAmount(row.taxable), { x: hsnCols[1].x, y: hsnY, size: 7.2, font: fontR, color: ink })
+    page.drawText(formatAmount(row.totalTax), { x: hsnCols[2].x, y: hsnY, size: 7.2, font: fontR, color: ink })
+    page.drawText(`${row.gstRate}%`, { x: hsnCols[3].x, y: hsnY, size: 7.2, font: fontR, color: ink })
+    hsnY -= 13
   }
 
   const totalsBoxX = 336
@@ -315,23 +331,23 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
     { label: 'TOTAL', value: data.grandTotal, emphasize: true },
   ]
   const totalsBoxTop = hsnTop
-  const totalsBoxHeight = 26 + totalRows.length * 14
-  page.drawRectangle({ x: totalsBoxX, y: totalsBoxTop - totalsBoxHeight, width: totalsBoxW, height: totalsBoxHeight, borderColor: border, borderWidth: 1, color: white })
-  page.drawText('SUMMARY', { x: totalsBoxX + 12, y: totalsBoxTop - 15, size: 8, font: fontB, color: amber })
-  let totalsY = totalsBoxTop - 31
+  const totalsBoxHeight = 30 + totalRows.length * 16
+  page.drawRectangle({ x: totalsBoxX, y: totalsBoxTop - totalsBoxHeight, width: totalsBoxW, height: totalsBoxHeight, borderColor: border, borderWidth: 1, color: panelBg })
+  page.drawText('SUMMARY', { x: totalsBoxX + 12, y: totalsBoxTop - 17, size: 8, font: fontB, color: amber })
+  let totalsY = totalsBoxTop - 35
   for (const row of totalRows) {
     if (row.emphasize) {
-      page.drawRectangle({ x: totalsBoxX + 8, y: totalsY - 4, width: totalsBoxW - 16, height: 18, color: ink })
-      page.drawText(row.label, { x: totalsBoxX + 14, y: totalsY, size: 9.5, font: fontB, color: white })
+      page.drawRectangle({ x: totalsBoxX + 8, y: totalsY - 5, width: totalsBoxW - 16, height: 20, color: ink })
+      page.drawText(row.label, { x: totalsBoxX + 14, y: totalsY + 1, size: 10, font: fontB, color: white })
       const totalValue = formatAmount(row.value)
-      page.drawText(totalValue, { x: totalsBoxX + totalsBoxW - 14 - fontB.widthOfTextAtSize(totalValue, 9.5), y: totalsY, size: 9.5, font: fontB, color: amber })
-      totalsY -= 18
+      page.drawText(totalValue, { x: totalsBoxX + totalsBoxW - 14 - fontB.widthOfTextAtSize(totalValue, 10), y: totalsY + 1, size: 10, font: fontB, color: amber })
+      totalsY -= 20
       continue
     }
     page.drawText(row.label, { x: totalsBoxX + 12, y: totalsY, size: 8.5, font: fontR, color: muted })
     const value = formatAmount(row.value)
     page.drawText(value, { x: totalsBoxX + totalsBoxW - 12 - fontR.widthOfTextAtSize(value, 8.5), y: totalsY, size: 8.5, font: fontR, color: muted })
-    totalsY -= 14
+    totalsY -= 16
   }
 
   const infoTop = Math.min(totalsBoxTop - totalsBoxHeight - 14, hsnTop - hsnBoxHeight - 14)
@@ -341,12 +357,12 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   const rightBoxW = width - 40 - rightBoxX
 
   function drawInfoBox(x: number, topY: number, boxWidth: number, boxHeight: number, title: string, lines: string[]) {
-    page.drawRectangle({ x, y: topY - boxHeight, width: boxWidth, height: boxHeight, borderColor: border, borderWidth: 1, color: white })
-    page.drawText(title, { x: x + 12, y: topY - 16, size: 8, font: fontB, color: amber })
-    let lineY = topY - 30
+    page.drawRectangle({ x, y: topY - boxHeight, width: boxWidth, height: boxHeight, borderColor: border, borderWidth: 1, color: panelBg })
+    page.drawText(title, { x: x + 12, y: topY - 17, size: 8, font: fontB, color: amber })
+    let lineY = topY - 32
     for (const line of lines) {
       page.drawText(line, { x: x + 12, y: lineY, size: 8, font: fontR, color: muted, maxWidth: boxWidth - 24 })
-      lineY -= 10
+      lineY -= 11
     }
   }
 
@@ -381,7 +397,7 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   ].filter(Boolean)
   const declarationLines = declarationParts.flatMap(part => wrapText(part, fontR, 8, width - 104))
   const declarationTop = infoTop - infoBoxHeight - 16
-  const declarationHeight = Math.max(62, 34 + declarationLines.length * 10)
+  const declarationHeight = Math.max(66, 36 + declarationLines.length * 11)
   drawInfoBox(40, declarationTop, width - 80, declarationHeight, 'Notes & Declaration', declarationLines)
 
   const signatureTop = declarationTop - declarationHeight - 26

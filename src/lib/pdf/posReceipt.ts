@@ -92,15 +92,19 @@ export async function generatePOSReceiptPDF(bill: POSBill, shop: POSShopProfile)
   const pageHeight = estimateReceiptHeight(bill, shop, fontR)
   const page = doc.addPage([pageWidth, pageHeight])
 
+  const white = rgb(1, 1, 1)
   const ink = rgb(0.10, 0.08, 0.07)
   const muted = rgb(0.48, 0.43, 0.38)
   const amber = rgb(0.91, 0.51, 0.05)
+  const soft = rgb(0.97, 0.95, 0.92)
   const border = rgb(0.84, 0.80, 0.76)
   const qtyX = 118
   const priceRightX = 176
   const totalRightX = 216
 
   let y = pageHeight - 16
+
+  page.drawRectangle({ x: 7, y: 7, width: pageWidth - 14, height: pageHeight - 14, borderColor: border, borderWidth: 0.8, color: white })
 
   function drawLine() {
     page.drawLine({ start: { x: 10, y }, end: { x: pageWidth - 10, y }, thickness: 0.5, color: border })
@@ -141,7 +145,7 @@ export async function generatePOSReceiptPDF(bill: POSBill, shop: POSShopProfile)
   if (shop.gstin) drawCenteredText(`GSTIN: ${shop.gstin}`, 7, fontR, muted)
   if (shop.phone) drawCenteredText(`Ph: ${shop.phone}`, 7, fontR, muted)
 
-  y -= 2
+  y -= 4
   drawLine()
 
   drawCenteredText(bill.billNumber, 9, fontB)
@@ -151,14 +155,15 @@ export async function generatePOSReceiptPDF(bill: POSBill, shop: POSShopProfile)
   if (bill.customerPhone) drawCenteredText(`Phone: ${bill.customerPhone}`, 7, fontR, muted)
   if (bill.paymentMode) drawCenteredText(`Paid via: ${bill.paymentMode}`, 7, fontR, muted)
 
-  y -= 2
+  y -= 4
   drawLine()
 
+  page.drawRectangle({ x: 10, y: y - 14, width: pageWidth - 20, height: 14, color: soft })
   page.drawText('Item', { x: 10, y, size: 7, font: fontB, color: muted })
   page.drawText('Qty', { x: qtyX, y, size: 7, font: fontB, color: muted })
   page.drawText('Price', { x: 139, y, size: 7, font: fontB, color: muted })
   page.drawText('Total', { x: 189, y, size: 7, font: fontB, color: muted })
-  y -= 12
+  y -= 15
 
   for (const ci of bill.items) {
     const lineTotal = ci.product.price * ci.qty * (1 - ci.discount / 100)
@@ -172,7 +177,7 @@ export async function generatePOSReceiptPDF(bill: POSBill, shop: POSShopProfile)
         drawRightText(`Rs.${ci.product.price.toFixed(2)}`, priceRightX, 7, fontR)
         drawRightText(`Rs.${lineTotal.toFixed(2)}`, totalRightX, 7, fontR)
       }
-      y -= 9
+      y -= 10
     }
 
     if (ci.discount > 0) {
@@ -182,14 +187,14 @@ export async function generatePOSReceiptPDF(bill: POSBill, shop: POSShopProfile)
 
     const rowHeight = rowStartY - y
     if (rowHeight < 13) y -= 13 - rowHeight
-    y -= 2
+    y -= 3
   }
 
   drawLine()
 
   page.drawText('Subtotal', { x: 10, y, size: 7, font: fontR, color: muted })
   drawRightText(`Rs.${bill.items.reduce((sum, item) => sum + item.product.price * item.qty * (1 - item.discount / 100), 0).toFixed(2)}`, totalRightX, 7, fontR, muted)
-  y -= 11
+  y -= 12
 
   const gstEntries = Object.entries(bill.gstBreakup).filter(([, value]) => value > 0)
   for (const [rate, amount] of gstEntries) {
@@ -197,7 +202,7 @@ export async function generatePOSReceiptPDF(bill: POSBill, shop: POSShopProfile)
     const label = Number(rate) === 0 ? 'GST @0%' : `CGST@${halfRate}% + SGST@${halfRate}%`
     page.drawText(label, { x: 10, y, size: 7, font: fontR, color: muted, maxWidth: 150 })
     drawRightText(`Rs.${amount.toFixed(2)}`, totalRightX, 7, fontR, muted)
-    y -= 11
+    y -= 12
   }
 
   if (gstEntries.length > 0) {
@@ -207,11 +212,11 @@ export async function generatePOSReceiptPDF(bill: POSBill, shop: POSShopProfile)
 
   page.drawText('GRAND TOTAL', { x: 10, y, size: 10, font: fontB, color: ink })
   drawRightText(`Rs.${bill.total.toFixed(2)}`, totalRightX, 10, fontB, amber)
-  y -= 18
+  y -= 20
 
   drawLine()
-  y -= 2
-  drawCenteredText('Thank you for your purchase!', 8, fontR, muted)
+  y -= 4
+  drawCenteredText('Thank you for your purchase!', 8.5, fontR, muted)
   drawCenteredText('Subject to local court jurisdiction', 6, fontR, muted)
 
   return doc.save()
