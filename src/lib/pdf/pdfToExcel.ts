@@ -23,11 +23,22 @@ function rowsForPage(lines: Array<{ text: string; cells: string[] }>) {
   const rows = lines.map(line => (line.cells.length > 0 ? line.cells : [line.text]))
   const firstMultiColumnRow = rows.findIndex(row => row.length > 1)
 
-  // If the page clearly contains a table, drop title/subtitle lines that sit
-  // above the first tabular row. This keeps exported sheets cleaner.
   if (firstMultiColumnRow > 0) {
     const multiColumnRowCount = rows.filter(row => row.length > 1).length
     if (multiColumnRowCount >= 2) {
+      const leadingRows = rows.slice(0, firstMultiColumnRow)
+      const shortContextRows = leadingRows.filter(row => row.length === 1 && row[0].trim().length > 0)
+
+      // Keep a compact preamble above clear tables so exported sheets don't
+      // silently lose the document title or short context lines.
+      if (shortContextRows.length > 0 && shortContextRows.length <= 4) {
+        return [
+          ...shortContextRows,
+          [''],
+          ...rows.slice(firstMultiColumnRow),
+        ]
+      }
+
       return rows.slice(firstMultiColumnRow)
     }
   }

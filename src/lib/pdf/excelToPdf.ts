@@ -27,8 +27,67 @@ export function parseExcelFile(buffer: ArrayBuffer): SheetData[] {
   })
 }
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value))
+function normalizeCell(cell: string | undefined) {
+  return String(cell ?? '').replace(/\s+/g, ' ').trim()
+}
+
+function countUsedColumns(row: string[]) {
+  for (let index = row.length - 1; index >= 0; index -= 1) {
+    if (normalizeCell(row[index])) return index + 1
+  }
+  return 0
+}
+
+function isBlankRow(row: string[]) {
+  return countUsedColumns(row) === 0
+}
+
+function getRowSlice(row: string[], columnCount: number) {
+  return Array.from({ length: columnCount }, (_, index) => normalizeCell(row[index]))
+}
+
+function splitSheetRows(rows: string[][]) {
+  const normalizedRows = rows.map(row => row.map(cell => String(cell ?? '')))
+  let titleRows: string[][] = []
+  let startIndex = 0
+
+  while (startIndex < normalizedRows.length) {
+    const row = normalizedRows[startIndex]
+    const used = countUsedColumns(row)
+    if (used === 0) {
+      startIndex += 1
+      continue
+    }
+    if (used <= 1) {
+      titleRows.push(getRowSlice(row, used || 1))
+      startIndex += 1
+      continue
+    }
+    break
+  }
+
+  const sections: string[][][] = []
+  let current: string[][] = []
+  for (let index = startIndex; index < normalizedRows.length; index += 1) {
+    const row = normalizedRows[index]
+    if (isBlankRow(row)) {
+      if (current.length > 0) {
+        sections.push(current)
+        current = []
+      }
+      continue
+    }
+    current.push(row)
+  }
+  if (current.length > 0) sections.push(current)
+
+  if (titleRows.length === 0 && sections.length > 0 && countUsedColumns(sections[0][0]) === 1) {
+    titleRows = [getRowSlice(sections[0][0], 1)]
+    sections[0] = sections[0].slice(1)
+    if (sections[0].length === 0) sections.shift()
+  }
+
+  return { titleRows, sections }
 }
 
 function fitColumnWidths(widths: number[], availableWidth: number, minWidth: number) {
@@ -133,12 +192,7 @@ export async function sheetsToPDF(sheets: SheetData[]): Promise<Uint8Array> {
 
   for (const sheet of sheets) {
     const rows = sheet.rows.length > 0 ? sheet.rows : [['']]
-    const columnCount = Math.max(...rows.map(row => row.length), 1)
-    const widths = fitColumnWidths(
-      measureColumns(rows, fontRegular, rowFontSize, columnCount),
-      contentWidth,
-      56,
-    )
+    const { titleRows, sections } = splitSheetRows(rows)
 
     let page = doc.addPage([pageWidth, pageHeight])
     workbookPageNumber += 1
@@ -162,8 +216,10 @@ export async function sheetsToPDF(sheets: SheetData[]): Promise<Uint8Array> {
       y -= 18
 
       if (!repeatHeaderRow) {
+        const sectionRowCount = sections.reduce((sum, section) => sum + Math.max(section.length - 1, 0), 0)
+        const maxColumns = Math.max(...sections.map(section => Math.max(...section.map(countUsedColumns), 0)), 1)
         page.drawText(
-          `${rows.length - 1} data row${rows.length - 1 === 1 ? '' : 's'} • ${columnCount} column${columnCount === 1 ? '' : 's'}`,
+          `${sectionRowCount} data row${sectionRowCount === 1 ? '' : 's'} • ${maxColumns} column${maxColumns === 1 ? '' : 's'}`,
           {
             x: marginX,
             y,
@@ -174,95 +230,129 @@ export async function sheetsToPDF(sheets: SheetData[]): Promise<Uint8Array> {
         )
         y -= 16
       }
-
-      const headerHeight = lineHeight + cellPaddingY * 2
-      let x = marginX
-      rows[0].forEach((cell, columnIndex) => {
-        const width = widths[columnIndex] ?? widths[widths.length - 1]
-        page.drawRectangle({
-          x,
-          y: y - headerHeight,
-          width,
-          height: headerHeight,
-          color: rgb(0.1, 0.08, 0.07),
-        })
-        page.drawText(String(cell ?? '').slice(0, 80) || ' ', {
-          x: x + cellPaddingX,
-          y: y - headerHeight + cellPaddingY + 2,
-          size: rowFontSize,
-          font: fontBold,
-          color: rgb(1, 1, 1),
-          maxWidth: width - cellPaddingX * 2,
-        })
-        x += width
-      })
-      y -= headerHeight
     }
 
     drawSheetChrome(false)
 
-    for (let rowIndex = 1; rowIndex < rows.length; rowIndex += 1) {
-      const row = rows[rowIndex]
-      const wrapped = Array.from({ length: columnCount }, (_, columnIndex) => {
-        const width = (widths[columnIndex] ?? widths[widths.length - 1]) - cellPaddingX * 2
-        return wrapText(String(row[columnIndex] ?? ''), fontRegular, rowFontSize, width)
+    titleRows.forEach((titleRow, index) => {
+      const title = normalizeCell(titleRow[0])
+      if (!title) return
+      page.drawText(title, {
+        x: marginX,
+        y,
+        size: bodyFontSize + (index === 0 ? 2 : 0),
+        font: index === 0 ? fontBold : fontRegular,
+        color: rgb(0.15, 0.13, 0.11),
       })
-      const rowHeight = Math.max(
-        lineHeight + cellPaddingY * 2,
-        Math.max(...wrapped.map(lines => lines.length), 1) * lineHeight + cellPaddingY * 2,
+      y -= index === 0 ? 20 : 14
+    })
+
+    for (const [sectionIndex, section] of sections.entries()) {
+      if (section.length === 0) continue
+      const columnCount = Math.max(...section.map(countUsedColumns), 1)
+      const sectionRows = section.map(row => getRowSlice(row, columnCount))
+      const widths = fitColumnWidths(
+        measureColumns(sectionRows, fontRegular, rowFontSize, columnCount),
+        contentWidth,
+        56,
       )
+      const sectionWidth = widths.reduce((sum, width) => sum + width, 0)
+      const headerRow = sectionRows[0]
+      const dataRows = sectionRows.slice(1)
+      const headerHeight = lineHeight + cellPaddingY * 2
 
-      if (y - rowHeight < marginBottom) {
-        page = doc.addPage([pageWidth, pageHeight])
-        workbookPageNumber += 1
-        y = pageHeight - marginTop
-        drawSheetChrome(true)
-      }
-
-      if (rowIndex % 2 === 1) {
-        page.drawRectangle({
-          x: marginX,
-          y: y - rowHeight,
-          width: contentWidth,
-          height: rowHeight,
-          color: rgb(0.98, 0.97, 0.95),
-        })
-      }
-
-      let x = marginX
-      for (let columnIndex = 0; columnIndex < columnCount; columnIndex += 1) {
-        const width = widths[columnIndex] ?? widths[widths.length - 1]
-        const lines = wrapped[columnIndex]
-
-        page.drawRectangle({
-          x,
-          y: y - rowHeight,
-          width,
-          height: rowHeight,
-          borderWidth: 0.5,
-          borderColor: rgb(0.86, 0.82, 0.78),
-          color: rgb(1, 1, 1),
-          opacity: 0,
-        })
-
-        lines.forEach((line, lineIndex) => {
-          page.drawText(line, {
+      const drawSectionHeader = () => {
+        let x = marginX
+        for (let columnIndex = 0; columnIndex < columnCount; columnIndex += 1) {
+          const width = widths[columnIndex] ?? widths[widths.length - 1]
+          page.drawRectangle({
+            x,
+            y: y - headerHeight,
+            width,
+            height: headerHeight,
+            color: rgb(0.1, 0.08, 0.07),
+          })
+          page.drawText(headerRow[columnIndex] || ' ', {
             x: x + cellPaddingX,
-            y: y - cellPaddingY - rowFontSize - lineIndex * lineHeight + 2,
+            y: y - headerHeight + cellPaddingY + 2,
             size: rowFontSize,
-            font: fontRegular,
-            color: rgb(0.15, 0.13, 0.11),
+            font: fontBold,
+            color: rgb(1, 1, 1),
             maxWidth: width - cellPaddingX * 2,
           })
-        })
-
-        x += width
+          x += width
+        }
+        y -= headerHeight
       }
 
-      y -= rowHeight
+      if (sectionIndex > 0) y -= 6
+      drawSectionHeader()
+
+      for (let rowIndex = 0; rowIndex < dataRows.length; rowIndex += 1) {
+        const row = dataRows[rowIndex]
+        const wrapped = Array.from({ length: columnCount }, (_, columnIndex) => {
+          const width = (widths[columnIndex] ?? widths[widths.length - 1]) - cellPaddingX * 2
+          return wrapText(row[columnIndex], fontRegular, rowFontSize, width)
+        })
+        const rowHeight = Math.max(
+          lineHeight + cellPaddingY * 2,
+          Math.max(...wrapped.map(lines => lines.length), 1) * lineHeight + cellPaddingY * 2,
+        )
+
+        if (y - rowHeight < marginBottom) {
+          page = doc.addPage([pageWidth, pageHeight])
+          workbookPageNumber += 1
+          y = pageHeight - marginTop
+          drawSheetChrome(true)
+          drawSectionHeader()
+        }
+
+        if (rowIndex % 2 === 0) {
+          page.drawRectangle({
+            x: marginX,
+            y: y - rowHeight,
+            width: sectionWidth,
+            height: rowHeight,
+            color: rgb(0.98, 0.97, 0.95),
+          })
+        }
+
+        let x = marginX
+        for (let columnIndex = 0; columnIndex < columnCount; columnIndex += 1) {
+          const width = widths[columnIndex] ?? widths[widths.length - 1]
+          const lines = wrapped[columnIndex]
+
+          page.drawRectangle({
+            x,
+            y: y - rowHeight,
+            width,
+            height: rowHeight,
+            borderWidth: 0.5,
+            borderColor: rgb(0.86, 0.82, 0.78),
+            color: rgb(1, 1, 1),
+            opacity: 0,
+          })
+
+          lines.forEach((line, lineIndex) => {
+            page.drawText(line, {
+              x: x + cellPaddingX,
+              y: y - cellPaddingY - rowFontSize - lineIndex * lineHeight + 2,
+              size: rowFontSize,
+              font: fontRegular,
+              color: rgb(0.15, 0.13, 0.11),
+              maxWidth: width - cellPaddingX * 2,
+            })
+          })
+
+          x += width
+        }
+
+        y -= rowHeight
+      }
+
+      y -= sectionGap
     }
 
-    y -= sectionGap
     if (y > marginBottom + 10) {
       page.drawLine({
         start: { x: marginX, y },

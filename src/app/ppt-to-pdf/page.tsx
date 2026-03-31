@@ -7,7 +7,7 @@ import ToolSidebar from '@/components/ui/ToolSidebar'
 
 const FAQS = [
   { q: 'Is my PowerPoint file uploaded to a server?', a: 'Never. The conversion happens entirely in your browser using JavaScript. Your .pptx file is never uploaded to any server.' },
-  { q: 'Will my slide images and design be preserved?', a: "Doclair extracts text content from each slide and recreates a clean PDF. Images and complex design elements from the original theme are not preserved. For pixel-perfect output, use PowerPoint's built-in Export to PDF feature." },
+  { q: 'Will my slide images and design be preserved?', a: "Doclair preserves common slide backgrounds, text boxes, and simple shapes like rectangles and circles. Complex animations, SmartArt, and advanced PowerPoint-only effects can still simplify. For fully pixel-perfect output, use PowerPoint's built-in Export to PDF feature." },
   { q: 'What file formats are supported?', a: 'The tool supports .pptx (PowerPoint 2007 and later) format. Legacy .ppt files are not currently supported.' },
   { q: 'Can I convert PowerPoint to PDF on iPhone or Android?', a: 'Yes. Doclair works in Safari and Chrome on mobile. Upload your .pptx from the Files app and download the PDF directly.' },
 ]
@@ -21,11 +21,11 @@ const JSON_LD_SCHEMA = {
       applicationCategory: 'UtilitiesApplication',
       operatingSystem: 'Any (browser-based)',
       url: 'https://doclair.in/ppt-to-pdf',
-      description: 'Convert PowerPoint PPTX files to PDF online free. Text and structure extracted. No upload, no watermark.',
+      description: 'Convert PowerPoint PPTX files to PDF online free. Common slide backgrounds, text boxes, and simple shapes are preserved locally in your browser. No upload, no watermark.',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
       featureList: [
-        'Text and structure extracted per slide',
-        'Amber header bar with slide numbers',
+        'Backgrounds, text boxes, and simple shapes preserved',
+        'Slide-by-slide PDF recreation in the browser',
         'Browser-only conversion, no upload',
         'No watermark',
       ],
@@ -62,19 +62,124 @@ const sidebar = (
   />
 )
 
-// PPTX is a ZIP. We parse slides via JSZip + DOMParser to extract text and build a basic PDF.
-// Each slide becomes a page with text rendered in pdf-lib.
+// PPTX is a ZIP. We parse core slide XML for solid backgrounds, simple shapes,
+// and positioned text boxes so the exported PDF stays much closer to the source deck.
+
+interface SlideTextParagraph {
+  text: string
+  fontSize: number
+  color?: string
+  bold: boolean
+  align: 'left' | 'center'
+}
+
+interface SlideShape {
+  kind: 'rect' | 'ellipse' | 'text'
+  x: number
+  y: number
+  width: number
+  height: number
+  fill?: string
+  stroke?: string
+  strokeWidth: number
+  verticalAlign: 'top' | 'center'
+  insetLeft: number
+  insetTop: number
+  insetRight: number
+  insetBottom: number
+  paragraphs: SlideTextParagraph[]
+}
 
 interface Slide {
   index: number
   title: string
   body: string[]
+  width: number
+  height: number
+  background?: string
+  shapes: SlideShape[]
+}
+
+function parseHexColor(element?: Element | null): string | undefined {
+  const solid = element?.querySelector('solidFill')
+  const srgb = solid?.querySelector('srgbClr')
+  return srgb?.getAttribute('val') ?? undefined
+}
+
+function emuAttr(element: Element | null | undefined, attr: string, fallback = 0) {
+  return Number(element?.getAttribute(attr) ?? fallback)
+}
+
+function pointsFromEmu(value: number) {
+  return value / 12700
+}
+
+function normalizeText(value: string) {
+  return value.replace(/\s+/g, ' ').trim()
+}
+
+function paragraphFromNode(node: Element): SlideTextParagraph | null {
+  const text = normalizeText(Array.from(node.querySelectorAll('t')).map(t => t.textContent || '').join(' '))
+  if (!text) return null
+
+  const paragraphProps = node.querySelector(':scope > pPr')
+  const runProps = node.querySelector('rPr, endParaRPr')
+  const color = parseHexColor(runProps)
+  const fontSize = Number(runProps?.getAttribute('sz') ?? 1800) / 100
+  const bold = runProps?.getAttribute('b') === '1'
+  const align = paragraphProps?.getAttribute('algn') === 'ctr' ? 'center' : 'left'
+
+  return { text, fontSize, color, bold, align }
+}
+
+function shapeFromNode(node: Element): SlideShape | null {
+  const transform = node.querySelector('spPr xfrm')
+  if (!transform) return null
+
+  const off = transform.querySelector('off')
+  const ext = transform.querySelector('ext')
+  if (!off || !ext) return null
+
+  const geometry = node.querySelector('spPr prstGeom')
+  const preset = geometry?.getAttribute('prst') ?? 'rect'
+  const shapeKind: SlideShape['kind'] = preset === 'ellipse' ? 'ellipse' : 'rect'
+
+  const shapeProps = node.querySelector('spPr')
+  const line = shapeProps?.querySelector('ln')
+  const bodyProps = node.querySelector('txBody bodyPr')
+  const paragraphs = Array.from(node.querySelectorAll('txBody p'))
+    .map(paragraph => paragraphFromNode(paragraph))
+    .filter((paragraph): paragraph is SlideTextParagraph => Boolean(paragraph))
+
+  return {
+    kind: paragraphs.length > 0 && !parseHexColor(shapeProps) && !parseHexColor(line) ? 'text' : shapeKind,
+    x: emuAttr(off, 'x'),
+    y: emuAttr(off, 'y'),
+    width: emuAttr(ext, 'cx'),
+    height: emuAttr(ext, 'cy'),
+    fill: parseHexColor(shapeProps),
+    stroke: parseHexColor(line),
+    strokeWidth: Math.max(0.75, pointsFromEmu(emuAttr(line, 'w', 12700))),
+    verticalAlign: bodyProps?.getAttribute('anchor') === 'ctr' ? 'center' : 'top',
+    insetLeft: emuAttr(bodyProps, 'lIns', 91440),
+    insetTop: emuAttr(bodyProps, 'tIns', 45720),
+    insetRight: emuAttr(bodyProps, 'rIns', 91440),
+    insetBottom: emuAttr(bodyProps, 'bIns', 45720),
+    paragraphs,
+  }
 }
 
 async function parsePptx(file: File): Promise<Slide[]> {
   const JSZip = (await import('jszip')).default
   const zip = await JSZip.loadAsync(await file.arrayBuffer())
   const slides: Slide[] = []
+  const parser = new DOMParser()
+
+  const presentationXml = await zip.files['ppt/presentation.xml']?.async('string')
+  const presentationDoc = presentationXml ? parser.parseFromString(presentationXml, 'text/xml') : null
+  const slideSize = presentationDoc?.querySelector('sldSz')
+  const slideWidth = Number(slideSize?.getAttribute('cx') ?? 12192000)
+  const slideHeight = Number(slideSize?.getAttribute('cy') ?? 6858000)
 
   // Find slide XML files (ppt/slides/slide1.xml, slide2.xml, ...)
   const slideFiles = Object.keys(zip.files)
@@ -87,29 +192,59 @@ async function parsePptx(file: File): Promise<Slide[]> {
 
   for (let i = 0; i < slideFiles.length; i++) {
     const xml = await zip.files[slideFiles[i]].async('string')
-    const parser = new DOMParser()
     const doc = parser.parseFromString(xml, 'text/xml')
+    const shapes = Array.from(doc.querySelectorAll('spTree > sp'))
+      .map(shape => shapeFromNode(shape))
+      .filter((shape): shape is SlideShape => Boolean(shape))
+      .sort((left, right) => (left.y === right.y ? left.x - right.x : left.y - right.y))
 
-    // Extract all text runs
-    const textNodes = doc.querySelectorAll('r > t, t')
-    const allText: string[] = []
-    textNodes.forEach(t => { if (t.textContent?.trim()) allText.push(t.textContent.trim()) })
+    const textParagraphs = shapes
+      .flatMap(shape => shape.paragraphs.map(paragraph => ({ paragraph, y: shape.y })))
+      .sort((left, right) => left.y - right.y)
+      .map(item => item.paragraph.text)
 
-    // Heuristic: first non-empty paragraph is title
-    const paragraphs = doc.querySelectorAll('p')
-    let title = ''
-    const body: string[] = []
-    let foundTitle = false
-    paragraphs.forEach(p => {
-      const text = Array.from(p.querySelectorAll('t')).map(t => t.textContent || '').join('').trim()
-      if (!text) return
-      if (!foundTitle) { title = text; foundTitle = true }
-      else body.push(text)
+    slides.push({
+      index: i + 1,
+      title: textParagraphs[0] ?? '',
+      body: textParagraphs.slice(1),
+      width: slideWidth,
+      height: slideHeight,
+      background: parseHexColor(doc.querySelector('bgPr')),
+      shapes,
     })
-
-    slides.push({ index: i + 1, title, body })
   }
   return slides
+}
+
+function hexToRgb(hex?: string) {
+  const value = (hex ?? '').replace('#', '').trim()
+  if (value.length !== 6) return null
+  const parsed = Number.parseInt(value, 16)
+  if (Number.isNaN(parsed)) return null
+  return {
+    r: ((parsed >> 16) & 255) / 255,
+    g: ((parsed >> 8) & 255) / 255,
+    b: (parsed & 255) / 255,
+  }
+}
+
+function wrapText(text: string, measure: (value: string) => number, maxWidth: number) {
+  const words = text.split(/\s+/).filter(Boolean)
+  if (words.length === 0) return ['']
+
+  const lines: string[] = []
+  let current = ''
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word
+    if (measure(next) <= maxWidth) {
+      current = next
+      continue
+    }
+    if (current) lines.push(current)
+    current = word
+  }
+  if (current) lines.push(current)
+  return lines
 }
 
 export default function PptToPdfPage() {
@@ -133,55 +268,121 @@ export default function PptToPdfPage() {
       const fontBold = await out.embedFont(StandardFonts.HelveticaBold)
       const fontReg  = await out.embedFont(StandardFonts.Helvetica)
 
-      // 16:9 slide dimensions (pts)
-      const W = 960, H = 540
-
       for (const slide of parsedSlides) {
+        const W = 960
+        const H = Math.round(W * (slide.height / slide.width))
+        const scaleX = W / slide.width
+        const scaleY = H / slide.height
         const page = out.addPage([W, H])
-        // Background
-        page.drawRectangle({ x: 0, y: 0, width: W, height: H, color: rgb(1, 1, 1) })
-        // Amber header bar
-        page.drawRectangle({ x: 0, y: H - 8, width: W, height: 8, color: rgb(0.96, 0.62, 0.04) })
-        // Slide number
-        page.drawText(String(slide.index), { x: W - 32, y: 12, size: 11, font: fontReg, color: rgb(0.7, 0.7, 0.7) })
-        // Title
-        if (slide.title) {
-          const titleSize = 32
-          const maxTitleWidth = W - 80
-          let title = slide.title
-          while (fontBold.widthOfTextAtSize(title, titleSize) > maxTitleWidth && title.length > 10) {
-            title = title.slice(0, -4) + '…'
-          }
-          page.drawText(title, { x: 40, y: H - 80, size: titleSize, font: fontBold, color: rgb(0.1, 0.09, 0.07) })
+
+        const background = hexToRgb(slide.background ?? 'FFFFFF')
+        if (background) {
+          page.drawRectangle({ x: 0, y: 0, width: W, height: H, color: rgb(background.r, background.g, background.b) })
         }
-        // Horizontal rule
-        page.drawLine({ start: { x: 40, y: H - 100 }, end: { x: W - 40, y: H - 100 }, thickness: 1, color: rgb(0.9, 0.9, 0.9) })
-        // Body text
-        let yPos = H - 130
-        for (const line of slide.body) {
-          if (yPos < 40) break
-          // Bullet
-          page.drawText('•', { x: 40, y: yPos, size: 14, font: fontReg, color: rgb(0.96, 0.62, 0.04) })
-          // Wrap text
-          const bodySize = 16
-          const maxW = W - 100
-          let remaining = line
-          while (remaining.length > 0) {
-            let chunk = remaining
-            while (fontReg.widthOfTextAtSize(chunk, bodySize) > maxW && chunk.length > 1) {
-              chunk = chunk.slice(0, -1)
-            }
-            // Try to break at word boundary
-            if (chunk.length < remaining.length) {
-              const lastSpace = chunk.lastIndexOf(' ')
-              if (lastSpace > 0) chunk = chunk.slice(0, lastSpace)
-            }
-            page.drawText(chunk, { x: 56, y: yPos, size: bodySize, font: fontReg, color: rgb(0.2, 0.2, 0.2) })
-            remaining = remaining.slice(chunk.length).trimStart()
-            yPos -= 24
+
+        for (const shape of slide.shapes) {
+          const x = shape.x * scaleX
+          const y = H - (shape.y + shape.height) * scaleY
+          const width = shape.width * scaleX
+          const height = shape.height * scaleY
+          const fill = hexToRgb(shape.fill)
+          const stroke = hexToRgb(shape.stroke)
+
+          if (shape.kind === 'rect' && (fill || stroke)) {
+            page.drawRectangle({
+              x,
+              y,
+              width,
+              height,
+              color: fill ? rgb(fill.r, fill.g, fill.b) : undefined,
+              borderColor: stroke ? rgb(stroke.r, stroke.g, stroke.b) : undefined,
+              borderWidth: stroke ? Math.max(0.75, shape.strokeWidth * Math.min(scaleX, scaleY)) : 0,
+            })
           }
-          yPos -= 8
+
+          if (shape.kind === 'ellipse' && (fill || stroke)) {
+            page.drawEllipse({
+              x: x + width / 2,
+              y: y + height / 2,
+              xScale: width / 2,
+              yScale: height / 2,
+              color: fill ? rgb(fill.r, fill.g, fill.b) : undefined,
+              borderColor: stroke ? rgb(stroke.r, stroke.g, stroke.b) : undefined,
+              borderWidth: stroke ? Math.max(0.75, shape.strokeWidth * Math.min(scaleX, scaleY)) : 0,
+            })
+          }
+
+          if (shape.paragraphs.length === 0) continue
+
+          const insetLeft = Math.max(6, shape.insetLeft * scaleX)
+          const insetTop = Math.max(6, shape.insetTop * scaleY)
+          const insetRight = Math.max(6, shape.insetRight * scaleX)
+          const insetBottom = Math.max(6, shape.insetBottom * scaleY)
+          const textWidth = Math.max(12, width - insetLeft - insetRight)
+          const textHeightLimit = Math.max(12, height - insetTop - insetBottom)
+
+          const renderedParagraphs = shape.paragraphs.map(paragraph => {
+            const font = paragraph.bold ? fontBold : fontReg
+            // PPTX text sizes are already points (stored as 1/100 pt in XML),
+            // and our PDF page coordinates are also point-based.
+            let fontSize = Math.max(9, paragraph.fontSize)
+            let lineHeight = fontSize * 1.15
+            let lines = wrapText(paragraph.text, value => font.widthOfTextAtSize(value, fontSize), textWidth)
+
+            // Fit single text-box paragraphs back into their intended bounds.
+            if (shape.paragraphs.length === 1) {
+              while (fontSize > 9 && lines.length * lineHeight > textHeightLimit) {
+                fontSize -= 0.5
+                lineHeight = fontSize * 1.15
+                lines = wrapText(paragraph.text, value => font.widthOfTextAtSize(value, fontSize), textWidth)
+              }
+            }
+
+            return {
+              ...paragraph,
+              font,
+              fontSize,
+              lines,
+              lineHeight,
+            }
+          })
+
+          const textHeight = renderedParagraphs.reduce((sum, paragraph, index) => (
+            sum + paragraph.lines.length * paragraph.lineHeight + (index < renderedParagraphs.length - 1 ? paragraph.fontSize * 0.35 : 0)
+          ), 0)
+
+          let cursorY = y + height - insetTop - renderedParagraphs[0].fontSize
+          if (shape.verticalAlign === 'center') {
+            cursorY = y + (height + textHeight) / 2 - renderedParagraphs[0].fontSize
+          }
+
+          for (const paragraph of renderedParagraphs) {
+            const color = hexToRgb(paragraph.color ?? '111827') ?? { r: 0.07, g: 0.09, b: 0.16 }
+            for (const line of paragraph.lines) {
+              const lineWidth = paragraph.font.widthOfTextAtSize(line, paragraph.fontSize)
+              const textX = paragraph.align === 'center'
+                ? x + (width - lineWidth) / 2
+                : x + insetLeft
+              page.drawText(line, {
+                x: textX,
+                y: cursorY,
+                size: paragraph.fontSize,
+                font: paragraph.font,
+                color: rgb(color.r, color.g, color.b),
+              })
+              cursorY -= paragraph.lineHeight
+            }
+            cursorY -= paragraph.fontSize * 0.35
+          }
         }
+
+        page.drawText(String(slide.index), {
+          x: W - 18 - fontReg.widthOfTextAtSize(String(slide.index), 9),
+          y: 8,
+          size: 9,
+          font: fontReg,
+          color: rgb(0.7, 0.7, 0.7),
+        })
       }
 
       const bytes = await out.save()
@@ -214,12 +415,12 @@ export default function PptToPdfPage() {
           <span style={{ color: 'var(--amber)' }}>Online Free</span>
         </h1>
         <p style={{ fontSize: '16px', fontWeight: 300, color: 'var(--ink)', opacity: 0.65, maxWidth: '520px', marginTop: '12px', lineHeight: 1.6 }}>
-          Convert .pptx slides to PDF in your browser. Text and structure extracted per slide — no upload, no watermark.
+          Convert .pptx slides to PDF in your browser. Common slide backgrounds, text boxes, and simple shapes stay much closer to the original deck — no upload, no watermark.
         </p>
       </div>
 
       <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#1e40af', maxWidth: 560 }}>
-        <strong>Note:</strong> Extracts text content. Images and complex formatting from the original slide design are not preserved. For pixel-perfect conversion, use PowerPoint&apos;s built-in Export to PDF.
+        <strong>Note:</strong> Solid-fill backgrounds, text boxes, and basic shapes are preserved. Heavy animations, SmartArt, and advanced PowerPoint-only effects can still simplify.
       </div>
 
       {!saving && !done && (
@@ -284,7 +485,7 @@ export default function PptToPdfPage() {
 
         <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '18px', marginTop: '28px', marginBottom: '10px' }}>What content is preserved?</h3>
         <p style={{ lineHeight: 1.7, color: 'var(--ink)', opacity: 0.75 }}>
-          Text from each slide title and body is extracted and laid out cleanly. Each slide becomes one PDF page with an amber header bar and slide number. Complex backgrounds, images, and theme graphics from the PPTX are not reproduced.
+          Text boxes, solid slide backgrounds, and common shapes like rectangles and circles are reproduced directly from the slide XML. Each slide becomes one PDF page with its original positioning kept as closely as possible in the browser.
         </p>
 
         <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '18px', marginTop: '28px', marginBottom: '10px' }}>Why use browser-based conversion?</h3>

@@ -21,7 +21,6 @@ type SheetSize = 'A4' | 'Letter'
 function bookletOrder(total: number): [number, number][] {
   // total must be multiple of 4 — pad with blank pages
   const padded = Math.ceil(total / 4) * 4
-  const pages = Array.from({ length: padded }, (_, i) => i) // 0-indexed; >= total = blank
   const sheets: [number, number][] = []
   let l = 0, r = padded - 1
   while (l < r) {
@@ -94,21 +93,10 @@ export default function PDFToBookletPage() {
     setSaving(true); setDone(false); setErrorMessage('')
     try {
       const { PDFDocument } = await import('@cantoo/pdf-lib')
-      const pdfjsLib = (await import('pdfjs-dist')).default ?? await import('pdfjs-dist')
-      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
-      const src = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise
-      const total = src.numPages
-
-      // Render source pages to images
-      const pageImgs: (string | null)[] = [] // null = blank
-      for (let i = 1; i <= total; i++) {
-        const page = await src.getPage(i)
-        const vp = page.getViewport({ scale: 1.5 })
-        const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (page.render as any)({ canvasContext: c.getContext('2d'), viewport: vp }).promise
-        pageImgs.push(c.toDataURL('image/jpeg', 0.88))
-      }
+      const sourceBytes = await file.arrayBuffer()
+      const srcDoc = await PDFDocument.load(sourceBytes)
+      const srcPages = srcDoc.getPages()
+      const total = srcPages.length
 
       // Sheet dimensions: landscape for booklet printing
       const SIZES: Record<SheetSize, [number, number]> = { A4: [842, 595], Letter: [792, 612] }
@@ -119,43 +107,38 @@ export default function PDFToBookletPage() {
 
       const out = await PDFDocument.create()
       const order = bookletOrder(total)
+      const embeddedPages = await Promise.all(srcPages.map(page => out.embedPage(page)))
+      const font = await out.embedFont('Helvetica' as unknown as Parameters<typeof out.embedFont>[0])
 
       for (const [leftIdx, rightIdx] of order) {
         const sheet = out.addPage([sheetW, sheetH])
 
-        const drawCell = async (idx: number, x: number) => {
+        const drawCell = (idx: number, x: number) => {
           if (idx >= total) return // blank page
-          const imgEl = new Image()
-          await new Promise<void>(r => { imgEl.onload = () => r(); imgEl.src = pageImgs[idx]! })
-          const buf = await new Promise<ArrayBuffer>(r => {
-            const oc = document.createElement('canvas'); oc.width = imgEl.naturalWidth; oc.height = imgEl.naturalHeight
-            oc.getContext('2d')!.drawImage(imgEl, 0, 0)
-            oc.toBlob(async b => r(await b!.arrayBuffer()), 'image/jpeg', 0.88)
-          })
-          const pdfImg = await out.embedJpg(buf)
-          const ratio = pdfImg.width / pdfImg.height
+          const embeddedPage = embeddedPages[idx]
+          const ratio = embeddedPage.width / embeddedPage.height
           let dw = cellW, dh = cellH
           if (cellW / cellH > ratio) dw = cellH * ratio; else dh = cellW / ratio
           const dx = x + (cellW - dw) / 2
           const dy = margin + (cellH - dh) / 2
-          sheet.drawImage(pdfImg, { x: dx, y: dy, width: dw, height: dh })
+          sheet.drawPage(embeddedPage, { x: dx, y: dy, width: dw, height: dh })
         }
 
-        await drawCell(leftIdx, margin)
-        await drawCell(rightIdx, margin * 2 + cellW)
+        drawCell(leftIdx, margin)
+        drawCell(rightIdx, margin * 2 + cellW)
 
         // Center fold line
         sheet.drawLine({ start: { x: sheetW / 2, y: 0 }, end: { x: sheetW / 2, y: sheetH }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) })
         // Page numbers
-        const font = await out.embedFont('Helvetica' as unknown as Parameters<typeof out.embedFont>[0])
         const leftPg = leftIdx < total ? String(leftIdx + 1) : ''
         const rightPg = rightIdx < total ? String(rightIdx + 1) : ''
         if (leftPg) sheet.drawText(leftPg, { x: margin + 4, y: 4, size: 7, font, color: rgb(0.6, 0.6, 0.6) })
         if (rightPg) sheet.drawText(rightPg, { x: margin * 2 + cellW + 4, y: 4, size: 7, font, color: rgb(0.6, 0.6, 0.6) })
       }
 
-      const bytes = await out.save()
-      const blob = new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' })
+      const outputBytes = await out.save()
+      const outputBuffer = Uint8Array.from(outputBytes).buffer as ArrayBuffer
+      const blob = new Blob([outputBuffer], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a'); a.href = url
       a.download = file.name.replace(/\.pdf$/i, '-booklet.pdf'); a.click()

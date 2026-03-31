@@ -89,24 +89,11 @@ export default function PDFImpositionPage() {
     setSaving(true); setErrorMessage('')
     try {
       const { PDFDocument } = await import('@cantoo/pdf-lib')
-      const pdfjsLib = (await import('pdfjs-dist')).default ?? await import('pdfjs-dist')
-      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
-
-      const src = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise
+      const sourceBytes = await file.arrayBuffer()
+      const srcDoc = await PDFDocument.load(sourceBytes)
+      const srcPages = srcDoc.getPages()
       const { cols, rows } = NUP_CONFIG[nup]
       const nPerSheet = cols * rows
-
-      // Render all source pages to images at consistent scale
-      const scale = 1.5
-      const pageImgs: string[] = []
-      for (let i = 1; i <= src.numPages; i++) {
-        const page = await src.getPage(i)
-        const vp = page.getViewport({ scale })
-        const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (page.render as any)({ canvasContext: c.getContext('2d'), viewport: vp }).promise
-        pageImgs.push(c.toDataURL('image/jpeg', 0.88))
-      }
 
       let [sheetW, sheetH] = PAGE_SIZES[pageSize]
       if (landscape) [sheetW, sheetH] = [sheetH, sheetW]
@@ -115,33 +102,28 @@ export default function PDFImpositionPage() {
       const cellH = (sheetH - margin * (rows + 1)) / rows
 
       const out = await PDFDocument.create()
+      const embeddedPages = await Promise.all(srcPages.map(page => out.embedPage(page)))
       let pageIdx = 0
-      while (pageIdx < pageImgs.length) {
+      while (pageIdx < embeddedPages.length) {
         const sheet = out.addPage([sheetW, sheetH])
-        for (let slot = 0; slot < nPerSheet && pageIdx < pageImgs.length; slot++, pageIdx++) {
+        for (let slot = 0; slot < nPerSheet && pageIdx < embeddedPages.length; slot++, pageIdx++) {
           const col = slot % cols
           const row = Math.floor(slot / cols)
-          const imgEl = new Image()
-          await new Promise<void>(r => { imgEl.onload = () => r(); imgEl.src = pageImgs[pageIdx] })
-          const buf = await new Promise<ArrayBuffer>(r => {
-            const oc = document.createElement('canvas'); oc.width = imgEl.naturalWidth; oc.height = imgEl.naturalHeight
-            oc.getContext('2d')!.drawImage(imgEl, 0, 0)
-            oc.toBlob(async b => r(await b!.arrayBuffer()), 'image/jpeg', 0.88)
-          })
-          const pdfImg = await out.embedJpg(buf)
+          const embeddedPage = embeddedPages[pageIdx]
           // Fit image into cell preserving aspect ratio
-          const imgRatio = pdfImg.width / pdfImg.height
+          const imgRatio = embeddedPage.width / embeddedPage.height
           let dw = cellW, dh = cellH
           if (cellW / cellH > imgRatio) { dw = cellH * imgRatio } else { dh = cellW / imgRatio }
           const dx = margin + col * (cellW + margin) + (cellW - dw) / 2
-          // PDF y is from bottom
-          const dy = sheetH - margin - (row + 1) * (cellH + margin) + margin + (cellH - dh) / 2
-          sheet.drawImage(pdfImg, { x: dx, y: dy, width: dw, height: dh })
+          const slotTop = sheetH - margin - row * (cellH + margin)
+          const dy = slotTop - cellH + (cellH - dh) / 2
+          sheet.drawPage(embeddedPage, { x: dx, y: dy, width: dw, height: dh })
         }
       }
 
-      const bytes = await out.save()
-      const blob = new Blob([bytes.buffer as ArrayBuffer], { type: 'application/pdf' })
+      const outputBytes = await out.save()
+      const outputBuffer = Uint8Array.from(outputBytes).buffer as ArrayBuffer
+      const blob = new Blob([outputBuffer], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a'); a.href = url
       a.download = file.name.replace(/\.pdf$/i, `-${nup}up.pdf`); a.click()

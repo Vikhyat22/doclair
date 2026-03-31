@@ -26,7 +26,7 @@ const FAQS = [
   },
   {
     q: 'What if my CSV has many columns?',
-    a: 'Column width is distributed evenly across the page. Very long cell values are truncated at 30 characters to fit the layout.',
+    a: 'Doclair sizes columns based on the actual content, wraps longer values across lines, and repeats the header row on new pages when the table spans multiple sheets.',
   },
 ]
 
@@ -132,7 +132,7 @@ export default function CSVToPDFPage() {
             <span style={{ color: 'var(--amber)' }}>Convert Spreadsheet Data to PDF</span>
           </h1>
           <p style={{ color: 'var(--muted)', fontSize: '16px', lineHeight: 1.6, maxWidth: '640px', marginBottom: '16px' }}>
-            Convert CSV files to a formatted PDF table. Headers highlighted, rows alternating. Free, no upload.
+            Convert CSV files to a clean PDF report table with wrapped cells, repeated headers, and smarter numeric alignment. Free, no upload.
           </p>
         </div>
 
@@ -189,15 +189,15 @@ export default function CSVToPDFPage() {
           </p>
           <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
             <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Drop your CSV file or click to upload.</strong> Standard comma-separated files are supported.</li>
-            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Doclair parses the file and shows a preview of the data.</strong> Headers are detected automatically.</li>
-            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Optionally adjust column widths or font size.</strong> Fine-tune the layout before exporting.</li>
-            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Save as PDF — your browser&apos;s print dialog opens.</strong> Select &apos;Save as PDF&apos; and download.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Doclair parses the table and detects the header row automatically.</strong> Column widths are sized from the actual content instead of being forced evenly.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Longer values wrap across lines and numeric columns align neatly.</strong> This keeps invoices, reports, and exports much more readable.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Convert to PDF and download the finished file.</strong> Everything happens locally in your browser.</li>
           </ol>
           <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
             Will my column headers be preserved?
           </h3>
           <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>
-            Yes. The first row of the CSV is treated as headers and formatted in bold. All other rows are displayed as table rows with alternating background colours for readability.
+            Yes. The first row of the CSV is treated as headers and formatted in bold, and those headers are repeated automatically when the table continues onto another page.
           </p>
           <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>
             CSV to PDF on iPhone and Android

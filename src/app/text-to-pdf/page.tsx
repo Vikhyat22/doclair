@@ -21,7 +21,7 @@ const FAQS = [
   },
   {
     q: 'Will line breaks be preserved?',
-    a: 'Yes. Each line break in your text creates a new line. Consecutive blank lines become paragraph spacing.',
+    a: 'Yes. Line breaks are preserved, blank lines become paragraph spacing, and simple headings or bullet lists are styled more clearly in the generated PDF.',
   },
   {
     q: 'Is my text uploaded anywhere?',
@@ -71,7 +71,6 @@ export default function TextToPDFPage() {
   const [text, setText]           = useState('')
   const [toolState, setToolState] = useState<ToolState>('idle')
   const [result, setResult]       = useState<Uint8Array | null>(null)
-  const [error, setError]         = useState('')
   const [errorMessage, setErrorMessage] = useState('')
 
   const [fontFamily, setFontFamily] = useState<TextToPdfOptions['fontFamily']>('sans')
@@ -81,14 +80,12 @@ export default function TextToPDFPage() {
   const handleConvert = useCallback(async () => {
     if (!text.trim()) return
     setToolState('processing')
-    setError('')
     try {
       const out = await textToPDF(text, { fontSize, fontFamily, lineHeight: 1.5, margin: 50, pageSize })
       setResult(out)
       setToolState('done')
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to convert text'
-      setError(msg)
       setErrorMessage(msg)
       setToolState('error')
     }
@@ -106,7 +103,7 @@ export default function TextToPDFPage() {
   }, [result])
 
   const handleReset = useCallback(() => {
-    setResult(null); setError(''); setErrorMessage(''); setToolState('idle')
+    setResult(null); setErrorMessage(''); setToolState('idle')
   }, [])
 
   const selectStyle: React.CSSProperties = {
@@ -131,7 +128,7 @@ export default function TextToPDFPage() {
             <span style={{ color: 'var(--amber)' }}>Convert Plain Text to PDF</span>
           </h1>
           <p style={{ color: 'var(--muted)', fontSize: '16px', lineHeight: 1.6, maxWidth: '640px', marginBottom: '16px' }}>
-            Paste any plain text and convert to a formatted PDF document. Choose font, size and margins. Free, no upload.
+            Paste any plain text and convert it into a cleaner PDF document with better paragraph flow, heading treatment, and list formatting. Free, no upload.
           </p>
         </div>
 
@@ -219,7 +216,7 @@ export default function TextToPDFPage() {
           <ol style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px' }}>
             <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Paste your text into the editor or upload a .txt file.</strong> The text area accepts any plain text content.</li>
             <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Choose font size and page size.</strong> Select A4 or Letter and pick from Sans-serif, Serif, or Monospace fonts.</li>
-            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Create PDF.</strong> The PDF is generated instantly in your browser with no upload required.</li>
+            <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Convert to PDF.</strong> Paragraphs, simple headings, and bullet lists are laid out into a cleaner document automatically.</li>
             <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Download the PDF file.</strong> Save it to your device and share or print as needed.</li>
           </ol>
           <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>When to use Text to PDF?</h3>

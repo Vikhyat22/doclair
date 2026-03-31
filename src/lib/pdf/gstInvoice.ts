@@ -70,6 +70,24 @@ function formatDiscountLabel(discountType: 'percent' | 'amount', discountValue: 
   return discountType === 'percent' ? `${discountValue}%` : formatAmount(discountValue)
 }
 
+function formatDisplayDate(value: string): string {
+  if (!value) return '—'
+  const parsed = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  return new Intl.DateTimeFormat('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(parsed).replace(/,/g, '')
+}
+
+function capLines(lines: string[], maxLines: number): string[] {
+  if (lines.length <= maxLines) return lines
+  const next = lines.slice(0, maxLines)
+  next[maxLines - 1] = `${next[maxLines - 1].replace(/\.*$/, '')}...`
+  return next
+}
+
 function drawCellText(
   page: ReturnType<PDFDocument['addPage']>,
   text: string,
@@ -127,11 +145,24 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   const border = rgb(0.85, 0.83, 0.80)
 
   const interState = isInterState(data.sellerState, data.placeOfSupply)
+  const sellerName = data.sellerName || data.sellerLegalName || 'Your Business'
+  const buyerName = data.buyerName || 'Customer'
+  const invoiceDateLabel = formatDisplayDate(data.invoiceDate)
+  const purchaseOrderDateLabel = data.purchaseOrderDate ? formatDisplayDate(data.purchaseOrderDate) : '—'
+  const supplyTypeLabel = interState ? 'Inter-State (IGST)' : 'Intra-State (CGST + SGST)'
   const logoImage = data.logoDataUrl ? await embedDataUrlImage(doc, data.logoDataUrl) : undefined
+  const margin = 30
+  const contentWidth = width - margin * 2
 
-  page.drawRectangle({ x: 28, y: 26, width: width - 56, height: height - 52, borderColor: border, borderWidth: 1, color: white })
-
-  let y = height - 38
+  page.drawRectangle({
+    x: margin - 2,
+    y: 24,
+    width: width - (margin - 2) * 2,
+    height: height - 48,
+    borderColor: border,
+    borderWidth: 1,
+    color: white,
+  })
 
   const typeLabels: Record<string, string> = {
     'tax-invoice': 'TAX INVOICE',
@@ -140,150 +171,203 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
     'debit-note': 'DEBIT NOTE',
   }
   const typeLabel = typeLabels[data.invoiceType] ?? 'TAX INVOICE'
-  const labelW = fontB.widthOfTextAtSize(typeLabel, 14) + 32
-  page.drawRectangle({ x: (width - labelW) / 2, y: y - 24, width: labelW, height: 22, color: ink })
+
+  const bandHeight = 28
+  const bandY = height - margin - bandHeight
+  page.drawRectangle({ x: margin, y: bandY, width: contentWidth, height: bandHeight, color: ink })
   page.drawText(typeLabel, {
-    x: (width - fontB.widthOfTextAtSize(typeLabel, 14)) / 2,
-    y: y - 17,
+    x: margin + 14,
+    y: bandY + 8,
     size: 14,
     font: fontB,
     color: white,
   })
-  y -= 36
+  const invoiceCode = data.invoiceNumber || 'DRAFT'
+  page.drawText(invoiceCode, {
+    x: width - margin - 14 - fontMonoB.widthOfTextAtSize(invoiceCode, 8.4),
+    y: bandY + 10,
+    size: 8.4,
+    font: fontMonoB,
+    color: white,
+  })
+  page.drawText(invoiceDateLabel, {
+    x: width - margin - fontR.widthOfTextAtSize(invoiceDateLabel, 7.5),
+    y: bandY - 14,
+    size: 7.5,
+    font: fontR,
+    color: muted,
+  })
 
-  const colW = (width - 96) / 3
-  const colY = y
-  const columnXs = [40, 40 + colW + 8, 40 + (colW + 8) * 2]
+  let y = bandY - 22
+  const headerHeight = 128
+  const headerBottom = y - headerHeight
+  const sellerW = 168
+  const buyerW = 165
+  const blockGap = 16
+  const metaW = contentWidth - sellerW - buyerW - blockGap * 2
+  const sellerX = margin + 10
+  const buyerX = sellerX + sellerW + blockGap
+  const metaX = buyerX + buyerW + blockGap
 
-  page.drawRectangle({ x: 40, y: colY - 118, width: width - 80, height: 126, color: panelBg })
+  page.drawRectangle({ x: margin, y: headerBottom, width: contentWidth, height: headerHeight, color: panelBg })
+  page.drawLine({ start: { x: buyerX - 8, y }, end: { x: buyerX - 8, y: headerBottom + 10 }, thickness: 0.5, color: border })
+  page.drawLine({ start: { x: metaX - 8, y }, end: { x: metaX - 8, y: headerBottom + 10 }, thickness: 0.5, color: border })
 
-  let ys = colY
+  let ys = y - 2
   if (logoImage) {
-    const scale = Math.min(80 / logoImage.width, 42 / logoImage.height, 1)
+    const scale = Math.min(44 / logoImage.width, 28 / logoImage.height, 1)
     const logoW = logoImage.width * scale
     const logoH = logoImage.height * scale
-    page.drawImage(logoImage, { x: 40, y: ys - logoH + 2, width: logoW, height: logoH })
-    ys -= logoH + 10
+    page.drawImage(logoImage, { x: sellerX, y: ys - logoH + 1, width: logoW, height: logoH })
+    page.drawText('FROM', { x: sellerX + logoW + 10, y: ys, size: 6.5, font: fontB, color: amber })
+    ys -= 12
+    page.drawText(sellerName, {
+      x: sellerX + logoW + 10,
+      y: ys,
+      size: 11,
+      font: fontB,
+      color: ink,
+      maxWidth: sellerW - logoW - 18,
+    })
+    ys -= 14
+  } else {
+    page.drawText('FROM', { x: sellerX, y: ys, size: 6.5, font: fontB, color: amber })
+    ys -= 12
+    page.drawText(sellerName, { x: sellerX, y: ys, size: 11, font: fontB, color: ink, maxWidth: sellerW - 10 })
+    ys -= 14
   }
-  page.drawText('FROM', { x: columnXs[0], y: ys, size: 7, font: fontB, color: amber })
-  ys -= 12
-  page.drawText(data.sellerName, { x: columnXs[0], y: ys, size: 11, font: fontB, color: ink, maxWidth: colW - 10 })
-  ys -= 14
-  if (data.sellerLegalName) {
-    page.drawText(`Legal: ${data.sellerLegalName}`, { x: columnXs[0], y: ys, size: 8, font: fontR, color: muted, maxWidth: colW - 10 })
+  if (data.sellerLegalName && data.sellerLegalName !== sellerName) {
+    page.drawText(`Legal: ${data.sellerLegalName}`, { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted, maxWidth: sellerW - 10 })
     ys -= 10
   }
-  ys = drawParagraph(page, wrapText(data.sellerAddress, fontR, 8, colW - 10), columnXs[0], ys, fontR, 8, muted)
+  ys = drawParagraph(page, capLines(wrapText(data.sellerAddress || '—', fontR, 7.4, sellerW - 10), 3), sellerX, ys, fontR, 7.4, muted)
+  page.drawText(`State: ${data.sellerState || '—'}`, { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted })
+  ys -= 10
   if (data.sellerPhone) {
-    page.drawText(`Ph: ${data.sellerPhone}`, { x: columnXs[0], y: ys, size: 8, font: fontR, color: muted })
+    page.drawText(`Ph: ${data.sellerPhone}`, { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted })
     ys -= 10
   }
   if (data.sellerEmail) {
-    page.drawText(data.sellerEmail, { x: columnXs[0], y: ys, size: 8, font: fontR, color: muted })
+    page.drawText(data.sellerEmail, { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted, maxWidth: sellerW - 10 })
     ys -= 10
   }
   if (data.sellerWebsite) {
-    page.drawText(data.sellerWebsite, { x: columnXs[0], y: ys, size: 8, font: fontR, color: muted })
+    page.drawText(data.sellerWebsite, { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted, maxWidth: sellerW - 10 })
     ys -= 10
   }
   if (data.sellerGSTIN) {
-    page.drawText(`GSTIN ${data.sellerGSTIN}`, { x: columnXs[0], y: ys, size: 8, font: fontB, color: ink })
+    page.drawText(`GSTIN ${data.sellerGSTIN}`, { x: sellerX, y: ys, size: 7.6, font: fontB, color: ink })
     ys -= 10
   }
   if (data.sellerPAN) {
-    page.drawText(`PAN ${data.sellerPAN}`, { x: columnXs[0], y: ys, size: 8, font: fontR, color: muted })
+    page.drawText(`PAN ${data.sellerPAN}`, { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted })
     ys -= 10
   }
 
-  let yb = colY
-  const bx = columnXs[1]
-  page.drawText('BILL TO', { x: bx, y: yb, size: 7, font: fontB, color: amber })
+  let yb = y - 2
+  page.drawText('BILL TO', { x: buyerX, y: yb, size: 6.5, font: fontB, color: amber })
   yb -= 12
-  page.drawText(data.buyerName, { x: bx, y: yb, size: 11, font: fontB, color: ink, maxWidth: colW - 10 })
+  page.drawText(buyerName, { x: buyerX, y: yb, size: 11, font: fontB, color: ink, maxWidth: buyerW - 10 })
   yb -= 14
-  yb = drawParagraph(page, wrapText(data.buyerAddress, fontR, 8, colW - 10), bx, yb, fontR, 8, muted)
-  page.drawText(`State: ${data.buyerState}`, { x: bx, y: yb, size: 8, font: fontR, color: muted })
+  yb = drawParagraph(page, capLines(wrapText(data.buyerAddress || '—', fontR, 7.4, buyerW - 10), 3), buyerX, yb, fontR, 7.4, muted)
+  page.drawText(`State: ${data.buyerState || '—'}`, { x: buyerX, y: yb, size: 7.4, font: fontR, color: muted })
   yb -= 10
   if (data.buyerPhone) {
-    page.drawText(`Ph: ${data.buyerPhone}`, { x: bx, y: yb, size: 8, font: fontR, color: muted })
+    page.drawText(`Ph: ${data.buyerPhone}`, { x: buyerX, y: yb, size: 7.4, font: fontR, color: muted })
     yb -= 10
   }
   if (data.buyerEmail) {
-    page.drawText(data.buyerEmail, { x: bx, y: yb, size: 8, font: fontR, color: muted })
+    page.drawText(data.buyerEmail, { x: buyerX, y: yb, size: 7.4, font: fontR, color: muted, maxWidth: buyerW - 10 })
     yb -= 10
   }
   if (data.buyerGSTIN) {
-    page.drawText(`GSTIN ${data.buyerGSTIN}`, { x: bx, y: yb, size: 8, font: fontB, color: ink })
+    page.drawText(`GSTIN ${data.buyerGSTIN}`, { x: buyerX, y: yb, size: 7.6, font: fontB, color: ink })
     yb -= 10
   }
 
-  let yi = colY
-  const mx = columnXs[2]
+  let yi = y - 2
   const metaRows = [
-    ['INVOICE NO', data.invoiceNumber],
-    ['DATE', data.invoiceDate],
+    ['INVOICE NO', data.invoiceNumber || '—'],
+    ['DATE', invoiceDateLabel],
     ['P.O. NO', data.purchaseOrderNumber || '—'],
-    ['P.O. DATE', data.purchaseOrderDate || '—'],
-    ['PLACE OF SUPPLY', data.placeOfSupply],
+    ['P.O. DATE', purchaseOrderDateLabel],
+    ['PLACE OF SUPPLY', data.placeOfSupply || '—'],
     ['REV. CHARGE', data.reverseCharge ? 'Yes' : 'No'],
-    ['SUPPLY TYPE', interState ? 'Inter-State (IGST)' : 'Intra-State (CGST+SGST)'],
-  ]
-  page.drawText('INVOICE DETAILS', { x: mx, y: yi, size: 7, font: fontB, color: amber })
+    ['SUPPLY TYPE', supplyTypeLabel],
+  ] as const
+  page.drawText('INVOICE DETAILS', { x: metaX, y: yi, size: 6.5, font: fontB, color: amber })
   yi -= 14
   for (const [label, value] of metaRows) {
-    page.drawText(label, { x: mx, y: yi, size: 6.5, font: fontB, color: muted })
+    page.drawText(label, { x: metaX, y: yi, size: 6.4, font: fontB, color: muted })
     yi -= 9
-    page.drawText(value, { x: mx, y: yi, size: 8, font: label === 'SUPPLY TYPE' ? fontB : fontR, color: label === 'SUPPLY TYPE' ? amber : ink, maxWidth: colW - 10 })
+    page.drawText(value, {
+      x: metaX,
+      y: yi,
+      size: label === 'SUPPLY TYPE' ? 7.6 : 7.8,
+      font: label === 'SUPPLY TYPE' ? fontB : fontR,
+      color: label === 'SUPPLY TYPE' ? amber : ink,
+      maxWidth: metaW - 10,
+    })
     yi -= 12
   }
 
-  y = Math.min(ys, yb, yi) - 18
-  page.drawLine({ start: { x: 40, y }, end: { x: width - 40, y }, thickness: 0.5, color: border })
-  y -= 10
+  y = headerBottom - 16
 
   const cols = [
-    { label: '#', x: 40, w: 18, align: 'left' as const },
-    { label: 'Item', x: 60, w: 126, align: 'left' as const },
-    { label: 'HSN', x: 188, w: 34, align: 'left' as const },
-    { label: 'Qty', x: 224, w: 24, align: 'right' as const },
-    { label: 'Unit', x: 250, w: 28, align: 'left' as const },
-    { label: 'Rate', x: 280, w: 46, align: 'right' as const },
-    { label: 'Disc.', x: 328, w: 42, align: 'right' as const },
-    { label: 'Taxable', x: 372, w: 50, align: 'right' as const },
-    { label: 'Tax', x: 424, w: 54, align: 'right' as const },
-    { label: 'Total', x: 480, w: 55, align: 'right' as const },
+    { label: '#', w: 18, align: 'left' as const },
+    { label: 'Description Of Goods / Services', w: 160, align: 'left' as const },
+    { label: 'HSN/SAC', w: 48, align: 'left' as const },
+    { label: 'Unit', w: 32, align: 'left' as const },
+    { label: 'Qty', w: 28, align: 'right' as const },
+    { label: 'Rate', w: 52, align: 'right' as const },
+    { label: 'Disc.', w: 40, align: 'right' as const },
+    { label: 'Taxable', w: 54, align: 'right' as const },
+    { label: 'Tax', w: 48, align: 'right' as const },
+    { label: 'Total', w: 55, align: 'right' as const },
   ]
+  let cursorX = margin
+  const positionedCols = cols.map(col => {
+    const next = { ...col, x: cursorX }
+    cursorX += col.w
+    return next
+  })
 
-  page.drawRectangle({ x: 40, y: y - 16, width: width - 80, height: 16, color: ink })
-  cols.forEach(col => drawCellText(page, col.label, col.x, col.w, y - 11, fontB, 6.5, white, col.align))
+  page.drawRectangle({ x: margin, y: y - 18, width: contentWidth, height: 18, color: ink })
+  positionedCols.forEach(col => drawCellText(page, col.label, col.x, col.w, y - 12, fontB, 6.1, white, col.align))
   y -= 20
 
   data.items.forEach((item, idx) => {
-    const descriptionLines = wrapText(item.description, fontR, 7.2, cols[1].w - 4)
-    const rowH = Math.max(22, descriptionLines.length * 9 + 8)
+    const descriptionLines = capLines(wrapText(item.description || '—', fontR, 7.2, positionedCols[1].w - 6), 3)
+    const taxCaption = item.gstRate === 0
+      ? 'GST exempt'
+      : interState
+        ? `IGST ${item.gstRate}%`
+        : `CGST ${item.gstRate / 2}% + SGST ${item.gstRate / 2}%`
+    const rowH = Math.max(28, descriptionLines.length * 8 + 16)
     if (idx % 2 === 0) {
-      page.drawRectangle({ x: 40, y: y - rowH, width: width - 80, height: rowH, color: lightBg })
+      page.drawRectangle({ x: margin, y: y - rowH, width: contentWidth, height: rowH, color: lightBg })
     }
     const vals = [
       String(idx + 1),
       '',
       item.hsn || '—',
-      String(item.qty),
       item.unit,
+      String(item.qty),
       formatAmount(item.rate),
       formatDiscountLabel(item.discountType, item.discountValue),
       formatAmount(item.taxable),
       formatAmount(item.totalTax),
       formatAmount(item.total),
     ]
-    const centeredY = y - 13 - Math.max(0, (rowH - 22) / 2)
-    cols.forEach((col, ci) => {
+    const centeredY = y - 14 - Math.max(0, (rowH - 28) / 2)
+    positionedCols.forEach((col, ci) => {
       if (ci === 1) {
-        let descY = y - 13
+        let descY = y - 12
         descriptionLines.forEach(line => {
           drawCellText(page, line, col.x, col.w, descY, fontR, 7.2, ink, col.align)
-          descY -= 9
+          descY -= 8
         })
+        drawCellText(page, taxCaption, col.x, col.w, descY - 1, fontR, 6.2, muted, col.align)
         return
       }
       const cellFont = ci >= 3 ? fontMono : fontR
@@ -293,37 +377,51 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   })
 
   y -= 8
-  page.drawLine({ start: { x: 40, y }, end: { x: width - 40, y }, thickness: 0.5, color: border })
-  y -= 14
 
   const hsnRows = summarizeHSNRows(data.items)
   const hsnTop = y
-  const hsnBoxX = 40
-  const hsnBoxW = 280
-  const hsnBoxHeight = Math.max(82, 58 + Math.max(hsnRows.length - 1, 0) * 13)
+  const hsnBoxX = margin
+  const hsnBoxW = 316
+  const summaryGap = 14
+  const totalsBoxX = hsnBoxX + hsnBoxW + summaryGap
+  const totalsBoxW = width - margin - totalsBoxX
+  const hsnBoxHeight = Math.max(80, 56 + Math.max(hsnRows.length - 1, 0) * 13)
   page.drawRectangle({ x: hsnBoxX, y: hsnTop - hsnBoxHeight, width: hsnBoxW, height: hsnBoxHeight, borderColor: border, borderWidth: 1, color: panelBg })
   page.drawText('HSN / SAC SUMMARY', { x: hsnBoxX + 12, y: hsnTop - 17, size: 8, font: fontB, color: amber })
-  const hsnCols = [
-    { label: 'HSN/SAC', x: hsnBoxX + 12 },
-    { label: 'Taxable', x: hsnBoxX + 86 },
-    { label: 'Tax', x: hsnBoxX + 150 },
-    { label: 'Rate', x: hsnBoxX + 210 },
-  ]
+  const hsnCols = interState
+    ? [
+        { label: 'HSN/SAC', x: hsnBoxX + 12 },
+        { label: 'Taxable', x: hsnBoxX + 88 },
+        { label: 'IGST', x: hsnBoxX + 168 },
+        { label: 'Total Tax', x: hsnBoxX + 236 },
+      ]
+    : [
+        { label: 'HSN/SAC', x: hsnBoxX + 12 },
+        { label: 'Taxable', x: hsnBoxX + 82 },
+        { label: 'CGST', x: hsnBoxX + 158 },
+        { label: 'SGST', x: hsnBoxX + 214 },
+        { label: 'Tax', x: hsnBoxX + 268 },
+      ]
   hsnCols.forEach(col => page.drawText(col.label, { x: col.x, y: hsnTop - 31, size: 6.5, font: fontB, color: muted }))
   let hsnY = hsnTop - 45
   for (const row of hsnRows) {
     page.drawText(row.hsn, { x: hsnCols[0].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
     page.drawText(formatAmount(row.taxable), { x: hsnCols[1].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
-    page.drawText(formatAmount(row.totalTax), { x: hsnCols[2].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
-    page.drawText(`${row.gstRate}%`, { x: hsnCols[3].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
+    if (interState) {
+      page.drawText(formatAmount(row.igst), { x: hsnCols[2].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
+      page.drawText(formatAmount(row.totalTax), { x: hsnCols[3].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
+    } else {
+      page.drawText(formatAmount(row.cgst), { x: hsnCols[2].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
+      page.drawText(formatAmount(row.sgst), { x: hsnCols[3].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
+      page.drawText(formatAmount(row.totalTax), { x: hsnCols[4].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
+    }
     hsnY -= 13
   }
 
-  const totalsBoxX = 336
-  const totalsBoxW = width - 40 - totalsBoxX
   const totalRows: Array<{ label: string, value: number, emphasize?: boolean }> = [
-    { label: 'Subtotal', value: data.subtotal },
+    { label: 'Subtotal (Taxable Value)', value: data.subtotal },
     ...(data.totalDiscount > 0 ? [{ label: 'Discount', value: -data.totalDiscount }] : []),
+    ...(data.totalTax > 0 ? [{ label: 'Total Tax', value: data.totalTax }] : []),
     ...(!interState
       ? [
           { label: 'CGST', value: data.totalCGST },
@@ -336,15 +434,15 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   const summaryRows = totalRows.filter(row => !row.emphasize)
   const totalRow = totalRows.find(row => row.emphasize)
   const totalsBoxTop = hsnTop
-  const totalsBoxHeight = Math.max(92, 68 + summaryRows.length * 16)
+  const totalsBoxHeight = Math.max(98, 68 + summaryRows.length * 14)
   page.drawRectangle({ x: totalsBoxX, y: totalsBoxTop - totalsBoxHeight, width: totalsBoxW, height: totalsBoxHeight, borderColor: border, borderWidth: 1, color: panelBg })
   page.drawText('SUMMARY', { x: totalsBoxX + 12, y: totalsBoxTop - 17, size: 8, font: fontB, color: amber })
   let totalsY = totalsBoxTop - 35
   for (const row of summaryRows) {
-    page.drawText(row.label, { x: totalsBoxX + 12, y: totalsY, size: 8.5, font: fontR, color: muted })
+    page.drawText(row.label, { x: totalsBoxX + 12, y: totalsY, size: 8, font: fontR, color: muted, maxWidth: totalsBoxW - 76 })
     const value = formatAmount(row.value)
-    page.drawText(value, { x: totalsBoxX + totalsBoxW - 12 - fontMono.widthOfTextAtSize(value, 8.5), y: totalsY, size: 8.5, font: fontMono, color: muted })
-    totalsY -= 16
+    page.drawText(value, { x: totalsBoxX + totalsBoxW - 12 - fontMono.widthOfTextAtSize(value, 8), y: totalsY, size: 8, font: fontMono, color: muted })
+    totalsY -= 14
   }
   if (totalRow) {
     page.drawLine({
@@ -366,10 +464,12 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
     })
   }
 
-  const leftBoxX = 40
-  const rightBoxX = 305
-  const leftBoxW = 245
-  const rightBoxW = width - 40 - rightBoxX
+  const boxBottom = Math.min(hsnTop - hsnBoxHeight, totalsBoxTop - totalsBoxHeight)
+  const leftBoxX = margin
+  const leftBoxW = 246
+  const boxGap = 14
+  const rightBoxX = leftBoxX + leftBoxW + boxGap
+  const rightBoxW = width - margin - rightBoxX
 
   function drawInfoBox(x: number, topY: number, boxWidth: number, boxHeight: number, title: string, lines: string[]) {
     page.drawRectangle({ x, y: topY - boxHeight, width: boxWidth, height: boxHeight, borderColor: border, borderWidth: 1, color: panelBg })
@@ -381,12 +481,12 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
     }
   }
 
-  const amountLines = wrapText(numberToWords(data.grandTotal), fontR, 8, leftBoxW - 24)
-  const leftBoxHeight = Math.max(62, 34 + amountLines.length * 10)
+  const amountLines = capLines(wrapText(numberToWords(data.grandTotal), fontR, 8, leftBoxW - 24), 4)
+  const leftBoxHeight = Math.max(66, 38 + amountLines.length * 10)
 
   const paymentLines = [
     ...(data.bankName ? [`Bank: ${data.bankName}`] : []),
-    ...(data.accountNumber ? [`A/C: ${data.accountNumber}`] : []),
+    ...(data.accountNumber ? [`Account No: ${data.accountNumber}`] : []),
     ...(data.ifscCode ? [`IFSC: ${data.ifscCode}`] : []),
     ...(data.upiId ? [`UPI: ${data.upiId}`] : []),
   ]
@@ -399,31 +499,105 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
         data.reverseCharge ? 'Reverse Charge: Yes' : 'Reverse Charge: No',
       ]
   const rightBoxTitle = paymentLines.length > 0 ? 'Payment Details' : 'Invoice Summary'
-  const rightBoxHeight = Math.max(62, 34 + summaryLines.length * 10)
+  const rightBoxHeight = Math.max(66, 38 + summaryLines.length * 10)
   const infoBoxHeight = Math.max(leftBoxHeight, rightBoxHeight)
-  const availableInfoTop = Math.min(totalsBoxTop - totalsBoxHeight - 14, hsnTop - hsnBoxHeight - 14)
+  const infoTop = boxBottom - 16
 
-  const declarationParts = [
-    data.notes ? `Notes: ${data.notes}` : '',
-    data.termsAndConditions ? `Terms: ${data.termsAndConditions}` : '',
-    'This is a computer-generated invoice and does not require a handwritten signature.',
-  ].filter(Boolean)
-  const declarationLines = declarationParts.flatMap(part => wrapText(part, fontR, 8, width - 104))
-  const declarationHeight = Math.max(66, 36 + declarationLines.length * 11)
-  const targetSignatureLineY = 58
-  const targetDeclarationTop = targetSignatureLineY + declarationHeight + 24
-  const targetInfoTop = targetDeclarationTop + infoBoxHeight + 14
-  const infoTop = Math.min(availableInfoTop, targetInfoTop)
-  const declarationTop = infoTop - infoBoxHeight - 14
-  const signatureTop = Math.max(46, declarationTop - declarationHeight - 24)
+  const noteSections = [
+    ...(data.notes ? [{ title: 'NOTES', lines: capLines(wrapText(data.notes, fontR, 7.4, (contentWidth - 40) / 2), 3) }] : []),
+    ...(data.termsAndConditions ? [{ title: 'TERMS & CONDITIONS', lines: capLines(wrapText(data.termsAndConditions, fontR, 7.4, (contentWidth - 40) / 2), 3) }] : []),
+  ]
+  const notesBoxTop = infoTop - infoBoxHeight - 16
+  const notesBoxHeight = noteSections.length === 0 ? 0 : noteSections.length === 1 ? 68 : 84
 
   drawInfoBox(leftBoxX, infoTop, leftBoxW, infoBoxHeight, 'Amount in Words', amountLines)
   drawInfoBox(rightBoxX, infoTop, rightBoxW, infoBoxHeight, rightBoxTitle, summaryLines)
-  drawInfoBox(40, declarationTop, width - 80, declarationHeight, 'Notes & Declaration', declarationLines)
+  if (noteSections.length > 0) {
+    page.drawRectangle({
+      x: margin,
+      y: notesBoxTop - notesBoxHeight,
+      width: contentWidth,
+      height: notesBoxHeight,
+      borderColor: border,
+      borderWidth: 1,
+      color: panelBg,
+    })
+    if (noteSections.length === 2) {
+      page.drawLine({
+        start: { x: margin + contentWidth / 2, y: notesBoxTop - 10 },
+        end: { x: margin + contentWidth / 2, y: notesBoxTop - notesBoxHeight + 10 },
+        thickness: 0.5,
+        color: border,
+      })
+    }
+    noteSections.forEach((section, index) => {
+      const sectionX = margin + 12 + (noteSections.length === 2 ? index * contentWidth / 2 : 0)
+      const sectionW = noteSections.length === 2 ? contentWidth / 2 - 24 : contentWidth - 24
+      page.drawText(section.title, { x: sectionX, y: notesBoxTop - 16, size: 7, font: fontB, color: amber })
+      let sectionY = notesBoxTop - 30
+      section.lines.forEach(line => {
+        page.drawText(line, { x: sectionX, y: sectionY, size: 7.4, font: fontR, color: muted, maxWidth: sectionW })
+        sectionY -= 10
+      })
+    })
+  }
 
-  page.drawText(`For ${data.sellerName || 'Seller'}`, { x: width - 162, y: signatureTop + 8, size: 8, font: fontB, color: ink })
-  page.drawLine({ start: { x: width - 190, y: signatureTop }, end: { x: width - 40, y: signatureTop }, thickness: 0.6, color: border })
-  page.drawText('Authorized Signatory', { x: width - 162, y: signatureTop - 14, size: 8, font: fontB, color: ink })
+  const noteAreaBottom = noteSections.length > 0 ? notesBoxTop - notesBoxHeight : infoTop - infoBoxHeight - 12
+  const closingTop = noteAreaBottom - 16
+  const closingBottom = 54
+  const closingHeight = Math.max(74, closingTop - closingBottom)
+  const closingLeftW = contentWidth - 168
+  const declarationLines = capLines(wrapText(
+    'We declare that this invoice shows the actual price of the goods or services described and that all particulars shown are true and correct.',
+    fontR,
+    7.2,
+    closingLeftW - 24,
+  ), 4)
+
+  page.drawRectangle({
+    x: margin,
+    y: closingBottom,
+    width: contentWidth,
+    height: closingHeight,
+    borderColor: border,
+    borderWidth: 1,
+    color: panelBg,
+  })
+  page.drawLine({
+    start: { x: margin + closingLeftW, y: closingBottom + 10 },
+    end: { x: margin + closingLeftW, y: closingBottom + closingHeight - 10 },
+    thickness: 0.5,
+    color: border,
+  })
+
+  page.drawText('DECLARATION', { x: margin + 12, y: closingBottom + closingHeight - 18, size: 7.4, font: fontB, color: amber })
+  let declarationY = closingBottom + closingHeight - 32
+  declarationLines.forEach(line => {
+    page.drawText(line, { x: margin + 12, y: declarationY, size: 7.2, font: fontR, color: muted, maxWidth: closingLeftW - 24 })
+    declarationY -= 10
+  })
+
+  const signatureX = margin + closingLeftW + 16
+  const signatureTop = closingBottom + closingHeight - 20
+  page.drawText(`For ${sellerName}`, { x: signatureX, y: signatureTop, size: 8, font: fontB, color: ink, maxWidth: 132 })
+  page.drawLine({
+    start: { x: signatureX, y: closingBottom + 34 },
+    end: { x: width - margin - 12, y: closingBottom + 34 },
+    thickness: 0.6,
+    color: border,
+  })
+  page.drawText('Authorized Signatory', { x: signatureX, y: closingBottom + 20, size: 8, font: fontB, color: ink })
+
+  const footerNote = 'Computer-generated invoice. No signature required.'
+  page.drawText(footerNote, { x: margin + 12, y: closingBottom + 12, size: 6.4, font: fontR, color: muted })
+  const footerBrand = 'Generated with Doclair - doclair.in'
+  page.drawText(footerBrand, {
+    x: width - margin - 12 - fontR.widthOfTextAtSize(footerBrand, 6.4),
+    y: closingBottom + 12,
+    size: 6.4,
+    font: fontR,
+    color: muted,
+  })
 
   return doc.save()
 }

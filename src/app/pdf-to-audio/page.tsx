@@ -25,7 +25,7 @@ const FAQS = [
   { q: 'Does it work on scanned PDFs?',
     a: 'Scanned PDFs are images with no text layer. Run OCR PDF first to make the document searchable, then use PDF to Audio to listen to it.' },
   { q: 'Can I download the audio file?',
-    a: 'Audio export is available in Chrome on desktop. The tool attempts to capture the speech synthesis output — if your browser does not support it, you can still listen live in any browser at no cost.' },
+    a: 'Not yet. Doclair currently supports live in-browser playback with word highlighting, but downloadable audio export is still being built. For now, use the playback controls to listen directly in your browser.' },
   { q: 'Which browser has the best voice quality?',
     a: 'Chrome on desktop has the widest voice selection including high-quality Indian English voices. Safari on iPhone also works very well. Firefox has a more limited voice library.' },
   { q: 'Can it read in Hindi?',
@@ -81,6 +81,7 @@ const BREADCRUMB_SCHEMA = {
 }
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2]
+const AUDIO_EXPORT_MESSAGE = 'Downloadable audio export is still being built. Live playback and word highlighting work today in your browser.'
 
 function sortVoices(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice[] {
   return [...voices].sort((a, b) => {
@@ -117,7 +118,6 @@ export default function PDFToAudioPage() {
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([])
 
   /* ── Export ──────────────────────────────────────────────────────────── */
-  const [exporting, setExporting]             = useState(false)
   const [exportError, setExportError]         = useState<string | null>(null)
 
   /* ── UI ──────────────────────────────────────────────────────────────── */
@@ -252,7 +252,6 @@ export default function PDFToAudioPage() {
     window.speechSynthesis.speak(utt)
     setIsPlaying(true)
     setIsPaused(false)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   /* ── Playback controls ───────────────────────────────────────────────── */
@@ -310,43 +309,8 @@ export default function PDFToAudioPage() {
   /* ── Audio export ────────────────────────────────────────────────────── */
   const handleExport = useCallback(async () => {
     if (!content || !file) return
-    setExporting(true); setExportError(null)
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const AudioCtxClass = (window.AudioContext || (window as any).webkitAudioContext) as (typeof AudioContext | undefined)
-      if (!AudioCtxClass) throw new Error('no AudioContext')
-      const audioContext  = new AudioCtxClass()
-      const destination   = audioContext.createMediaStreamDestination()
-      const recorder      = new MediaRecorder(destination.stream)
-      const chunks: BlobPart[] = []
-      recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data) }
-
-      await new Promise<void>((resolve, reject) => {
-        recorder.onstop = () => {
-          const blob = new Blob(chunks, { type: 'audio/wav' })
-          const url  = URL.createObjectURL(blob)
-          const a    = Object.assign(document.createElement('a'), { href: url, download: file.name.replace(/\.pdf$/i, '.wav') })
-          a.click()
-          setTimeout(() => URL.revokeObjectURL(url), 5000)
-          resolve()
-        }
-        recorder.onerror = () => reject(new Error('recorder error'))
-        recorder.start(100)
-
-        const allText  = content.pages.map(p => p.text).join('\n\n')
-        const utt      = new SpeechSynthesisUtterance(allText)
-        utt.rate       = rate; utt.voice = voice; utt.lang = content.language
-        utt.onend      = () => recorder.stop()
-        utt.onerror    = () => reject(new Error('speech error'))
-        utteranceRef.current = utt
-        window.speechSynthesis.speak(utt)
-      })
-    } catch {
-      setExportError('Audio export is not supported in this browser. Use Chrome on desktop for audio export. You can still listen live in any browser.')
-    } finally {
-      setExporting(false)
-    }
-  }, [content, file, rate, voice])
+    setExportError(AUDIO_EXPORT_MESSAGE)
+  }, [content, file])
 
   /* ── Reset ───────────────────────────────────────────────────────────── */
   const handleReset = useCallback(() => {
@@ -556,12 +520,12 @@ export default function PDFToAudioPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             <button
               onClick={handleExport}
-              disabled={exporting}
-              style={{ padding: '12px 22px', borderRadius: '10px', border: 'none', background: exporting ? 'var(--border)' : 'var(--ink)', color: 'white', cursor: exporting ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}
+              disabled
+              style={{ padding: '12px 22px', borderRadius: '10px', border: 'none', background: 'var(--border)', color: 'var(--muted)', cursor: 'not-allowed', fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}
             >
-              {exporting ? '⏳ Exporting…' : '⬇ Download Audio'}
+              Audio Export Coming Soon
             </button>
-            <span style={{ fontFamily: 'var(--font-dm-mono), monospace', fontSize: '11px', color: 'var(--muted)', opacity: 0.7 }}>Chrome desktop recommended for export</span>
+            <span style={{ fontFamily: 'var(--font-dm-mono), monospace', fontSize: '11px', color: 'var(--muted)', opacity: 0.7 }}>Live playback works now. Downloadable audio is in progress.</span>
           </div>
 
           {exportError && (
@@ -578,7 +542,7 @@ export default function PDFToAudioPage() {
           How to Listen to a PDF as Audio — Free
         </h2>
         <p style={{ color: 'var(--muted)', fontSize: '15px', lineHeight: 1.7, maxWidth: '680px', marginBottom: '32px' }}>
-          Doclair's PDF to Audio tool uses your browser's built-in speech synthesis engine — no server, no upload, no account. Upload a text-based PDF, press play, and every word highlights in real time as it is spoken.
+          Doclair&apos;s PDF to Audio tool uses your browser&apos;s built-in speech synthesis engine, with no server, upload, or account required. Upload a text-based PDF, press play, and every word highlights in real time as it is spoken.
         </p>
 
         {[

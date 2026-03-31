@@ -7,7 +7,7 @@ import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import DownloadCard from '@/components/ui/DownloadCard'
 import ErrorCard from '@/components/ui/ErrorCard'
-import { pdfToImages, imagesToZip, formatBytes } from '@/lib/image/pdfToImages'
+import { pdfToImages, imagesToZip, formatBytes, getPdfImageArchiveName } from '@/lib/image/pdfToImages'
 import type { ImageDPI, ImageResult } from '@/lib/image/pdfToImages'
 import type { ToolState } from '@/types'
 
@@ -102,8 +102,7 @@ export default function PdfToWebpPage() {
   async function handleDownloadZip() {
     const zipBlob = await imagesToZip(results)
     const url = URL.createObjectURL(zipBlob); const a = document.createElement('a'); a.href = url
-    const baseName = file?.name.replace('.pdf', '') ?? 'images'
-    a.download = `${baseName}-webp-${dpi}dpi.zip`; a.click()
+    a.download = getPdfImageArchiveName(file?.name ?? 'images.pdf', 'webp', dpi); a.click()
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   }
 
@@ -163,7 +162,7 @@ export default function PdfToWebpPage() {
           </div>
 
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px' }}>
-            <div style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '10px', color: 'var(--amber)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '14px' }}>// Resolution</div>
+            <div style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '10px', color: 'var(--amber)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '14px' }}>{'// Resolution'}</div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {DPI_OPTIONS.map(opt => (
                 <button key={opt.value} onClick={() => setDpi(opt.value)}
@@ -228,9 +227,10 @@ export default function PdfToWebpPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
             {results.map((r, i) => (
               <div key={i} style={{ border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden', background: 'white' }}>
-                <img src={previewUrls[i]} alt={`Page ${r.pageNum}`} style={{ width: '100%', display: 'block', maxHeight: '200px', objectFit: 'cover' }} />
+                <img src={previewUrls[i]} alt={`Page ${r.pageNum}`} style={{ width: '100%', height: '220px', display: 'block', objectFit: 'contain', background: '#F8FAFC' }} />
                 <div style={{ padding: '10px 12px' }}>
                   <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--ink)', marginBottom: '2px' }}>Page {r.pageNum}</div>
+                  <div style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '10px', color: 'var(--muted)', marginBottom: '2px' }}>{r.width}×{r.height}px</div>
                   <div style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '10px', color: 'var(--muted)', marginBottom: '8px' }}>{formatBytes(r.sizeBytes)}</div>
                   <button onClick={() => handleDownloadImage(r)} style={{ width: '100%', padding: '6px', borderRadius: '6px', border: '1px solid var(--amber)', background: 'transparent', color: 'var(--amber)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--amber)'; e.currentTarget.style.color = 'white' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--amber)' }}>⬇ Download</button>
                 </div>

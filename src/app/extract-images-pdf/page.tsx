@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
+import { getPdfImageBaseName } from '@/lib/image/pdfToImages'
 
 interface ExtractedImage {
   id: string
@@ -14,9 +15,288 @@ interface ExtractedImage {
   format: string
 }
 
+const IDENTITY_TRANSFORM: number[] = [1, 0, 0, 1, 0, 0]
+
+function round(value: number, precision = 2) {
+  const factor = 10 ** precision
+  return Math.round(value * factor) / factor
+}
+
+function multiplyTransforms(left: readonly number[], right: readonly number[]) {
+  return [
+    left[0] * right[0] + left[2] * right[1],
+    left[1] * right[0] + left[3] * right[1],
+    left[0] * right[2] + left[2] * right[3],
+    left[1] * right[2] + left[3] * right[3],
+    left[0] * right[4] + left[2] * right[5] + left[4],
+    left[1] * right[4] + left[3] * right[5] + left[5],
+  ] as const
+}
+
+function applyTransform(matrix: readonly number[], x: number, y: number) {
+  return [
+    matrix[0] * x + matrix[2] * y + matrix[4],
+    matrix[1] * x + matrix[3] * y + matrix[5],
+  ] as const
+}
+
+function paintPdfImageDataToCanvas(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  kind: number,
+  data: Uint8Array | Uint8ClampedArray,
+) {
+  const imageData = ctx.createImageData(width, height)
+
+  if (kind === 3 && data.length === width * height * 4) {
+    imageData.data.set(data)
+  } else if (kind === 2 && data.length === width * height * 3) {
+    for (let pixel = 0; pixel < width * height; pixel += 1) {
+      imageData.data[pixel * 4] = data[pixel * 3]
+      imageData.data[pixel * 4 + 1] = data[pixel * 3 + 1]
+      imageData.data[pixel * 4 + 2] = data[pixel * 3 + 2]
+      imageData.data[pixel * 4 + 3] = 255
+    }
+  } else if (kind === 1) {
+    for (let pixel = 0; pixel < width * height; pixel += 1) {
+      const byte = data[Math.floor(pixel / 8)]
+      const bit = (byte >> (7 - (pixel % 8))) & 1
+      const value = bit ? 255 : 0
+      imageData.data[pixel * 4] = value
+      imageData.data[pixel * 4 + 1] = value
+      imageData.data[pixel * 4 + 2] = value
+      imageData.data[pixel * 4 + 3] = 255
+    }
+  } else {
+    return false
+  }
+
+  ctx.putImageData(imageData, 0, 0)
+  return true
+}
+
+function drawPdfBitmapToCanvas(
+  ctx: CanvasRenderingContext2D,
+  bitmap: unknown,
+  width: number,
+  height: number,
+) {
+  if (
+    typeof ImageBitmap !== 'undefined' && bitmap instanceof ImageBitmap
+    || typeof HTMLCanvasElement !== 'undefined' && bitmap instanceof HTMLCanvasElement
+    || typeof HTMLImageElement !== 'undefined' && bitmap instanceof HTMLImageElement
+    || typeof OffscreenCanvas !== 'undefined' && bitmap instanceof OffscreenCanvas
+  ) {
+    ctx.drawImage(bitmap, 0, 0, width, height)
+    return true
+  }
+
+  return false
+}
+
+function rasterizePdfImageToDataUrl(image: unknown) {
+  if (!image || typeof image !== 'object') return null
+
+  const candidate = image as {
+    width?: number
+    height?: number
+    kind?: number
+    data?: Uint8Array | Uint8ClampedArray
+    bitmap?: unknown
+  }
+
+  const width = Math.round(candidate.width ?? 0)
+  const height = Math.round(candidate.height ?? 0)
+  if (!width || !height) return null
+
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+
+  const drewBitmap = candidate.bitmap
+    ? drawPdfBitmapToCanvas(ctx, candidate.bitmap, width, height)
+    : false
+  const drewRaw = !drewBitmap && candidate.data && typeof candidate.kind === 'number'
+    ? paintPdfImageDataToCanvas(ctx, width, height, candidate.kind, candidate.data)
+    : false
+
+  if (!drewBitmap && !drewRaw) return null
+  return canvas.toDataURL('image/png')
+}
+
+function toViewportBounds(
+  viewport: { convertToViewportPoint(x: number, y: number): number[] },
+  matrix: readonly number[],
+) {
+  const corners = [
+    viewport.convertToViewportPoint(...applyTransform(matrix, 0, 0)),
+    viewport.convertToViewportPoint(...applyTransform(matrix, 1, 0)),
+    viewport.convertToViewportPoint(...applyTransform(matrix, 0, 1)),
+    viewport.convertToViewportPoint(...applyTransform(matrix, 1, 1)),
+  ]
+
+  const xs = corners.map(([x]) => x)
+  const ys = corners.map(([, y]) => y)
+
+  return {
+    x: Math.min(...xs),
+    top: Math.min(...ys),
+    width: Math.max(...xs) - Math.min(...xs),
+    height: Math.max(...ys) - Math.min(...ys),
+  }
+}
+
+function buildExtractedImage(
+  image: unknown,
+  viewport: { convertToViewportPoint(x: number, y: number): number[] },
+  matrix: readonly number[],
+  pageIndex: number,
+) {
+  const dataUrl = rasterizePdfImageToDataUrl(image)
+  if (!dataUrl) return null
+
+  const bounds = toViewportBounds(viewport, matrix)
+  const candidate = image as { width?: number; height?: number }
+  const width = Math.round(candidate.width ?? 0)
+  const height = Math.round(candidate.height ?? 0)
+
+  if (width < 20 || height < 20) return null
+  if (bounds.width < 10 || bounds.height < 10) return null
+
+  return {
+    id: crypto.randomUUID(),
+    dataUrl,
+    width,
+    height,
+    pageIndex,
+    format: 'PNG',
+    signature: `${pageIndex}:${round(bounds.x, 1)}:${round(bounds.top, 1)}:${round(bounds.width, 1)}:${round(bounds.height, 1)}:${width}:${height}`,
+  }
+}
+
+async function extractPageImages(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  page: any,
+  viewport: { convertToViewportPoint(x: number, y: number): number[] },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  pdfjsLib: any,
+  pageIndex: number,
+) {
+  const operatorList = await page.getOperatorList()
+  const extracted: Array<ExtractedImage & { signature: string }> = []
+  const seen = new Set<string>()
+  const stack: number[][] = []
+  const objectCache = new Map<string, Promise<unknown | null>>()
+  let currentTransform: number[] = [...IDENTITY_TRANSFORM]
+
+  const pushImage = (imageObject: unknown, matrix: readonly number[]) => {
+    const image = buildExtractedImage(imageObject, viewport, matrix, pageIndex)
+    if (!image || seen.has(image.signature)) return
+    seen.add(image.signature)
+    extracted.push(image)
+  }
+
+  const resolveObject = async (name: string) => {
+    if (!objectCache.has(name)) {
+      objectCache.set(name, new Promise(resolve => {
+        let settled = false
+        const finish = (value: unknown | null) => {
+          if (settled) return
+          settled = true
+          resolve(value)
+        }
+
+        try {
+          if (page.objs?.has?.(name)) return finish(page.objs.get(name))
+          if (page.commonObjs?.has?.(name)) return finish(page.commonObjs.get(name))
+        } catch {
+          return finish(null)
+        }
+
+        try {
+          page.objs?.get?.(name, finish)
+          page.commonObjs?.get?.(name, finish)
+        } catch {
+          return finish(null)
+        }
+
+        setTimeout(() => finish(null), 1500)
+      }))
+    }
+
+    return objectCache.get(name) ?? null
+  }
+
+  for (let index = 0; index < operatorList.fnArray.length; index += 1) {
+    const fn = operatorList.fnArray[index]
+    const args = operatorList.argsArray[index]
+
+    if (fn === pdfjsLib.OPS.save) {
+      stack.push([...currentTransform])
+      continue
+    }
+
+    if (fn === pdfjsLib.OPS.restore) {
+      currentTransform = stack.pop() ?? [...IDENTITY_TRANSFORM]
+      continue
+    }
+
+    if (fn === pdfjsLib.OPS.transform && Array.isArray(args)) {
+      currentTransform = [...multiplyTransforms(currentTransform, args as number[])]
+      continue
+    }
+
+    if (fn === pdfjsLib.OPS.paintImageXObject) {
+      const name = args?.[0]
+      if (typeof name === 'string') pushImage(await resolveObject(name), currentTransform)
+      continue
+    }
+
+    if (fn === pdfjsLib.OPS.paintInlineImageXObject) {
+      pushImage(args?.[0], currentTransform)
+      continue
+    }
+
+    if (fn === pdfjsLib.OPS.paintImageXObjectRepeat) {
+      const name = args?.[0]
+      const scaleX = args?.[1]
+      const scaleY = args?.[2]
+      const positions = args?.[3]
+      if (typeof name !== 'string' || typeof scaleX !== 'number' || typeof scaleY !== 'number' || !Array.isArray(positions)) {
+        continue
+      }
+
+      const imageObject = await resolveObject(name)
+      for (let positionIndex = 0; positionIndex < positions.length; positionIndex += 2) {
+        const repeatTransform = [scaleX, 0, 0, scaleY, positions[positionIndex], positions[positionIndex + 1]]
+        pushImage(imageObject, multiplyTransforms(currentTransform, repeatTransform))
+      }
+      continue
+    }
+
+    if (fn === pdfjsLib.OPS.paintInlineImageXObjectGroup) {
+      const imageObject = args?.[0]
+      const map = args?.[1]
+      if (!Array.isArray(map)) continue
+      for (const entry of map) {
+        if (!Array.isArray(entry?.transform)) continue
+        pushImage(imageObject, multiplyTransforms(currentTransform, entry.transform))
+      }
+    }
+  }
+
+  return extracted.map(({ signature, ...image }) => {
+    void signature
+    return image
+  })
+}
+
 const FAQS = [
   { q: 'Are my PDF files uploaded to a server?', a: 'No. Doclair scans your PDF for embedded images using PDF.js in your browser. Nothing is sent to a server.' },
-  { q: 'What image formats can I download?', a: 'Raster images embedded in the PDF are extracted and offered as PNG downloads. You can download individually or in sequence.' },
+  { q: 'What image formats can I download?', a: 'Raster images embedded in the PDF are extracted and offered as PNG downloads. You can download them one by one or as a ZIP archive.' },
   { q: 'Will every PDF have extractable images?', a: 'Only embedded raster images appear. Vector graphics or text rendered as paths may not show as separate image files.' },
   { q: 'Is this tool free?', a: 'Yes. Doclair is free to use with no watermark on extracted images.' },
 ]
@@ -68,6 +348,7 @@ const BREADCRUMB_SCHEMA = {
 export default function ExtractImagesPDFPage() {
   const [images, setImages] = useState<ExtractedImage[]>([])
   const [loading, setLoading] = useState(false)
+  const [downloadingAll, setDownloadingAll] = useState(false)
   const [progress, setProgress] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [pdfName, setPdfName] = useState('')
@@ -87,78 +368,8 @@ export default function ExtractImagesPDFPage() {
       for (let pi = 1; pi <= doc.numPages; pi++) {
         setProgress(`Scanning page ${pi} of ${doc.numPages}…`)
         const page = await doc.getPage(pi)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const ops = await (page as any).getOperatorList()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const commonObjs = (page as any).commonObjs
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const objs = (page as any).objs
-
-        // Collect image XObject names from operator list
-        const imgNames = new Set<string>()
-        for (let i = 0; i < ops.fnArray.length; i++) {
-          // OPS.paintImageXObject = 85, OPS.paintInlineImageXObject = 86
-          if (ops.fnArray[i] === 85 || ops.fnArray[i] === 86) {
-            const name = ops.argsArray[i]?.[0]
-            if (name) imgNames.add(name)
-          }
-        }
-
-        for (const name of imgNames) {
-          try {
-            // Try page-level objects first, then common objects
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            let imgData: any = null
-            if (objs.has(name)) {
-              imgData = objs.get(name)
-            } else if (commonObjs.has(name)) {
-              imgData = commonObjs.get(name)
-            }
-            if (!imgData || !imgData.data) continue
-
-            const { width, height, data, kind } = imgData
-            if (!width || !height || !data) continue
-
-            const offscreen = document.createElement('canvas')
-            offscreen.width = width
-            offscreen.height = height
-            const ctx = offscreen.getContext('2d')!
-            const imageData = ctx.createImageData(width, height)
-
-            // kind: 1 = GRAYSCALE_1BPP, 2 = RGB_24BPP, 3 = RGBA_32BPP
-            if (kind === 3 && data.length === width * height * 4) {
-              imageData.data.set(data)
-            } else if (kind === 2 && data.length === width * height * 3) {
-              for (let px = 0; px < width * height; px++) {
-                imageData.data[px * 4] = data[px * 3]
-                imageData.data[px * 4 + 1] = data[px * 3 + 1]
-                imageData.data[px * 4 + 2] = data[px * 3 + 2]
-                imageData.data[px * 4 + 3] = 255
-              }
-            } else if (kind === 1) {
-              // 1bpp grayscale — 1 byte per pixel packed as bits
-              for (let px = 0; px < width * height; px++) {
-                const byte = data[Math.floor(px / 8)]
-                const bit = (byte >> (7 - (px % 8))) & 1
-                const v = bit ? 255 : 0
-                imageData.data[px * 4] = v
-                imageData.data[px * 4 + 1] = v
-                imageData.data[px * 4 + 2] = v
-                imageData.data[px * 4 + 3] = 255
-              }
-            } else {
-              continue // unknown format
-            }
-
-            ctx.putImageData(imageData, 0, 0)
-            // Skip tiny images (likely icons/bullets)
-            if (width < 20 || height < 20) continue
-            const dataUrl = offscreen.toDataURL('image/png')
-            extracted.push({ id: crypto.randomUUID(), dataUrl, width, height, pageIndex: pi - 1, format: 'PNG' })
-          } catch {
-            // Skip images that fail to decode
-          }
-        }
+        const viewport = page.getViewport({ scale: 1 })
+        extracted.push(...await extractPageImages(page, viewport, pdfjsLib, pi - 1))
       }
 
       if (extracted.length === 0) {
@@ -177,20 +388,38 @@ export default function ExtractImagesPDFPage() {
     if (file.type === 'application/pdf') extractImages(file)
   }
 
+  const getImageFilename = (img: ExtractedImage, idx: number) =>
+    `${getPdfImageBaseName(pdfName || 'image')}-page-${String(img.pageIndex + 1).padStart(2, '0')}-image-${String(idx + 1).padStart(3, '0')}.png`
+
   const downloadImage = (img: ExtractedImage, idx: number) => {
     const a = document.createElement('a')
     a.href = img.dataUrl
-    a.download = `${pdfName || 'image'}-${String(idx + 1).padStart(3, '0')}.png`
+    a.download = getImageFilename(img, idx)
     a.click()
   }
 
   const downloadAll = async () => {
     if (!images.length) return
-    // Download all as sequential triggered downloads
-    // For a true zip we'd need jszip — keep it simple and download sequentially
-    for (let i = 0; i < images.length; i++) {
-      await new Promise<void>(res => setTimeout(res, 200))
-      downloadImage(images[i], i)
+    setDownloadingAll(true)
+    try {
+      const JSZip = (await import('jszip')).default
+      const zip = new JSZip()
+
+      for (let i = 0; i < images.length; i++) {
+        const response = await fetch(images[i].dataUrl)
+        const blob = await response.blob()
+        zip.file(getImageFilename(images[i], i), blob)
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'STORE' })
+      const url = URL.createObjectURL(zipBlob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${getPdfImageBaseName(pdfName || 'images')}-extracted-images.zip`
+      a.click()
+      setTimeout(() => URL.revokeObjectURL(url), 5000)
+    } finally {
+      setDownloadingAll(false)
     }
   }
 
@@ -262,8 +491,12 @@ export default function ExtractImagesPDFPage() {
                 New PDF
                 <input type="file" accept="application/pdf" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} style={{ display: 'none' }} />
               </label>
-              <button onClick={downloadAll} style={{ padding: '10px 24px', borderRadius: 10, border: 'none', background: '#F59E0B', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
-                Download All
+              <button
+                onClick={downloadAll}
+                disabled={downloadingAll}
+                style={{ padding: '10px 24px', borderRadius: 10, border: 'none', background: '#F59E0B', color: '#fff', fontWeight: 700, fontSize: 14, cursor: downloadingAll ? 'wait' : 'pointer', opacity: downloadingAll ? 0.75 : 1 }}
+              >
+                {downloadingAll ? 'Preparing ZIP…' : 'Download ZIP'}
               </button>
             </div>
           </div>
@@ -278,7 +511,7 @@ export default function ExtractImagesPDFPage() {
                 </div>
                 <div style={{ padding: '10px 12px' }}>
                   <p style={{ margin: 0, fontSize: 12, color: '#6b7280', marginBottom: 6 }}>
-                    Page {img.pageIndex + 1} · {img.width}×{img.height}px
+                    Page {img.pageIndex + 1} · {img.width}×{img.height}px · {img.format}
                   </p>
                   <button onClick={() => downloadImage(img, idx)} style={{
                     width: '100%', padding: '7px 0', borderRadius: 8, border: '1px solid #e5e7eb',
@@ -302,7 +535,7 @@ export default function ExtractImagesPDFPage() {
           <li>Drop your PDF into the upload area or click to browse.</li>
           <li>Wait while the tool scans each page for embedded images.</li>
           <li>Preview the extracted images in the grid.</li>
-          <li>Click <strong>Download PNG</strong> to save individual images, or <strong>Download All</strong> to get them sequentially.</li>
+          <li>Click <strong>Download PNG</strong> to save individual images, or <strong>Download ZIP</strong> to get the full extracted set in one archive.</li>
         </ol>
 
         <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '18px', marginTop: '32px', marginBottom: '12px' }}>
@@ -316,7 +549,7 @@ export default function ExtractImagesPDFPage() {
           Why are no images found in my PDF?
         </h3>
         <p style={{ lineHeight: 1.7, color: 'var(--ink)', opacity: 0.75 }}>
-          If the PDF was created by scanning without embedded raster data, or uses only vector graphics, no images will appear. For scanned PDFs, use <a href="/ocr-pdf" style={{ color: 'var(--amber)', textDecoration: 'underline' }}>OCR PDF</a> to extract the text content instead.
+          If the PDF was created by scanning without embedded raster objects, or uses only vector graphics, no images will appear. For scanned PDFs, use <a href="/ocr-pdf" style={{ color: 'var(--amber)', textDecoration: 'underline' }}>OCR PDF</a> to extract the text content instead.
         </p>
       </div>
 

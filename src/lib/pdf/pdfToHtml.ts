@@ -29,6 +29,41 @@ function isHeading(line: string) {
   return isShort && noEndPunctuation && (isAllCaps || (isTitleCase && clean.length <= 56))
 }
 
+function isTableCandidate(line: StructuredLine) {
+  if (line.cells.length < 2) return false
+  const clean = line.text.trim()
+  if (!clean) return false
+  if (/^(?:[-*•]|[0-9]+[.)])\s+/.test(clean)) return false
+  return line.cells.every(cell => cell.trim().length > 0)
+}
+
+function looksLikeHeaderRow(cells: string[], followingRows: string[][]) {
+  if (cells.length < 2 || followingRows.length === 0) return false
+
+  const shortLabels = cells.every(cell => cell.trim().length > 0 && cell.trim().length <= 24)
+  const noSentencePunctuation = cells.every(cell => !/[.!?]$/.test(cell.trim()))
+  const mostlyText = cells.every(cell => /[A-Za-z]/.test(cell) && !/^\d+(?:[.,]\d+)?$/.test(cell.trim()))
+  const followingHasDifferentData = followingRows.some(row => row.some(cell => /\d/.test(cell) || cell.trim().length > 24))
+
+  return shortLabels && noSentencePunctuation && mostlyText && followingHasDifferentData
+}
+
+function renderTable(rows: string[][]) {
+  const columnCount = Math.max(...rows.map(row => row.length))
+  const normalized = rows.map(row => Array.from({ length: columnCount }, (_, index) => row[index] ?? ''))
+  const header = looksLikeHeaderRow(normalized[0], normalized.slice(1)) ? normalized[0] : null
+  const bodyRows = header ? normalized.slice(1) : normalized
+
+  const headHtml = header
+    ? `<thead><tr>${header.map(cell => `<th>${escapeHtml(cell)}</th>`).join('')}</tr></thead>`
+    : ''
+  const bodyHtml = bodyRows
+    .map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`)
+    .join('')
+
+  return `<div class="table-wrap"><table class="pdf-table">${headHtml}<tbody>${bodyHtml}</tbody></table></div>`
+}
+
 function renderPage(lines: StructuredLine[]) {
   const parts: string[] = []
   let listItems: string[] = []
@@ -39,9 +74,34 @@ function renderPage(lines: StructuredLine[]) {
     listItems = []
   }
 
-  for (const line of lines) {
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]
     const clean = line.text.trim()
     if (!clean) continue
+
+    if (isTableCandidate(line)) {
+      const tableRows: string[][] = [line.cells]
+      let cursor = index + 1
+
+      while (cursor < lines.length) {
+        const next = lines[cursor]
+        if (!isTableCandidate(next)) break
+
+        const widthDelta = Math.abs(next.cells.length - tableRows[tableRows.length - 1].length)
+        if (widthDelta > 1) break
+
+        tableRows.push(next.cells)
+        cursor += 1
+      }
+
+      const maxColumns = Math.max(...tableRows.map(row => row.length))
+      if (tableRows.length >= 2 && maxColumns >= 3) {
+        flushList()
+        parts.push(renderTable(tableRows))
+        index = cursor - 1
+        continue
+      }
+    }
 
     if (/^(?:[-*•]|[0-9]+[.)])\s+/.test(clean)) {
       const item = clean.replace(/^(?:[-*•]|[0-9]+[.)])\s+/, '')
@@ -138,6 +198,33 @@ export async function pdfToHTML(
     }
     ul {
       padding-left: 1.25rem;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      margin: 0 0 18px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+    }
+    .pdf-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.98rem;
+      line-height: 1.45;
+    }
+    .pdf-table th,
+    .pdf-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+    .pdf-table thead th {
+      background: #f7efe2;
+      font-weight: 700;
+    }
+    .pdf-table tbody tr:last-child td {
+      border-bottom: none;
     }
     .muted {
       color: var(--muted);

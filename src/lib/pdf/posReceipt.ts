@@ -42,45 +42,57 @@ async function embedDataUrlImage(doc: PDFDocument, dataUrl: string) {
   return /^data:image\/jpe?g/i.test(dataUrl) ? doc.embedJpg(bytes) : doc.embedPng(bytes)
 }
 
+function formatAmount(value: number): string {
+  return `Rs.${value.toFixed(2)}`
+}
+
+function formatLineAmount(value: number): string {
+  return value.toFixed(2)
+}
+
 function estimateReceiptHeight(
   bill: POSBill,
   shop: POSShopProfile,
   fontR: EmbeddedFont,
 ): number {
   const pageWidth = 226
-  const itemNameWidth = 104
-  let height = 24
+  const itemNameWidth = 118
+  let height = 18
 
-  if (shop.logoDataUrl) height += 46
-  height += 18
+  if (shop.logoDataUrl) height += 34
+  height += 20
 
   const shopLines = [
-    ...(shop.address ? wrapText(shop.address, fontR, 7, pageWidth - 20) : []),
+    ...(shop.address ? wrapText(shop.address, fontR, 6.8, pageWidth - 30) : []),
     ...(shop.gstin ? [`GSTIN: ${shop.gstin}`] : []),
     ...(shop.phone ? [`Ph: ${shop.phone}`] : []),
   ]
-  height += shopLines.length * 11
-  height += 26
+  height += shopLines.length * 8
+  height += 18
+
   const metaLines = [
+    bill.billNumber ? `Bill No: ${bill.billNumber}` : '',
+    bill.date ? `Date: ${bill.date}` : '',
+    bill.orderRef ? `Order Ref: ${bill.orderRef}` : '',
     bill.customer ? `Customer: ${bill.customer}` : '',
     bill.customerPhone ? `Phone: ${bill.customerPhone}` : '',
-    bill.orderRef ? `Order Ref: ${bill.orderRef}` : '',
     bill.paymentMode ? `Paid via: ${bill.paymentMode}` : '',
   ].filter(Boolean)
-  height += Math.max(24, metaLines.length * 10 + 8)
-  height += 22
+  height += Math.max(32, metaLines.length * 9 + 6)
+  height += 14
 
   for (const ci of bill.items) {
     const nameLines = wrapText(ci.product.name, fontR, 7, itemNameWidth)
-    height += Math.max(nameLines.length, 1) * 9 + 4
-    if (ci.discount > 0) height += 10
+    height += Math.max(nameLines.length, 1) * 8 + 14
+    height += 7
+    if (ci.discount > 0) height += 7
   }
 
   const gstEntries = Object.values(bill.gstBreakup).filter(value => value > 0)
-  if (gstEntries.length > 0) height += gstEntries.length * 11 + 25
+  if (gstEntries.length > 0) height += gstEntries.length * 9 + 18
 
-  height += 58
-  return Math.max(240, height)
+  height += 44
+  return Math.max(220, height)
 }
 
 export async function generatePOSReceiptPDF(bill: POSBill, shop: POSShopProfile): Promise<Uint8Array> {
@@ -99,23 +111,29 @@ export async function generatePOSReceiptPDF(bill: POSBill, shop: POSShopProfile)
   const muted = rgb(0.48, 0.43, 0.38)
   const amber = rgb(0.91, 0.51, 0.05)
   const border = rgb(0.84, 0.80, 0.76)
-  const qtyX = 118
-  const priceRightX = 176
-  const totalRightX = 216
+  const lightBg = rgb(0.98, 0.97, 0.95)
+  const contentLeft = 12
+  const contentRight = pageWidth - 12
+  const itemWidth = 100
+  const qtyX = 122
+  const rateRightX = 170
+  const totalRightX = 214
+  const subtotal = bill.items.reduce((sum, item) => sum + item.product.price * item.qty * (1 - item.discount / 100), 0)
+  const gstEntries = Object.entries(bill.gstBreakup).filter(([, value]) => value > 0)
 
   let y = pageHeight - 16
 
   page.drawRectangle({ x: 7, y: 7, width: pageWidth - 14, height: pageHeight - 14, borderColor: border, borderWidth: 0.8, color: white })
 
   function drawLine() {
-    page.drawLine({ start: { x: 10, y }, end: { x: pageWidth - 10, y }, thickness: 0.5, color: border })
-    y -= 7
+    page.drawLine({ start: { x: contentLeft, y }, end: { x: contentRight, y }, thickness: 0.5, color: border })
+    y -= 6
   }
 
   function drawCenteredText(text: string, size: number, font: EmbeddedFont, color = ink) {
     const x = (pageWidth - font.widthOfTextAtSize(text, size)) / 2
     page.drawText(text, { x, y, size, font, color })
-    y -= size + 4
+    y -= size + 3
   }
 
   function drawRightText(text: string, rightX: number, size: number, font: EmbeddedFont, color = ink) {
@@ -123,9 +141,28 @@ export async function generatePOSReceiptPDF(bill: POSBill, shop: POSShopProfile)
     page.drawText(text, { x, y, size, font, color })
   }
 
+  function drawMetaRow(label: string, value: string) {
+    page.drawText(label, { x: contentLeft, y, size: 6.8, font: fontR, color: muted })
+    const x = Math.max(contentLeft + 52, contentRight - fontMono.widthOfTextAtSize(value, 6.8))
+    page.drawText(value, { x, y, size: 6.8, font: fontMono, color: ink })
+    y -= 9
+  }
+
+  function drawSummaryRow(label: string, value: string, emphasize = false) {
+    page.drawText(label, {
+      x: contentLeft,
+      y,
+      size: emphasize ? 9.4 : 7.2,
+      font: emphasize ? fontB : fontR,
+      color: emphasize ? ink : muted,
+    })
+    drawRightText(value, totalRightX, emphasize ? 9.4 : 7.2, emphasize ? fontMonoB : fontMono, emphasize ? amber : muted)
+    y -= emphasize ? 15 : 10
+  }
+
   if (shop.logoDataUrl) {
     const logo = await embedDataUrlImage(doc, shop.logoDataUrl)
-    const scale = Math.min(52 / logo.width, 34 / logo.height, 1)
+    const scale = Math.min(48 / logo.width, 26 / logo.height, 1)
     const width = logo.width * scale
     const height = logo.height * scale
     page.drawImage(logo, {
@@ -134,91 +171,84 @@ export async function generatePOSReceiptPDF(bill: POSBill, shop: POSShopProfile)
       width,
       height,
     })
-    y -= height + 10
+    y -= height + 8
   }
 
-  drawCenteredText(shop.name || 'My Shop', 12, fontB)
+  page.drawRectangle({ x: contentLeft, y: y - 11, width: 62, height: 14, color: lightBg, borderColor: border, borderWidth: 0.5 })
+  page.drawText('GST RECEIPT', { x: contentLeft + 8, y: y - 6, size: 6.5, font: fontB, color: amber })
+  y -= 18
+
+  drawCenteredText(shop.name || 'My Shop', 11.5, fontB)
   if (shop.address) {
-    for (const line of wrapText(shop.address, fontR, 7, pageWidth - 20)) {
-      drawCenteredText(line, 7, fontR, muted)
+    for (const line of wrapText(shop.address, fontR, 6.8, pageWidth - 28)) {
+      drawCenteredText(line, 6.8, fontR, muted)
     }
   }
-  if (shop.gstin) drawCenteredText(`GSTIN: ${shop.gstin}`, 7, fontR, muted)
-  if (shop.phone) drawCenteredText(`Ph: ${shop.phone}`, 7, fontR, muted)
+  if (shop.gstin) drawCenteredText(`GSTIN: ${shop.gstin}`, 6.8, fontR, muted)
+  if (shop.phone) drawCenteredText(`Ph: ${shop.phone}`, 6.8, fontR, muted)
 
-  y -= 4
+  y -= 3
   drawLine()
 
-  drawCenteredText(bill.billNumber, 9, fontB)
-  drawCenteredText(`Date: ${bill.date}`, 7, fontR, muted)
-  if (bill.orderRef) drawCenteredText(`Order Ref: ${bill.orderRef}`, 7, fontR, muted)
-  if (bill.customer) drawCenteredText(`Customer: ${bill.customer}`, 7, fontR, muted)
-  if (bill.customerPhone) drawCenteredText(`Phone: ${bill.customerPhone}`, 7, fontR, muted)
-  if (bill.paymentMode) drawCenteredText(`Paid via: ${bill.paymentMode}`, 7, fontR, muted)
+  drawMetaRow('Bill No:', bill.billNumber)
+  drawMetaRow('Date:', bill.date)
+  if (bill.orderRef) drawMetaRow('Order Ref:', bill.orderRef)
+  if (bill.customer) drawMetaRow('Customer:', bill.customer)
+  if (bill.customerPhone) drawMetaRow('Phone:', bill.customerPhone)
+  if (bill.paymentMode) drawMetaRow('Paid via:', bill.paymentMode)
 
-  y -= 4
+  y -= 1
   drawLine()
 
-  page.drawLine({ start: { x: 10, y: y + 8 }, end: { x: pageWidth - 10, y: y + 8 }, thickness: 0.5, color: border })
-  page.drawText('Item', { x: 10, y, size: 7, font: fontB, color: muted })
-  page.drawText('Qty', { x: qtyX, y, size: 7, font: fontB, color: muted })
-  page.drawText('Price', { x: 139, y, size: 7, font: fontB, color: muted })
-  page.drawText('Total', { x: 189, y, size: 7, font: fontB, color: muted })
-  y -= 15
-
-  for (const ci of bill.items) {
-    const lineTotal = ci.product.price * ci.qty * (1 - ci.discount / 100)
-    const nameLines = wrapText(ci.product.name, fontR, 7, 102)
-    const rowStartY = y
-
-    for (const [index, line] of nameLines.entries()) {
-      page.drawText(line, { x: 10, y, size: 7, font: fontR, color: ink })
-      if (index === 0) {
-        page.drawText(String(ci.qty), { x: qtyX + 2, y, size: 7, font: fontMono, color: ink })
-        drawRightText(`Rs.${ci.product.price.toFixed(2)}`, priceRightX, 7, fontMono)
-        drawRightText(`Rs.${lineTotal.toFixed(2)}`, totalRightX, 7, fontMono)
-      }
-      y -= 10
-    }
-
-    if (ci.discount > 0) {
-      page.drawText(`Discount ${ci.discount}%`, { x: 10, y, size: 6, font: fontR, color: muted })
-      y -= 9
-    }
-
-    const rowHeight = rowStartY - y
-    if (rowHeight < 13) y -= 13 - rowHeight
-    y -= 3
-  }
-
-  drawLine()
-
-  page.drawText('Subtotal', { x: 10, y, size: 7, font: fontR, color: muted })
-  drawRightText(`Rs.${bill.items.reduce((sum, item) => sum + item.product.price * item.qty * (1 - item.discount / 100), 0).toFixed(2)}`, totalRightX, 7, fontMono, muted)
+  page.drawText('ITEM', { x: contentLeft, y, size: 6.4, font: fontB, color: muted })
+  page.drawText('QTY', { x: qtyX, y, size: 6.4, font: fontB, color: muted })
+  page.drawText('RATE', { x: 143, y, size: 6.4, font: fontB, color: muted })
+  page.drawText('AMT', { x: 191, y, size: 6.4, font: fontB, color: muted })
   y -= 12
 
-  const gstEntries = Object.entries(bill.gstBreakup).filter(([, value]) => value > 0)
+  for (const ci of bill.items) {
+    const taxable = ci.product.price * ci.qty * (1 - ci.discount / 100)
+    const gstAmount = taxable * ci.product.gstRate / 100
+    const nameLines = wrapText(ci.product.name, fontR, 7, itemWidth)
+
+    page.drawRectangle({ x: contentLeft - 2, y: y - (nameLines.length * 9 + (ci.discount > 0 ? 18 : 10)), width: contentRight - contentLeft + 4, height: nameLines.length * 9 + (ci.discount > 0 ? 18 : 10), color: white })
+    for (const [index, line] of nameLines.entries()) {
+      page.drawText(line, { x: contentLeft, y, size: 7, font: index === 0 ? fontB : fontR, color: ink })
+      if (index === 0) {
+        page.drawText(String(ci.qty), { x: qtyX + 2, y, size: 6.6, font: fontMono, color: ink })
+        drawRightText(formatLineAmount(ci.product.price), rateRightX, 6.6, fontMono)
+        drawRightText(formatLineAmount(taxable), totalRightX, 6.6, fontMono)
+      }
+      y -= 8.5
+    }
+
+    page.drawText(`GST@${ci.product.gstRate}%: ${formatAmount(gstAmount)}`, { x: contentLeft, y, size: 6.2, font: fontR, color: muted })
+    y -= 8
+    if (ci.discount > 0) {
+      page.drawText(`Discount ${ci.discount}%`, { x: contentLeft, y, size: 6.2, font: fontR, color: muted })
+      y -= 8
+    }
+    page.drawLine({ start: { x: contentLeft, y }, end: { x: contentRight, y }, thickness: 0.35, color: border })
+    y -= 6
+  }
+
+  y -= 2
+  drawSummaryRow('Subtotal', formatAmount(subtotal))
   for (const [rate, amount] of gstEntries) {
     const halfRate = Number(rate) / 2
     const label = Number(rate) === 0 ? 'GST @0%' : `CGST@${halfRate}% + SGST@${halfRate}%`
-    page.drawText(label, { x: 10, y, size: 7, font: fontR, color: muted, maxWidth: 150 })
-    drawRightText(`Rs.${amount.toFixed(2)}`, totalRightX, 7, fontMono, muted)
-    y -= 12
+    drawSummaryRow(label, formatAmount(amount))
   }
-
-  if (gstEntries.length > 0) {
-    y -= 2
-    drawLine()
-  }
-
-  page.drawText('GRAND TOTAL', { x: 10, y, size: 10, font: fontB, color: ink })
-  drawRightText(`Rs.${bill.total.toFixed(2)}`, totalRightX, 10, fontMonoB, amber)
-  y -= 20
-
+  y -= 2
   drawLine()
-  y -= 4
-  drawCenteredText('Thank you for your purchase!', 8.5, fontR, muted)
-  drawCenteredText('Subject to local court jurisdiction', 6, fontR, muted)
+  y -= 2
+  drawSummaryRow('GRAND TOTAL', formatAmount(bill.total), true)
+  y -= 3
+  drawLine()
+  y -= 2
+
+  drawCenteredText('Thank you! Come Again', 7.8, fontB, muted)
+  drawCenteredText('Subject to local court jurisdiction', 5.8, fontR, muted)
 
   return doc.save()
 }

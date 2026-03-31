@@ -19,6 +19,24 @@ export interface ImageItem {
   rotation: 0 | 90 | 180 | 270
 }
 
+function isHeicLike(file: File, mime: string, nameLc: string) {
+  return (
+    mime === 'image/heic'
+    || mime === 'image/heif'
+    || nameLc.endsWith('.heic')
+    || nameLc.endsWith('.heif')
+  )
+}
+
+async function decodeHeicToJpegBlob(bytes: ArrayBuffer, mime: string) {
+  const heic2any = (await import('heic2any')).default
+  return await heic2any({
+    blob: new Blob([bytes], { type: mime || 'image/heic' }),
+    toType: 'image/jpeg',
+    quality: 0.92,
+  }) as Blob
+}
+
 export async function imagesToPDF(
   items:       ImageItem[],
   pageSize:    PageSize,
@@ -49,17 +67,9 @@ export async function imagesToPDF(
           await rotateImageBytes(item.file, item.rotation)
         )
       }
-    } else if (
-      mime === 'image/heic' || mime === 'image/heif' ||
-      nameLc.endsWith('.heic') || nameLc.endsWith('.heif')
-    ) {
+    } else if (isHeicLike(item.file, mime, nameLc)) {
       // Convert HEIC → JPEG via heic2any (iPhone photos)
-      const heic2any  = (await import('heic2any')).default
-      const converted = await heic2any({
-        blob:    new Blob([bytes], { type: mime || 'image/heic' }),
-        toType:  'image/jpeg',
-        quality: 0.92,
-      }) as Blob
+      const converted = await decodeHeicToJpegBlob(bytes, mime)
       const jpgBytes = await converted.arrayBuffer()
       if (item.rotation === 0) {
         embedded = await doc.embedJpg(jpgBytes)
@@ -173,22 +183,40 @@ async function decodeViaCanvas(file: File, bytes: ArrayBuffer, rotation: number)
 
 /** Generate a thumbnail object URL (caller must revoke on cleanup) */
 export function generateThumb(file: File, maxSize = 180): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file)
-    const img = new Image()
-    img.onload = () => {
-      const scale   = Math.min(maxSize / img.width, maxSize / img.height, 1)
-      const canvas  = document.createElement('canvas')
-      canvas.width  = Math.floor(img.width  * scale)
-      canvas.height = Math.floor(img.height * scale)
-      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
-      URL.revokeObjectURL(url)
-      canvas.toBlob(b => {
-        canvas.width = 0; canvas.height = 0
-        b ? resolve(URL.createObjectURL(b)) : reject(new Error('thumb failed'))
-      }, 'image/jpeg', 0.8)
-    }
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('load failed')) }
-    img.src = url
-  })
+  return (async () => {
+    const bytes = await file.arrayBuffer()
+    const mime = file.type.toLowerCase()
+    const nameLc = file.name.toLowerCase()
+
+    const sourceBlob = isHeicLike(file, mime, nameLc)
+      ? await decodeHeicToJpegBlob(bytes, mime)
+      : new Blob([bytes], { type: file.type || 'application/octet-stream' })
+
+    return await new Promise<string>((resolve, reject) => {
+      const url = URL.createObjectURL(sourceBlob)
+      const img = new Image()
+      img.onload = () => {
+        const scale = Math.min(maxSize / img.width, maxSize / img.height, 1)
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.max(1, Math.floor(img.width * scale))
+        canvas.height = Math.max(1, Math.floor(img.height * scale))
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
+        URL.revokeObjectURL(url)
+        canvas.toBlob(b => {
+          canvas.width = 0
+          canvas.height = 0
+          if (b) {
+            resolve(URL.createObjectURL(b))
+          } else {
+            reject(new Error('thumb failed'))
+          }
+        }, 'image/jpeg', 0.8)
+      }
+      img.onerror = () => {
+        URL.revokeObjectURL(url)
+        reject(new Error('load failed'))
+      }
+      img.src = url
+    })
+  })()
 }

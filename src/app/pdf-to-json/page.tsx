@@ -13,7 +13,7 @@ type ToolState = 'idle' | 'processing' | 'done' | 'error'
 const FAQS = [
   {
     q: 'What data is included in the JSON output?',
-    a: 'The JSON contains filename, page count, total word count, document metadata (title, author, subject), and per-page text content with word counts and line arrays.',
+    a: 'The JSON contains filename, page count, total word count, document metadata, and per-page text with line objects, detected cells, and table blocks when the PDF layout is structured enough to infer them.',
   },
   {
     q: 'Is the JSON suitable for developer use?',
@@ -138,7 +138,7 @@ export default function PDFToJSONPage() {
             <span style={{ color: 'var(--ink)' }}>PDF to JSON</span>
           </h1>
           <p style={{ color: 'var(--muted)', fontSize: '16px', lineHeight: 1.6, maxWidth: '640px', marginBottom: '16px' }}>
-            Extract all text from a PDF and export as structured JSON with page data, word counts, and document metadata. Free, no upload.
+            Extract PDF content as structured JSON with page data, word counts, line objects, cells, detected tables, and document metadata. Free, no upload.
           </p>
         </div>
 
@@ -232,7 +232,7 @@ export default function PDFToJSONPage() {
             <li style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.7 }}><strong>Click Download JSON to save the file.</strong> Or copy the full JSON to clipboard.</li>
           </ol>
           <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>What data is included in the JSON output?</h3>
-          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>The JSON includes the document metadata (title, author, creation date), total page count, and for each page: the page number and extracted text content. Tables and complex layouts are extracted as flat text; vector graphics and images are not included.</p>
+          <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7, marginBottom: '24px' }}>The JSON includes document metadata, total page count, and for each page: extracted text, line objects with `cells`, and detected `tables` when the page has clear column structure. Images and vector graphics are not included.</p>
           <h3 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '16px', color: 'var(--ink)', marginBottom: '8px' }}>PDF to JSON on iPhone and Android</h3>
           <p style={{ fontSize: '14px', color: 'var(--ink)', opacity: 0.65, lineHeight: 1.7 }}>Doclair works in mobile Safari and Chrome. Upload your PDF and download the JSON file directly to your device for further processing.</p>
         </div>

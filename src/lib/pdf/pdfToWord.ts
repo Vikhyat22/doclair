@@ -1,4 +1,5 @@
 import {
+  AlignmentType,
   BorderStyle,
   Document,
   HeadingLevel,
@@ -948,6 +949,19 @@ function lineLooksLikeHeading(line: PreparedWordLine) {
   )
 }
 
+function lineLooksCentered(line: PreparedWordLine, pageWidth: number) {
+  const leftMargin = line.left
+  const rightMargin = pageWidth - line.right
+
+  if (leftMargin < 18 || rightMargin < 18) return false
+
+  return Math.abs(leftMargin - rightMargin) <= Math.max(16, pageWidth * 0.03)
+}
+
+function paragraphLooksCentered(lines: PreparedWordLine[], pageWidth: number) {
+  return lines.length > 0 && lines.every(line => lineLooksCentered(line, pageWidth))
+}
+
 function lineLooksLikeBulletItem(line: PreparedWordLine) {
   return /^[\u2022\u2023\u25E6\u2043\-]\s+/.test(line.text)
 }
@@ -977,12 +991,14 @@ function shouldMergeParagraphLine(current: PreparedWordLine, next: PreparedWordL
     && !lineLooksLikeListItem(next)
 }
 
-function createFlowParagraph(lines: PreparedWordLine[]) {
+function createFlowParagraph(lines: PreparedWordLine[], pageWidth: number) {
   const firstLine = lines[0]
   const text = lines.map(line => line.text).join(' ').replace(/\s+/g, ' ').trim()
+  const centered = paragraphLooksCentered(lines, pageWidth)
 
   if (lineLooksLikeHeading(firstLine)) {
     return new Paragraph({
+      alignment: centered ? AlignmentType.CENTER : undefined,
       heading: pickHeadingLevel(firstLine),
       spacing: { before: 120, after: 80 },
       children: [
@@ -1032,6 +1048,7 @@ function createFlowParagraph(lines: PreparedWordLine[]) {
   }
 
   return new Paragraph({
+    alignment: centered ? AlignmentType.CENTER : undefined,
     spacing: { before: 0, after: 100 },
     children: [
       new TextRun({
@@ -1130,7 +1147,7 @@ function buildEditablePageChildren(page: PositionedWordPage) {
       lineIndex += 1
     }
 
-    children.push(createFlowParagraph(paragraphLines))
+    children.push(createFlowParagraph(paragraphLines, page.width))
   }
 
   flushImagesBefore(Number.POSITIVE_INFINITY)

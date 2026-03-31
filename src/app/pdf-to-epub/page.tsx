@@ -5,6 +5,7 @@ import ToolPageLayout from '@/components/layout/ToolPageLayout'
 import ErrorCard from '@/components/ui/ErrorCard'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import FAQ from '@/components/ui/FAQ'
+import { extractStructuredPDF, type StructuredLine } from '@/lib/pdf/extractStructured'
 
 const SIDEBAR_RELATED = [
   { name: 'PDF to Text',     slug: 'pdf-to-text',     icon: '📝', colorBg: '#FFF0DC', desc: 'Extract plain text' },
@@ -67,6 +68,132 @@ function escapeXml(s: string) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
 }
 
+function isHeading(line: string) {
+  const clean = line.trim()
+  if (!clean) return false
+
+  const isShort = clean.length <= 80
+  const noEndPunctuation = !/[.!?,;:]$/.test(clean)
+  const isAllCaps = clean === clean.toUpperCase() && /[A-Z]/.test(clean)
+  const isTitleCase = /^[A-Z][A-Za-z0-9].+/.test(clean)
+
+  return isShort && noEndPunctuation && (isAllCaps || (isTitleCase && clean.length <= 56))
+}
+
+function isTableCandidate(line: StructuredLine) {
+  if (line.cells.length < 2) return false
+  const clean = line.text.trim()
+  if (!clean) return false
+  if (/^(?:[-*•]|[0-9]+[.)])\s+/.test(clean)) return false
+  return line.cells.every(cell => cell.trim().length > 0)
+}
+
+function looksLikeHeaderRow(cells: string[], followingRows: string[][]) {
+  if (cells.length < 2 || followingRows.length === 0) return false
+
+  const shortLabels = cells.every(cell => cell.trim().length > 0 && cell.trim().length <= 24)
+  const noSentencePunctuation = cells.every(cell => !/[.!?]$/.test(cell.trim()))
+  const mostlyText = cells.every(cell => /[A-Za-z]/.test(cell) && !/^\d+(?:[.,]\d+)?$/.test(cell.trim()))
+  const followingHasDifferentData = followingRows.some(row => row.some(cell => /\d/.test(cell) || cell.trim().length > 24))
+
+  return shortLabels && noSentencePunctuation && mostlyText && followingHasDifferentData
+}
+
+function renderXhtmlTable(rows: string[][]) {
+  const columnCount = Math.max(...rows.map(row => row.length))
+  const normalized = rows.map(row => Array.from({ length: columnCount }, (_, index) => row[index] ?? ''))
+  const header = looksLikeHeaderRow(normalized[0], normalized.slice(1)) ? normalized[0] : null
+  const bodyRows = header ? normalized.slice(1) : normalized
+
+  const headHtml = header
+    ? `<thead><tr>${header.map(cell => `<th>${escapeXml(cell)}</th>`).join('')}</tr></thead>`
+    : ''
+  const bodyHtml = bodyRows
+    .map(row => `<tr>${row.map(cell => `<td>${escapeXml(cell)}</td>`).join('')}</tr>`)
+    .join('')
+
+  return `<div class="table-wrap"><table>${headHtml}<tbody>${bodyHtml}</tbody></table></div>`
+}
+
+function renderPageXhtml(lines: StructuredLine[]) {
+  const parts: string[] = []
+  let listItems: string[] = []
+  let paragraphLines: string[] = []
+
+  const flushList = () => {
+    if (listItems.length === 0) return
+    parts.push(`<ul>${listItems.join('')}</ul>`)
+    listItems = []
+  }
+
+  const flushParagraph = () => {
+    if (paragraphLines.length === 0) return
+    parts.push(`<p>${escapeXml(paragraphLines.join(' ').replace(/\s+/g, ' ').trim())}</p>`)
+    paragraphLines = []
+  }
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]
+    const clean = line.text.trim()
+    if (!clean) continue
+
+    if (isTableCandidate(line)) {
+      const tableRows: string[][] = [line.cells]
+      let cursor = index + 1
+
+      while (cursor < lines.length) {
+        const next = lines[cursor]
+        if (!isTableCandidate(next)) break
+        const widthDelta = Math.abs(next.cells.length - tableRows[tableRows.length - 1].length)
+        if (widthDelta > 1) break
+        tableRows.push(next.cells)
+        cursor += 1
+      }
+
+      const maxColumns = Math.max(...tableRows.map(row => row.length))
+      if (tableRows.length >= 2 && maxColumns >= 3) {
+        flushParagraph()
+        flushList()
+        parts.push(renderXhtmlTable(tableRows))
+        index = cursor - 1
+        continue
+      }
+    }
+
+    if (/^(?:[-*•]|[0-9]+[.)])\s+/.test(clean)) {
+      flushParagraph()
+      listItems.push(`<li>${escapeXml(clean.replace(/^(?:[-*•]|[0-9]+[.)])\s+/, ''))}</li>`)
+      continue
+    }
+
+    flushList()
+
+    if (isHeading(clean)) {
+      flushParagraph()
+      parts.push(`<h2>${escapeXml(clean)}</h2>`)
+      continue
+    }
+
+    paragraphLines.push(clean)
+    if (/[.!?]$/.test(clean)) {
+      flushParagraph()
+    }
+  }
+
+  flushParagraph()
+  flushList()
+
+  return parts.join('\n') || '<p><em>No readable text found on this page.</em></p>'
+}
+
+function detectLanguage(text: string) {
+  if (/[\u0900-\u097F]/.test(text)) return 'hi'
+  if (/[\u0B80-\u0BFF]/.test(text)) return 'ta'
+  if (/[\u0C00-\u0C7F]/.test(text)) return 'te'
+  if (/[\u0980-\u09FF]/.test(text)) return 'bn'
+  return 'en'
+}
+
 export default function PDFToEpubPage() {
   const [saving, setSaving] = useState(false)
   const [progress, setProgress] = useState('')
@@ -76,23 +203,16 @@ export default function PDFToEpubPage() {
   const process = useCallback(async (file: File) => {
     setSaving(true); setDone(false); setErrorMessage('')
     try {
-      const pdfjsLib = (await import('pdfjs-dist')).default ?? await import('pdfjs-dist')
-      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
-      const doc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise
-      const title = file.name.replace(/\.pdf$/i, '')
+      const structured = await extractStructuredPDF(file, (page, total) => {
+        const current = Math.min(Math.max(page, 1), total)
+        setProgress(`Extracting page ${current} of ${total}…`)
+      })
+      const title = structured.metadata.title?.trim() || file.name.replace(/\.pdf$/i, '')
+      const author = structured.metadata.author?.trim() || 'Converted by Doclair'
+      const language = detectLanguage(structured.pages.map(page => page.lines.map(line => line.text).join(' ')).join(' '))
 
-      setProgress('Extracting text…')
-      const chapters: { pageNum: number; text: string }[] = []
-      for (let i = 1; i <= doc.numPages; i++) {
-        setProgress(`Extracting page ${i} of ${doc.numPages}…`)
-        const page = await doc.getPage(i)
-        const content = await page.getTextContent()
-        const text = content.items
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .map((item: any) => item.str || '')
-          .join(' ')
-          .trim()
-        chapters.push({ pageNum: i, text })
+      if (structured.totalWords === 0) {
+        throw new Error('No readable text found in this PDF. If it is scanned, run OCR PDF first.')
       }
 
       setProgress('Building EPUB…')
@@ -112,30 +232,46 @@ export default function PDFToEpubPage() {
 
       oebps.file('style.css', `
 body { font-family: Georgia, serif; line-height: 1.7; margin: 1em 1.5em; color: #1a1a1a; }
-h2 { font-size: 1em; color: #888; border-bottom: 1px solid #eee; padding-bottom: 0.4em; }
+h1 { font-size: 1.6em; margin: 0 0 0.25em; }
+h2 { font-size: 1.1em; color: #444; border-bottom: 1px solid #eee; padding-bottom: 0.4em; margin-top: 1.4em; }
 p { margin: 0.8em 0; }
+ul { margin: 0.6em 0 1em 1.2em; }
+li { margin: 0.25em 0; }
+.meta { color: #666; font-size: 0.95em; }
+.table-wrap { overflow-x: auto; margin: 1em 0; }
+table { width: 100%; border-collapse: collapse; font-size: 0.95em; }
+th, td { border: 1px solid #ddd; padding: 0.45em 0.55em; text-align: left; vertical-align: top; }
+thead th { background: #f6f2ea; font-weight: 700; }
 `)
 
-      const chapterIds: string[] = []
-      for (const ch of chapters) {
-        const id = `page${ch.pageNum}`
+      oebps.file('title.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>${escapeXml(title)}</title>
+  <link rel="stylesheet" type="text/css" href="style.css"/>
+</head>
+<body>
+  <h1>${escapeXml(title)}</h1>
+  <p class="meta">${escapeXml(author)}</p>
+  <p class="meta">${structured.pageCount} page${structured.pageCount === 1 ? '' : 's'} · ${structured.totalWords.toLocaleString()} words</p>
+</body>
+</html>`)
+
+      const chapterIds: string[] = ['title']
+      for (const page of structured.pages) {
+        const id = `page${page.page}`
         chapterIds.push(id)
-        const paragraphs = ch.text
-          .split(/\n{2,}/)
-          .map(p => p.trim())
-          .filter(p => p.length > 0)
-          .map(p => `<p>${escapeXml(p)}</p>`)
-          .join('\n')
         oebps.file(`${id}.xhtml`, `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-  <title>Page ${ch.pageNum}</title>
+  <title>Page ${page.page}</title>
   <link rel="stylesheet" type="text/css" href="style.css"/>
 </head>
 <body>
-<h2>Page ${ch.pageNum}</h2>
-${paragraphs || '<p><em>(No text on this page)</em></p>'}
+<h2>Page ${page.page}</h2>
+${renderPageXhtml(page.lines)}
 </body>
 </html>`)
       }
@@ -148,9 +284,9 @@ ${paragraphs || '<p><em>(No text on this page)</em></p>'}
 <package xmlns="http://www.idpf.org/2007/opf" unique-identifier="uid" version="2.0">
   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">
     <dc:title>${escapeXml(title)}</dc:title>
-    <dc:language>en</dc:language>
+    <dc:language>${language}</dc:language>
     <dc:identifier id="uid">${escapeXml(title)}-doclair</dc:identifier>
-    <dc:creator>Converted by Doclair</dc:creator>
+    <dc:creator>${escapeXml(author)}</dc:creator>
   </metadata>
   <manifest>
     <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
@@ -164,7 +300,7 @@ ${paragraphs || '<p><em>(No text on this page)</em></p>'}
 
       const navPoints = chapterIds.map((id, i) => `
     <navPoint id="nav${i + 1}" playOrder="${i + 1}">
-      <navLabel><text>Page ${i + 1}</text></navLabel>
+      <navLabel><text>${id === 'title' ? 'Title Page' : `Page ${i}`}</text></navLabel>
       <content src="${id}.xhtml"/>
     </navPoint>`).join('')
       oebps.file('toc.ncx', `<?xml version="1.0" encoding="UTF-8"?>

@@ -90,18 +90,22 @@ code block example
 const PRINT_STYLES = `
   @page { margin: 1in; size: A4; }
   body { font-family: Georgia, serif; font-size: 12pt; color: #111; line-height: 1.7; }
-  h1 { font-size: 24pt; font-weight: bold; margin-bottom: 12pt; }
+  h1 { font-size: 24pt; font-weight: bold; margin: 0 0 12pt; }
   h2 { font-size: 18pt; font-weight: bold; margin-top: 20pt; margin-bottom: 8pt; }
   h3 { font-size: 14pt; font-weight: bold; margin-top: 16pt; margin-bottom: 6pt; }
+  p { margin: 0 0 10pt; }
   code { font-family: 'Courier New', monospace; background: #f4f4f4; padding: 1pt 4pt; border-radius: 2pt; font-size: 10pt; }
-  pre { background: #f4f4f4; padding: 12pt; border-radius: 4pt; overflow: hidden; }
+  pre { background: #f4f4f4; padding: 12pt; border-radius: 4pt; overflow: hidden; white-space: pre-wrap; page-break-inside: avoid; }
   pre code { background: none; padding: 0; }
   table { border-collapse: collapse; width: 100%; margin: 12pt 0; }
+  thead { display: table-header-group; }
+  tr, img, blockquote { page-break-inside: avoid; }
   td, th { border: 1px solid #ccc; padding: 4pt 8pt; text-align: left; }
   th { background: #f4f4f4; font-weight: bold; }
   blockquote { border-left: 3pt solid #E8820C; padding-left: 12pt; color: #555; margin: 12pt 0; }
   ul, ol { padding-left: 20pt; }
   li { margin-bottom: 4pt; }
+  a { color: #B45309; text-decoration: none; }
   hr { border: none; border-top: 1px solid #ccc; margin: 16pt 0; }
 `
 
@@ -129,7 +133,7 @@ export default function MarkdownToPDFPage() {
 <meta charset="UTF-8">
 <title>Markdown PDF</title>
 <style>${PRINT_STYLES}</style>
-</head><body>${html}</body></html>`)
+</head><body class="markdown-print">${html}</body></html>`)
     printWindow.document.close()
     setTimeout(() => {
       printWindow.focus()
@@ -187,6 +191,7 @@ export default function MarkdownToPDFPage() {
             </div>
             <div
               dangerouslySetInnerHTML={{ __html: html }}
+              className="markdown-preview"
               style={{
                 flex: 1, padding: '16px', overflowY: 'auto', fontSize: '14px', lineHeight: 1.7, color: 'var(--ink)',
                 fontFamily: 'Georgia, serif',
@@ -231,12 +236,16 @@ export default function MarkdownToPDFPage() {
         .markdown-preview h1 { font-size: 24px; font-weight: bold; margin-bottom: 12px; }
         .markdown-preview h2 { font-size: 18px; font-weight: bold; margin-top: 20px; margin-bottom: 8px; }
         .markdown-preview h3 { font-size: 16px; font-weight: bold; margin-top: 16px; margin-bottom: 6px; }
+        .markdown-preview p { margin: 0 0 10px; }
         .markdown-preview code { font-family: 'DM Mono', monospace; background: #F3F4F6; padding: 1px 6px; border-radius: 3px; font-size: 12px; }
-        .markdown-preview pre { background: #F3F4F6; padding: 12px; border-radius: 8px; overflow-x: auto; }
+        .markdown-preview pre { background: #F3F4F6; padding: 12px; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; }
         .markdown-preview table { border-collapse: collapse; width: 100%; }
         .markdown-preview td, .markdown-preview th { border: 1px solid #E5E7EB; padding: 6px 10px; }
         .markdown-preview th { background: #F9FAFB; font-weight: 600; }
         .markdown-preview blockquote { border-left: 3px solid #E8820C; padding-left: 12px; color: #6B7280; margin: 12px 0; }
+        .markdown-preview ul, .markdown-preview ol { padding-left: 20px; }
+        .markdown-preview li { margin-bottom: 4px; }
+        .markdown-preview a { color: #B45309; text-decoration: none; }
       `}</style>
     </>
   )

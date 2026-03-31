@@ -10,6 +10,30 @@ export interface ImageResult {
   sizeBytes: number
 }
 
+function sanitizeSegment(value: string): string {
+  const cleaned = value
+    .trim()
+    .replace(/\.[^.]+$/, '')
+    .replace(/[<>:"/\\|?*\u0000-\u001F]+/g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+
+  return cleaned || 'document'
+}
+
+export function getPdfImageBaseName(filename: string): string {
+  return sanitizeSegment(filename)
+}
+
+export function getPdfImageArchiveName(
+  filename: string,
+  format: string,
+  dpi: number
+): string {
+  return `${getPdfImageBaseName(filename)}-${format}-${dpi}dpi.zip`
+}
+
 export async function pdfToImages(
   file:        File,
   format:      ImageFormat,
@@ -31,6 +55,8 @@ export async function pdfToImages(
 
   const total  = pdf.numPages
   const scale  = dpi / 72
+  const digits = Math.max(String(total).length, 2)
+  const baseName = getPdfImageBaseName(file.name)
   const results: ImageResult[] = []
 
   const mimeType =
@@ -44,14 +70,14 @@ export async function pdfToImages(
     undefined  // PNG is lossless — no quality param
 
   for (let i = 1; i <= total; i++) {
-    onProgress?.(i - 1, total)
+    onProgress?.(i, total)
 
     const page     = await pdf.getPage(i)
     const viewport = page.getViewport({ scale })
 
     const canvas  = document.createElement('canvas')
-    canvas.width  = Math.floor(viewport.width)
-    canvas.height = Math.floor(viewport.height)
+    canvas.width  = Math.ceil(viewport.width)
+    canvas.height = Math.ceil(viewport.height)
 
     const ctx = canvas.getContext('2d', {
       alpha:              format === 'png',
@@ -81,7 +107,7 @@ export async function pdfToImages(
     )
 
     results.push({
-      filename:  `page-${i}.${format}`,
+      filename:  `${baseName}-page-${String(i).padStart(digits, '0')}.${format}`,
       blob,
       pageNum:   i,
       width:     canvas.width,
@@ -93,8 +119,6 @@ export async function pdfToImages(
     // Without this, a 50-page 300 DPI PDF will exhaust GPU memory and crash the tab.
     canvas.width  = 0
     canvas.height = 0
-
-    onProgress?.(i, total)
   }
 
   return results

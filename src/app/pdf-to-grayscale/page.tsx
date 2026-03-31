@@ -67,6 +67,51 @@ const SIDEBAR_RELATED = [
   { name: 'Flatten PDF',  slug: 'flatten-pdf',  icon: '🔥', colorBg: '#FEE2E2', desc: 'Lock content permanently' },
 ]
 
+const RENDER_SCALE = 2
+const JPEG_QUALITY = 0.82
+
+async function renderGrayscaleJpeg(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  page: any,
+  scale: number,
+): Promise<Uint8Array> {
+  const viewport = page.getViewport({ scale })
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.ceil(viewport.width)
+  canvas.height = Math.ceil(viewport.height)
+
+  const ctx = canvas.getContext('2d', { alpha: false })!
+  ctx.fillStyle = '#FFFFFF'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+  await page.render({ canvasContext: ctx, viewport, canvas }).promise
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  const data = imageData.data
+  for (let p = 0; p < data.length; p += 4) {
+    const gray = Math.round(0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2])
+    data[p] = gray
+    data[p + 1] = gray
+    data[p + 2] = gray
+    data[p + 3] = 255
+  }
+  ctx.putImageData(imageData, 0, 0)
+
+  const jpegBytes = await new Promise<Uint8Array>((resolve, reject) => {
+    canvas.toBlob(blob => {
+      if (!blob) {
+        reject(new Error('Failed to encode grayscale page'))
+        return
+      }
+      blob.arrayBuffer().then(buf => resolve(new Uint8Array(buf)), reject)
+    }, 'image/jpeg', JPEG_QUALITY)
+  })
+
+  canvas.width = 0
+  canvas.height = 0
+  return jpegBytes
+}
+
 async function processToGrayscale(
   file: File,
   onProgress: (c: number, t: number) => void,
@@ -84,37 +129,14 @@ async function processToGrayscale(
   const outDoc  = await PDFDocument.create()
 
   for (let i = 1; i <= total; i++) {
-    onProgress(i - 1, total)
+    onProgress(i, total)
     const page     = await pdfDoc.getPage(i)
-    const viewport = page.getViewport({ scale: 150 / 72 })
+    const viewport = page.getViewport({ scale: RENDER_SCALE })
+    const jpegBytes = await renderGrayscaleJpeg(page, RENDER_SCALE)
 
-    const canvas    = document.createElement('canvas')
-    canvas.width    = viewport.width
-    canvas.height   = viewport.height
-    const ctx       = canvas.getContext('2d')!
-
-    await page.render({ canvasContext: ctx, viewport, canvas }).promise
-
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-    const data      = imageData.data
-    for (let p = 0; p < data.length; p += 4) {
-      const gray  = 0.299 * data[p] + 0.587 * data[p + 1] + 0.114 * data[p + 2]
-      data[p]     = gray
-      data[p + 1] = gray
-      data[p + 2] = gray
-    }
-    ctx.putImageData(imageData, 0, 0)
-
-    const pngBytes = await new Promise<Uint8Array>(resolve => {
-      canvas.toBlob(blob => {
-        blob!.arrayBuffer().then(buf => resolve(new Uint8Array(buf)))
-      }, 'image/png')
-    })
-
-    const img = await outDoc.embedPng(pngBytes)
+    const img = await outDoc.embedJpg(jpegBytes)
     const pg  = outDoc.addPage([viewport.width, viewport.height])
     pg.drawImage(img, { x: 0, y: 0, width: viewport.width, height: viewport.height })
-    onProgress(i, total)
   }
 
   return outDoc.save()
@@ -124,27 +146,24 @@ export default function PDFToGrayscalePage() {
   const [file, setFile]           = useState<File | null>(null)
   const [toolState, setToolState] = useState<ToolState>('idle')
   const [result, setResult]       = useState<Uint8Array | null>(null)
-  const [error, setError]         = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [progress, setProgress]   = useState({ current: 0, total: 0 })
 
   const handleFiles = useCallback((files: File[]) => {
     if (files.length > 0) {
-      setFile(files[0]); setToolState('idle'); setResult(null); setError('')
+      setFile(files[0]); setToolState('idle'); setResult(null)
     }
   }, [])
 
   const handleProcess = useCallback(async () => {
     if (!file) return
     setToolState('processing')
-    setError('')
     try {
       const out = await processToGrayscale(file, (c, t) => setProgress({ current: c, total: t }))
       setResult(out)
       setToolState('done')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'
-      setError(message)
       setErrorMessage(message)
       setToolState('error')
     }
@@ -162,7 +181,7 @@ export default function PDFToGrayscalePage() {
   }, [result, file])
 
   const handleReset = useCallback(() => {
-    setFile(null); setResult(null); setError(''); setErrorMessage(''); setToolState('idle')
+    setFile(null); setResult(null); setErrorMessage(''); setToolState('idle')
     setProgress({ current: 0, total: 0 })
   }, [])
 

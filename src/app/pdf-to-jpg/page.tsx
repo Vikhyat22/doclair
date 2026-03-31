@@ -7,7 +7,7 @@ import FAQ from '@/components/ui/FAQ'
 import ToolSidebar from '@/components/ui/ToolSidebar'
 import DownloadCard from '@/components/ui/DownloadCard'
 import ErrorCard from '@/components/ui/ErrorCard'
-import { pdfToImages, imagesToZip, formatBytes } from '@/lib/image/pdfToImages'
+import { pdfToImages, imagesToZip, formatBytes, getPdfImageArchiveName } from '@/lib/image/pdfToImages'
 import type { ImageFormat, ImageDPI, ImageResult } from '@/lib/image/pdfToImages'
 import type { ToolState } from '@/types'
 
@@ -19,15 +19,15 @@ const FORMAT_OPTIONS = [
 
 const DPI_OPTIONS = [
   { value: 72  as ImageDPI, label: '72 DPI',  desc: 'Screen & web' },
-  { value: 150 as ImageDPI, label: '150 DPI', desc: 'Standard (recommended)' },
-  { value: 300 as ImageDPI, label: '300 DPI', desc: 'Professional print' },
+  { value: 150 as ImageDPI, label: '150 DPI', desc: 'Balanced file size' },
+  { value: 300 as ImageDPI, label: '300 DPI', desc: 'Sharp text (recommended)' },
   { value: 600 as ImageDPI, label: '600 DPI', desc: 'Archival quality' },
 ]
 
 const FAQS = [
   { q: 'Is converting PDF to JPG on Doclair free?', a: 'Yes, completely free with no limits. No sign-up, no watermarks, and no daily caps.' },
   { q: 'Will every page be converted to a separate image?', a: 'Yes. Each page of the PDF becomes a separate image file, numbered page-1.jpg, page-2.jpg, etc. You can download all pages as a single ZIP file.' },
-  { q: 'What DPI gives the best quality?', a: '150 DPI is recommended for most uses and balances quality against file size. Use 300 DPI for professional print output and 600 DPI for archival purposes. 72 DPI is suitable for web thumbnails only.' },
+  { q: 'What DPI gives the best quality?', a: '300 DPI is the best default for crisp text and print-ready pages. Use 150 DPI when you want smaller files for quick sharing, and 600 DPI for archival purposes. 72 DPI is suitable for web thumbnails only.' },
   { q: 'Are my PDF files uploaded to a server?', a: 'Never. Doclair converts your PDF entirely in your browser using pdf.js compiled to WebAssembly. Your file never leaves your device.' },
   { q: 'Should I use JPG or PNG?', a: 'Use JPG for photos, scanned documents and colourful pages — it gives the smallest files. Use PNG for pages with text, charts or diagrams where crisp edges matter. WebP gives the best compression-to-quality ratio on modern browsers.' },
   { q: 'How do I convert PDF to JPG on my phone?', a: 'Open Doclair in Safari (iPhone) or Chrome (Android). Tap the upload area and select your PDF. Choose your format and DPI, tap Convert, and download the images to your camera roll.' },
@@ -67,7 +67,7 @@ export default function PdfToJpgPage() {
   const [file, setFile]               = useState<File | null>(null)
   const [totalPages, setTotalPages]   = useState(0)
   const [format, setFormat]           = useState<ImageFormat>('jpg')
-  const [dpi, setDpi]                 = useState<ImageDPI>(150)
+  const [dpi, setDpi]                 = useState<ImageDPI>(300)
   const [toolState, setToolState]     = useState<ToolState>('idle')
   const [errorMessage, setErrorMessage] = useState('')
   const [results, setResults]         = useState<ImageResult[]>([])
@@ -128,8 +128,7 @@ export default function PdfToJpgPage() {
     const url = URL.createObjectURL(zipBlob)
     const a = document.createElement('a')
     a.href = url
-    const baseName = file?.name.replace('.pdf', '') ?? 'images'
-    a.download = `${baseName}-${format}-${dpi}dpi.zip`
+    a.download = getPdfImageArchiveName(file?.name ?? 'images.pdf', format, dpi)
     a.click()
     setTimeout(() => URL.revokeObjectURL(url), 5000)
   }
@@ -243,7 +242,7 @@ export default function PdfToJpgPage() {
             <div style={{
               fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '10px',
               color: 'var(--amber)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '14px',
-            }}>// Image Format</div>
+            }}>{'// Image Format'}</div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {FORMAT_OPTIONS.map(opt => (
                 <button
@@ -282,7 +281,7 @@ export default function PdfToJpgPage() {
             <div style={{
               fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '10px',
               color: 'var(--amber)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '14px',
-            }}>// Resolution</div>
+            }}>{'// Resolution'}</div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {DPI_OPTIONS.map(opt => (
                 <button
@@ -452,10 +451,11 @@ export default function PdfToJpgPage() {
                 <img
                   src={previewUrls[i]}
                   alt={`Page ${r.pageNum}`}
-                  style={{ width: '100%', display: 'block', maxHeight: '200px', objectFit: 'cover' }}
+                  style={{ width: '100%', height: '220px', display: 'block', objectFit: 'contain', background: '#F8FAFC' }}
                 />
                 <div style={{ padding: '10px 12px' }}>
                   <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--ink)', marginBottom: '2px' }}>Page {r.pageNum}</div>
+                  <div style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '10px', color: 'var(--muted)', marginBottom: '2px' }}>{r.width}×{r.height}px</div>
                   <div style={{ fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '10px', color: 'var(--muted)', marginBottom: '8px' }}>{formatBytes(r.sizeBytes)}</div>
                   <button
                     onClick={() => handleDownloadImage(r)}

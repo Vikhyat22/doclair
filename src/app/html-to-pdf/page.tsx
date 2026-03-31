@@ -63,12 +63,48 @@ const SIDEBAR_RELATED = [
 ]
 
 const PRINT_STYLES = `
-  @page { margin: 1in; size: A4; }
-  body { font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.6; color: #111; }
+  @page { margin: 0.5in; size: A4; }
+  body { margin: 0; font-family: Arial, sans-serif; font-size: 12pt; line-height: 1.6; color: #111; }
   img { max-width: 100%; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #ddd; padding: 6pt 8pt; text-align: left; }
+  th { background: #f6f6f6; }
+  pre, blockquote, table, img { page-break-inside: avoid; }
+  pre { white-space: pre-wrap; overflow: hidden; }
   a { color: inherit; text-decoration: none; }
   @media print { * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 `
+
+const PRINT_ONLY_STYLES = `
+  @page { margin: 0.5in; size: A4; }
+  @media print {
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+`
+
+function buildPrintableHtml(content: string) {
+  const trimmed = content.trim()
+  const isFullDocument = /<html[\s>]/i.test(trimmed) || (/<head[\s>]/i.test(trimmed) && /<body[\s>]/i.test(trimmed))
+
+  if (isFullDocument) {
+    if (/<head[\s>]/i.test(trimmed)) {
+      return trimmed.replace(/<\/head>/i, `<style>${PRINT_ONLY_STYLES}</style></head>`)
+    }
+
+    return `<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<style>${PRINT_ONLY_STYLES}</style>
+</head>${trimmed.replace(/<!DOCTYPE html>/i, '')}`
+  }
+
+  return `<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<title>HTML to PDF</title>
+<style>${PRINT_STYLES}</style>
+</head><body>${content}</body></html>`
+}
 
 export default function HTMLToPDFPage() {
   const [tab, setTab]       = useState<'url' | 'html'>('url')
@@ -93,12 +129,7 @@ export default function HTMLToPDFPage() {
   const handlePrintHTML = useCallback(() => {
     const win = window.open('', '_blank')
     if (!win) return
-    win.document.write(`<!DOCTYPE html>
-<html><head>
-<meta charset="UTF-8">
-<title>HTML to PDF</title>
-<style>${PRINT_STYLES}</style>
-</head><body>${html}</body></html>`)
+    win.document.write(buildPrintableHtml(html))
     win.document.close()
     setTimeout(() => { win.focus(); win.print() }, 500)
   }, [html])
@@ -167,19 +198,50 @@ export default function HTMLToPDFPage() {
                 )}
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <textarea
-                  value={html}
-                  onChange={e => setHtml(e.target.value)}
-                  placeholder={`<h1>My Document</h1>\n<p>Paste your HTML here…</p>`}
-                  rows={14}
-                  style={{ width: '100%', padding: '14px', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '13px', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', lineHeight: 1.6, resize: 'vertical', boxSizing: 'border-box' }}
-                />
-                {html.trim() && (
-                  <button onClick={handlePrintHTML} style={{ background: 'var(--amber)', color: 'white', padding: '12px 24px', borderRadius: '100px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer', alignSelf: 'flex-start' }}>
-                    Print HTML as PDF →
-                  </button>
-                )}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border)' }}>
+                  <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: '#FAFAFA', fontSize: '12px', fontWeight: 600, color: 'var(--ink)' }}>
+                    HTML Code
+                  </div>
+                  <textarea
+                    value={html}
+                    onChange={e => setHtml(e.target.value)}
+                    placeholder={`<h1>My Document</h1>\n<p>Paste your HTML here…</p>`}
+                    rows={16}
+                    style={{ width: '100%', padding: '14px', border: 'none', outline: 'none', fontSize: '13px', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', lineHeight: 1.6, resize: 'vertical', boxSizing: 'border-box' }}
+                  />
+                  <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border)', fontSize: '11px', color: 'var(--muted)', background: '#FAFAFA' }}>
+                    {html.length.toLocaleString()} characters
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: '#FAFAFA', fontSize: '12px', fontWeight: 600, color: 'var(--ink)' }}>
+                    Preview
+                  </div>
+                  <div style={{ height: '100%', minHeight: '420px', background: 'white' }}>
+                    {html.trim() ? (
+                      <iframe
+                        title="HTML preview"
+                        srcDoc={buildPrintableHtml(html)}
+                        sandbox=""
+                        style={{ width: '100%', height: '100%', minHeight: '420px', border: 'none' }}
+                      />
+                    ) : (
+                      <div style={{ padding: '24px', fontSize: '13px', color: 'var(--muted)' }}>
+                        Paste HTML on the left to preview the rendered document before printing.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tab === 'html' && html.trim() && (
+              <div style={{ marginTop: '12px' }}>
+                <button onClick={handlePrintHTML} style={{ background: 'var(--amber)', color: 'white', padding: '12px 24px', borderRadius: '100px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer', alignSelf: 'flex-start' }}>
+                  Print HTML as PDF →
+                </button>
               </div>
             )}
           </div>
