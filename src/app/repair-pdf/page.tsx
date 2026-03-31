@@ -122,8 +122,7 @@ export default function RepairPDFPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ToolPageLayout
+<ToolPageLayout
         toolName="Repair PDF"
         sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
       >

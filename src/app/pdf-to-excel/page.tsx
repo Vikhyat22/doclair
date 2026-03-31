@@ -150,8 +150,7 @@ export default function PDFToExcelPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ToolPageLayout
+<ToolPageLayout
         toolName="PDF to Excel"
         sidebar={
           <ToolSidebar

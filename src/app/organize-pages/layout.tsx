@@ -7,6 +7,35 @@ export const metadata: Metadata = toolMetadata(
   'Reorder, rotate, delete and duplicate PDF pages free. Drag-and-drop with touch support. Full-page preview. Non-destructive. No upload, no watermark.'
 )
 
-export default function OrganizePagesLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+const JSON_LD = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Organize Pages — Doclair',
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: 'https://doclair.in/organize-pages',
+      description: 'Reorder, rotate, delete and duplicate PDF pages free. Drag-and-drop with touch support. Full-page preview. Non-destructive. No upload, no watermark.',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'Organize Pages', item: 'https://doclair.in/organize-pages' },
+      ],
+    },
+  ],
+}
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
+      {children}
+    </>
+  )
 }

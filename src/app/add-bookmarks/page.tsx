@@ -160,8 +160,7 @@ export default function AddBookmarksPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ToolPageLayout
+<ToolPageLayout
         toolName="Add Bookmarks to PDF"
         sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
       >

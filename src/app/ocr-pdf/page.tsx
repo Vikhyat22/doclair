@@ -189,11 +189,7 @@ export default function OcrPDFPage() {
 
   return (
     <ToolPageLayout toolName="OCR PDF" sidebar={sidebar}>
-      {/* JSON-LD */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
-
-      {/* Spin keyframe */}
+{/* Spin keyframe */}
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
 
       {/* Tool Header */}

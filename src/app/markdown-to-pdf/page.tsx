@@ -139,8 +139,7 @@ export default function MarkdownToPDFPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ToolPageLayout
+<ToolPageLayout
         toolName="Markdown to PDF"
         sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
       >

@@ -239,11 +239,7 @@ export default function PDFViewerPage() {
       toolName="PDF Viewer"
       sidebar={<ToolSidebar reverseActions={[]} relatedTools={SIDEBAR_RELATED} />}
     >
-      {/* JSON-LD */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
-
-      {/* Header */}
+{/* Header */}
       <div>
         <h1 style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 800, fontSize: 'clamp(28px, 4vw, 48px)', letterSpacing: '-1px', lineHeight: 1.05, marginBottom: '10px' }}>
           <span style={{ color: 'var(--ink)' }}>PDF Viewer </span>

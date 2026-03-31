@@ -4,7 +4,7 @@ import { TOOLS } from '@/constants/tools'
 export default function sitemap(): MetadataRoute.Sitemap {
   const toolUrls = TOOLS.map(tool => ({
     url: `https://doclair.in/${tool.slug}`,
-    lastModified: new Date('2026-03-27'),
+    lastModified: new Date(),
     changeFrequency: 'monthly' as const,
     priority: 0.9,
   }))

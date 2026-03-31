@@ -63,8 +63,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    const apiKey = process.env.AI_API_KEY
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'AI service not configured. Set AI_API_KEY in environment variables.' },
+        { status: 503 }
+      )
+    }
+
     const baseURL   = process.env.AI_BASE_URL ?? 'https://opencode.ai/zen/go/v1'
-    const apiKey    = process.env.AI_API_KEY  ?? ''
     const model     = process.env.AI_MODEL    ?? 'minimax-m2.7'
 
     const truncated    = extractedText.slice(0, 40000)

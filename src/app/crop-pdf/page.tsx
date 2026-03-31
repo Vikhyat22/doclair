@@ -141,8 +141,7 @@ export default function CropPDFPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ToolPageLayout
+<ToolPageLayout
         toolName="Crop PDF"
         sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
       >

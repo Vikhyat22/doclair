@@ -133,8 +133,7 @@ export default function CutPDFPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ToolPageLayout
+<ToolPageLayout
         toolName="Cut PDF"
         sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
       >

@@ -2837,10 +2837,8 @@ export default function EditPDFPage() {
 
   return (
     <ToolPageLayout toolName={TOOL_SEO_NAME} sidebar={sidebar}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
 
-      <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 16, padding: 36 }}>
+<div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 16, padding: 36 }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
           <span style={{ padding: '5px 12px', borderRadius: 999, background: '#DCFCE7', color: '#166534', fontFamily: 'var(--font-dm-mono)', fontSize: 11, letterSpacing: '0.04em' }}>
             ✓ Existing Text Editing

@@ -116,8 +116,7 @@ export default function TextToPDFPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ToolPageLayout
+<ToolPageLayout
         toolName="Text to PDF"
         sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
       >

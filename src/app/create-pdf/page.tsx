@@ -129,8 +129,7 @@ export default function CreatePDFPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ToolPageLayout
+<ToolPageLayout
         toolName="Create PDF"
         sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
       >

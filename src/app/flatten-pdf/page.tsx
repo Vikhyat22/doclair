@@ -194,11 +194,7 @@ export default function FlattenPDFPage() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
-      />
-      <ToolPageLayout
+<ToolPageLayout
         toolName="Flatten PDF"
         sidebar={<ToolSidebar reverseActions={SIDEBAR_REVERSE} relatedTools={SIDEBAR_RELATED} />}
       >

@@ -124,8 +124,7 @@ export default function PDFToJSONPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ToolPageLayout
+<ToolPageLayout
         toolName="PDF to JSON"
         sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
       >

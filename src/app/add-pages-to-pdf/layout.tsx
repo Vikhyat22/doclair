@@ -7,6 +7,35 @@ export const metadata: Metadata = toolMetadata(
   'Insert pages from another PDF into your document at any position. Pick a page range, choose where to insert. 100% free, no upload, no watermark.'
 )
 
-export default function AddPagesToPDFLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+const JSON_LD = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Add Pages to PDF — Doclair',
+      applicationCategory: 'UtilitiesApplication',
+      operatingSystem: 'Any (browser-based)',
+      url: 'https://doclair.in/add-pages-to-pdf',
+      description: 'Insert pages from another PDF into your document at any position. Pick a page range, choose where to insert. 100% free, no upload, no watermark.',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+      provider: { '@type': 'Organization', name: 'Doclair', url: 'https://doclair.in' },
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://doclair.in' },
+        { '@type': 'ListItem', position: 2, name: 'Tools', item: 'https://doclair.in/tools' },
+        { '@type': 'ListItem', position: 3, name: 'Add Pages to PDF', item: 'https://doclair.in/add-pages-to-pdf' },
+      ],
+    },
+  ],
+}
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
+      {children}
+    </>
+  )
 }

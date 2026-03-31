@@ -144,8 +144,7 @@ export default function PrivacyScannerPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-      <ToolPageLayout
+<ToolPageLayout
         toolName="PDF Privacy Scanner"
         sidebar={<ToolSidebar relatedTools={SIDEBAR_RELATED} />}
       >

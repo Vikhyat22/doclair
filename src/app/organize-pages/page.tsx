@@ -722,10 +722,8 @@ export default function OrganizePagesPage() {
       })()}
 
       {/* ── JSON-LD ── */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SCHEMA) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(BREADCRUMB_SCHEMA) }} />
 
-      {/* ── Tool Header ── */}
+{/* ── Tool Header ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {['✓ 100% Free', '🔒 Files Stay On Device', '✦ Non-destructive'].map(badge => (
