@@ -318,6 +318,8 @@ const TOOLS = [
   { name: 'PDF → PowerPoint', icon: '📊', category: 'Convert', desc: 'Convert PDF pages to PPTX slides', slug: 'pdf-to-ppt' },
   { name: 'Scan to PDF', icon: '📷', category: 'Convert', desc: 'Use your camera to scan documents to PDF', slug: 'scan-to-pdf' },
   { name: 'Extract Images', icon: '🖼️', category: 'Convert', desc: 'Extract all images from a PDF file', slug: 'extract-images-pdf' },
+  { name: 'PDF → Excel', icon: '📊', category: 'Convert', desc: 'Export rows and tables to XLSX', slug: 'pdf-to-excel' },
+  { name: 'PDF → HTML', icon: '🌐', category: 'Convert', desc: 'Convert PDF text into clean HTML', slug: 'pdf-to-html' },
   // AI Tools
   { name: 'OCR PDF', icon: '👁️', category: 'AI Tools', desc: 'Make scanned text searchable', slug: 'ocr-pdf' },
   { name: 'Chat with PDF', icon: '💬', category: 'AI Tools', desc: 'Ask questions about your doc', slug: 'chat-with-pdf' },

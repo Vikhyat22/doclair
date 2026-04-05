@@ -1,5 +1,20 @@
 import { MetadataRoute } from 'next'
 import { TOOLS } from '@/constants/tools'
+import { readdirSync, statSync } from 'fs'
+import { join } from 'path'
+
+function getBlogSlugs(): string[] {
+  const blogDir = join(process.cwd(), 'src', 'app', 'blog')
+  try {
+    return readdirSync(blogDir).filter(entry => {
+      if (entry.startsWith('_') || entry.startsWith('[')) return false
+      const entryPath = join(blogDir, entry)
+      return statSync(entryPath).isDirectory()
+    })
+  } catch {
+    return []
+  }
+}
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const toolUrls = TOOLS.map(tool => ({
@@ -9,35 +24,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.9,
   }))
 
-  const blogUrls = [
-    // Original 8 posts
-    { url: 'https://doclair.in/blog/how-to-compress-pdf-file',             lastModified: new Date('2026-03-22'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-merge-pdf-files-free',          lastModified: new Date('2026-03-22'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-convert-word-to-pdf',           lastModified: new Date('2026-03-22'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/best-free-pdf-editor-no-watermark',    lastModified: new Date('2026-03-22'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-remove-background-from-image',  lastModified: new Date('2026-03-22'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-compress-pdf-on-iphone',        lastModified: new Date('2026-03-22'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-protect-pdf-with-password',     lastModified: new Date('2026-03-22'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-extract-text-from-pdf',         lastModified: new Date('2026-03-22'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    // Batch 2 — Mar 24
-    { url: 'https://doclair.in/blog/how-to-split-a-pdf',                   lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-convert-pdf-to-word',           lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-convert-jpg-to-pdf',            lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-convert-pdf-to-jpg',            lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-delete-pages-from-pdf',         lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-sign-pdf-free',                 lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-make-pdf-searchable',           lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-add-watermark-to-pdf',          lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    // Batch 3 — Mar 24
-    { url: 'https://doclair.in/blog/how-to-remove-password-from-pdf',      lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-sign-pdf-on-iphone',            lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-rotate-pdf-pages',              lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-translate-pdf',                 lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-redact-pdf',                    lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-compress-image-free',           lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-rearrange-pdf-pages',           lastModified: new Date('2026-03-24'), changeFrequency: 'monthly' as const, priority: 0.8 },
-    { url: 'https://doclair.in/blog/how-to-convert-pdf-to-excel',          lastModified: new Date('2026-03-27'), changeFrequency: 'monthly' as const, priority: 0.8 },
-  ]
+  const blogSlugs = getBlogSlugs()
+  const blogUrls = blogSlugs.map(slug => ({
+    url: `https://doclair.in/blog/${slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'monthly' as const,
+    priority: 0.8,
+  }))
 
   return [
     { url: 'https://doclair.in', lastModified: new Date('2026-03-24'), changeFrequency: 'weekly', priority: 1.0 },
