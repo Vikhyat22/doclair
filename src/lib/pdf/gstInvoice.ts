@@ -199,7 +199,7 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   })
 
   let y = bandY - 22
-  const headerHeight = 128
+  const headerHeight = 172
   const headerBottom = y - headerHeight
   const sellerW = 168
   const buyerW = 165
@@ -215,21 +215,27 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
 
   let ys = y - 2
   if (logoImage) {
-    const scale = Math.min(44 / logoImage.width, 28 / logoImage.height, 1)
+    const scale = Math.min(44 / logoImage.width, 32 / logoImage.height, 1)
     const logoW = logoImage.width * scale
     const logoH = logoImage.height * scale
-    page.drawImage(logoImage, { x: sellerX, y: ys - logoH + 1, width: logoW, height: logoH })
-    page.drawText('FROM', { x: sellerX + logoW + 10, y: ys, size: 6.5, font: fontB, color: amber })
+    // Draw logo top-left, vertically centred against FROM + name block (~26pt tall)
+    const nameBlockH = 26
+    const logoTopY = ys - Math.max(0, (logoH - nameBlockH) / 2)
+    page.drawImage(logoImage, { x: sellerX, y: logoTopY - logoH, width: logoW, height: logoH })
+    page.drawText('FROM', { x: sellerX + logoW + 8, y: ys, size: 6.5, font: fontB, color: amber })
     ys -= 12
     page.drawText(sellerName, {
-      x: sellerX + logoW + 10,
+      x: sellerX + logoW + 8,
       y: ys,
       size: 11,
       font: fontB,
       color: ink,
-      maxWidth: sellerW - logoW - 18,
+      maxWidth: sellerW - logoW - 16,
     })
     ys -= 14
+    // Ensure subsequent lines start below the logo bottom (account for font ascenders ~6pt)
+    const logoBottom = logoTopY - logoH - 10
+    if (ys > logoBottom) ys = logoBottom
   } else {
     page.drawText('FROM', { x: sellerX, y: ys, size: 6.5, font: fontB, color: amber })
     ys -= 12
