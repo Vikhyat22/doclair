@@ -46,6 +46,40 @@ function getPosition(
   }
 }
 
+function getRotatedBounds(
+  elemW: number,
+  elemH: number,
+  rotation: number,
+): { width: number; height: number; minX: number; minY: number } {
+  const radians = (rotation * Math.PI) / 180
+  const cos = Math.cos(radians)
+  const sin = Math.sin(radians)
+
+  const corners = [
+    { x: 0, y: 0 },
+    { x: elemW, y: 0 },
+    { x: 0, y: elemH },
+    { x: elemW, y: elemH },
+  ].map(({ x, y }) => ({
+    x: (x * cos) - (y * sin),
+    y: (x * sin) + (y * cos),
+  }))
+
+  const xs = corners.map(corner => corner.x)
+  const ys = corners.map(corner => corner.y)
+  const minX = Math.min(...xs)
+  const maxX = Math.max(...xs)
+  const minY = Math.min(...ys)
+  const maxY = Math.max(...ys)
+
+  return {
+    width: maxX - minX,
+    height: maxY - minY,
+    minX,
+    minY,
+  }
+}
+
 export async function addWatermark(
   file:        File,
   opts:        WatermarkOptions,
@@ -80,8 +114,12 @@ export async function addWatermark(
     if (opts.type === 'text' && opts.text && font) {
       const fontSize  = opts.fontSize ?? 48
       const textWidth = font.widthOfTextAtSize(opts.text, fontSize)
+      const textHeight = font.heightAtSize(fontSize, { descender: false })
+      const rotated = getRotatedBounds(textWidth, textHeight, opts.rotation)
       const [r, g, b] = hexToRgb(opts.color ?? '#000000')
-      const { x, y }  = getPosition(opts.position, width, height, textWidth, fontSize)
+      const bbox = getPosition(opts.position, width, height, rotated.width, rotated.height)
+      const x = bbox.x - rotated.minX
+      const y = bbox.y - rotated.minY
 
       page.drawText(opts.text, {
         x, y,
@@ -97,7 +135,10 @@ export async function addWatermark(
       const scale  = opts.scale ?? 0.3
       const imgW   = embeddedImg.width  * scale
       const imgH   = embeddedImg.height * scale
-      const { x, y } = getPosition(opts.position, width, height, imgW, imgH)
+      const rotated = getRotatedBounds(imgW, imgH, opts.rotation)
+      const bbox = getPosition(opts.position, width, height, rotated.width, rotated.height)
+      const x = bbox.x - rotated.minX
+      const y = bbox.y - rotated.minY
 
       page.drawImage(embeddedImg, {
         x, y,
