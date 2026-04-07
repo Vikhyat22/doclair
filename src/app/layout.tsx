@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Syne, DM_Sans, DM_Mono } from 'next/font/google'
 import { GoogleAnalytics } from '@next/third-parties/google'
+import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 import ClarityScript from '@/components/ClarityScript'
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration'
@@ -102,6 +104,8 @@ export default function RootLayout({
         {process.env.NEXT_PUBLIC_CLARITY_ID && (
           <ClarityScript clarityId={process.env.NEXT_PUBLIC_CLARITY_ID} />
         )}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
