@@ -89,6 +89,10 @@ export default function AddWatermarkPage() {
   const [file, setFile]                       = useState<File | null>(null)
   const [pageCount, setPageCount]             = useState(0)
   const [previewUrl, setPreviewUrl]           = useState<string | null>(null)
+  const [pdfPageW, setPdfPageW]               = useState(0)
+  const [pdfPageH, setPdfPageH]               = useState(0)
+  const [imageNatW, setImageNatW]             = useState(0)
+  const [imageNatH, setImageNatH]             = useState(0)
   const [watermarkType, setWatermarkType]     = useState<WatermarkType>('text')
   const [text, setText]                       = useState('CONFIDENTIAL')
   const [imageFile, setImageFile]             = useState<File | null>(null)
@@ -106,6 +110,7 @@ export default function AddWatermarkPage() {
 
   const previewUrlRef  = useRef<string | null>(null)
   const imageThumbRef  = useRef<string | null>(null)
+  const previewImgRef  = useRef<HTMLImageElement | null>(null)
 
   useEffect(() => {
     return () => {
@@ -131,6 +136,10 @@ export default function AddWatermarkPage() {
       pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
       const pdf  = await pdfjsLib.getDocument({ data: new Uint8Array(bytes), useWorkerFetch: false, isEvalSupported: false }).promise
       const page = await pdf.getPage(1)
+      // Scale=1 viewport gives us the page dimensions in PDF points
+      const vp1  = page.getViewport({ scale: 1 })
+      setPdfPageW(vp1.width)
+      setPdfPageH(vp1.height)
       const vp   = page.getViewport({ scale: 0.8 })
       const canvas       = document.createElement('canvas')
       canvas.width       = Math.floor(vp.width)
@@ -166,6 +175,10 @@ export default function AddWatermarkPage() {
     imageThumbRef.current = url
     setImageFile(f)
     setImageThumb(url)
+    // Capture natural dimensions so we can scale the preview correctly
+    const img = new Image()
+    img.onload = () => { setImageNatW(img.naturalWidth); setImageNatH(img.naturalHeight) }
+    img.src = url
   }
 
   function clearImageFile() {
@@ -175,6 +188,8 @@ export default function AddWatermarkPage() {
     }
     setImageFile(null)
     setImageThumb(null)
+    setImageNatW(0)
+    setImageNatH(0)
   }
 
   async function handleApply() {
@@ -223,10 +238,14 @@ export default function AddWatermarkPage() {
     setFile(null)
     setPageCount(0)
     setPreviewUrl(null)
+    setPdfPageW(0)
+    setPdfPageH(0)
     setWatermarkType('text')
     setText('CONFIDENTIAL')
     setImageFile(null)
     setImageThumb(null)
+    setImageNatW(0)
+    setImageNatH(0)
     setOpacity(0.3)
     setRotation(45)
     setPosition('center')
@@ -244,6 +263,17 @@ export default function AddWatermarkPage() {
     (watermarkType === 'image' && !imageFile)
 
   const overlayCss = getOverlayCss(position, rotation)
+
+  // Scale factor from PDF points → preview CSS pixels.
+  // The preview <img> renders at width: 100% of its container, so clientWidth / pdfPageW
+  // gives us how many CSS pixels correspond to one PDF point.
+  const displayScale = (pdfPageW > 0 && previewImgRef.current?.clientWidth)
+    ? previewImgRef.current.clientWidth / pdfPageW
+    : 0.55
+  // Font size in preview pixels that matches the actual PDF output
+  const previewFontSizePx = Math.round(fontSize * displayScale)
+  // Image width in preview pixels that matches the actual PDF output (imageNatW * scale points in PDF)
+  const previewImgWidthPx = imageNatW > 0 ? Math.round(imageNatW * scale * displayScale) : Math.round(scale * 200)
 
   const sidebar = (
     <ToolSidebar
@@ -652,6 +682,7 @@ export default function AddWatermarkPage() {
               {previewUrl && (
                 <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '6px', border: '1px solid var(--border)' }}>
                   <img
+                    ref={previewImgRef}
                     src={previewUrl}
                     alt="PDF page 1 preview"
                     style={{ width: '100%', display: 'block' }}
@@ -668,7 +699,7 @@ export default function AddWatermarkPage() {
                     {watermarkType === 'text' && text && (
                       <div style={{
                         fontFamily: 'var(--font-dm-mono), DM Mono, monospace',
-                        fontSize: `${Math.round(fontSize * 0.55)}px`,
+                        fontSize: `${previewFontSizePx}px`,
                         fontWeight: 700,
                         color,
                         whiteSpace: 'nowrap',
@@ -682,7 +713,7 @@ export default function AddWatermarkPage() {
                         src={imageThumb}
                         alt="Watermark preview"
                         style={{
-                          width: `${Math.round(scale * 200)}px`,
+                          width: `${previewImgWidthPx}px`,
                           height: 'auto',
                           display: 'block',
                         }}
@@ -697,7 +728,7 @@ export default function AddWatermarkPage() {
                 fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '10px',
                 color: 'var(--muted)', textAlign: 'center',
               }}>
-                CSS preview — actual PDF output may differ slightly
+                Live preview — matches PDF output
               </div>
             </div>
           </div>

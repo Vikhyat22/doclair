@@ -39,15 +39,17 @@ function getCenterPosition(
   elemW:    number,
   elemH:    number,
 ): { cx: number; cy: number } {
-  const margin = 30
+  // 5% margins match the CSS preview's `top/bottom/left/right: '5%'`
+  const ex = pageW * 0.05
+  const ey = pageH * 0.05
   switch (position) {
-    case 'top-left':      return { cx: margin + elemW / 2,         cy: pageH - margin - elemH / 2 }
-    case 'top-center':    return { cx: pageW / 2,                  cy: pageH - margin - elemH / 2 }
-    case 'top-right':     return { cx: pageW - margin - elemW / 2, cy: pageH - margin - elemH / 2 }
-    case 'bottom-left':   return { cx: margin + elemW / 2,         cy: margin + elemH / 2 }
-    case 'bottom-center': return { cx: pageW / 2,                  cy: margin + elemH / 2 }
-    case 'bottom-right':  return { cx: pageW - margin - elemW / 2, cy: margin + elemH / 2 }
-    default:              return { cx: pageW / 2,                  cy: pageH / 2 }
+    case 'top-left':      return { cx: ex + elemW / 2,         cy: pageH - ey - elemH / 2 }
+    case 'top-center':    return { cx: pageW / 2,              cy: pageH - ey - elemH / 2 }
+    case 'top-right':     return { cx: pageW - ex - elemW / 2, cy: pageH - ey - elemH / 2 }
+    case 'bottom-left':   return { cx: ex + elemW / 2,         cy: ey + elemH / 2 }
+    case 'bottom-center': return { cx: pageW / 2,              cy: ey + elemH / 2 }
+    case 'bottom-right':  return { cx: pageW - ex - elemW / 2, cy: ey + elemH / 2 }
+    default:              return { cx: pageW / 2,              cy: pageH / 2 }
   }
 }
 
