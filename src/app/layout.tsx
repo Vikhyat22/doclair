@@ -87,14 +87,6 @@ export default function RootLayout({
                 name: 'Doclair',
                 description: '70+ free browser-based PDF, image & document tools. No upload, no watermark, no sign-up.',
                 publisher: { '@id': 'https://doclair.in/#organization' },
-                potentialAction: {
-                  '@type': 'SearchAction',
-                  target: {
-                    '@type': 'EntryPoint',
-                    urlTemplate: 'https://doclair.in/tools?q={search_term_string}',
-                  },
-                  'query-input': 'required name=search_term_string',
-                },
               },
             ],
           }) }}

@@ -101,6 +101,17 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'www.doclair.in',
+          },
+        ],
+        destination: 'https://doclair.in/:path*',
+        permanent: true,
+      },
+      {
         source: '/blog/how-to-reduce-pdf-size',
         destination: '/blog/how-to-compress-pdf-file',
         permanent: true,

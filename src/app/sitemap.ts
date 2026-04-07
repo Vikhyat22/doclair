@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next'
 import { TOOLS } from '@/constants/tools'
-import { readdirSync, statSync } from 'fs'
+import { existsSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
 
 function getBlogSlugs(): string[] {
@@ -16,10 +16,24 @@ function getBlogSlugs(): string[] {
   }
 }
 
+function getLastModified(...paths: string[]): Date {
+  const mtimes = paths
+    .filter(path => existsSync(path))
+    .map(path => statSync(path).mtime)
+    .filter(date => !Number.isNaN(date.getTime()))
+
+  if (mtimes.length === 0) return new Date('2026-03-24')
+
+  return new Date(Math.max(...mtimes.map(date => date.getTime())))
+}
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const toolUrls = TOOLS.map(tool => ({
     url: `https://doclair.in/${tool.slug}`,
-    lastModified: new Date(),
+    lastModified: getLastModified(
+      join(process.cwd(), 'src', 'app', tool.slug, 'layout.tsx'),
+      join(process.cwd(), 'src', 'app', tool.slug, 'page.tsx'),
+    ),
     changeFrequency: 'monthly' as const,
     priority: 0.9,
   }))
@@ -27,7 +41,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const blogSlugs = getBlogSlugs()
   const blogUrls = blogSlugs.map(slug => ({
     url: `https://doclair.in/blog/${slug}`,
-    lastModified: new Date(),
+    lastModified: getLastModified(
+      join(process.cwd(), 'src', 'app', 'blog', slug, 'page.tsx'),
+      join(process.cwd(), 'src', 'app', 'blog', slug),
+    ),
     changeFrequency: 'monthly' as const,
     priority: 0.8,
   }))
