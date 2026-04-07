@@ -88,6 +88,39 @@ function capLines(lines: string[], maxLines: number): string[] {
   return next
 }
 
+function formatAddressLines(
+  address: string,
+  font: EmbeddedFont,
+  size: number,
+  maxWidth: number,
+  maxLines: number,
+): string[] {
+  if (!address.trim()) return ['—']
+
+  const parts = address
+    .split(',')
+    .map(part => part.trim())
+    .filter(Boolean)
+
+  if (parts.length === 0) return ['—']
+
+  const lines: string[] = []
+  let current = ''
+
+  for (const part of parts) {
+    const next = current ? `${current}, ${part}` : part
+    if (current && font.widthOfTextAtSize(next, size) > maxWidth) {
+      lines.push(current)
+      current = part
+    } else {
+      current = next
+    }
+  }
+
+  if (current) lines.push(current)
+  return capLines(lines, maxLines)
+}
+
 function drawCellText(
   page: ReturnType<PDFDocument['addPage']>,
   text: string,
@@ -123,6 +156,51 @@ function drawParagraph(
     page.drawText(line, { x, y: currentY, size, font, color })
     currentY -= size + 2
   }
+  return currentY
+}
+
+function drawLabeledValueRows(
+  page: ReturnType<PDFDocument['addPage']>,
+  rows: Array<{ label: string; value: string }>,
+  x: number,
+  y: number,
+  width: number,
+  labelWidth: number,
+  labelFont: EmbeddedFont,
+  valueFont: EmbeddedFont,
+  size: number,
+  color: ReturnType<typeof rgb>,
+  mutedColor: ReturnType<typeof rgb>,
+) {
+  let currentY = y
+
+  for (const row of rows) {
+    page.drawText(row.label, {
+      x,
+      y: currentY,
+      size,
+      font: labelFont,
+      color: mutedColor,
+    })
+
+    const valueX = x + labelWidth
+    const valueWidth = Math.max(30, width - labelWidth)
+    const valueLines = capLines(wrapText(row.value || '—', valueFont, size, valueWidth), 2)
+
+    valueLines.forEach((line, index) => {
+      page.drawText(line, {
+        x: valueX,
+        y: currentY - index * (size + 2),
+        size,
+        font: valueFont,
+        color,
+        maxWidth: valueWidth,
+      })
+    })
+
+    currentY -= Math.max(11, valueLines.length * (size + 2) + 2)
+  }
+
   return currentY
 }
 
@@ -215,50 +293,35 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
 
   let ys = y - 2
   if (logoImage) {
-    const scale = Math.min(44 / logoImage.width, 32 / logoImage.height, 1)
+    const scale = Math.min(40 / logoImage.width, 28 / logoImage.height, 1)
     const logoW = logoImage.width * scale
     const logoH = logoImage.height * scale
-    // Draw logo top-left, vertically centred against FROM + name block (~26pt tall)
-    const nameBlockH = 26
-    const logoTopY = ys - Math.max(0, (logoH - nameBlockH) / 2)
-    page.drawImage(logoImage, { x: sellerX, y: logoTopY - logoH, width: logoW, height: logoH })
-    page.drawText('FROM', { x: sellerX + logoW + 8, y: ys, size: 6.5, font: fontB, color: amber })
-    ys -= 12
-    page.drawText(sellerName, {
-      x: sellerX + logoW + 8,
-      y: ys,
-      size: 11,
-      font: fontB,
-      color: ink,
-      maxWidth: sellerW - logoW - 16,
-    })
-    ys -= 14
-    // Ensure subsequent lines start below the logo bottom (account for font ascenders ~6pt)
-    const logoBottom = logoTopY - logoH - 10
-    if (ys > logoBottom) ys = logoBottom
-  } else {
-    page.drawText('FROM', { x: sellerX, y: ys, size: 6.5, font: fontB, color: amber })
-    ys -= 12
-    page.drawText(sellerName, { x: sellerX, y: ys, size: 11, font: fontB, color: ink, maxWidth: sellerW - 10 })
-    ys -= 14
+    page.drawImage(logoImage, { x: sellerX, y: ys - logoH, width: logoW, height: logoH })
+    ys -= logoH + 6
   }
+  page.drawText('FROM', { x: sellerX, y: ys, size: 6.5, font: fontB, color: amber })
+  ys -= 12
+  page.drawText(sellerName, { x: sellerX, y: ys, size: 11, font: fontB, color: ink, maxWidth: sellerW - 10 })
+  ys -= 14
   if (data.sellerLegalName && data.sellerLegalName !== sellerName) {
     page.drawText(`Legal: ${data.sellerLegalName}`, { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted, maxWidth: sellerW - 10 })
     ys -= 10
   }
-  ys = drawParagraph(page, capLines(wrapText(data.sellerAddress || '—', fontR, 7.4, sellerW - 10), 3), sellerX, ys, fontR, 7.4, muted)
-  page.drawText(`State: ${data.sellerState || '—'}`, { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted })
-  ys -= 10
+  const sellerAddressLines = formatAddressLines(data.sellerAddress || '—', fontR, 7.4, sellerW - 10, 3)
+  ys = drawParagraph(page, sellerAddressLines, sellerX, ys, fontR, 7.4, muted)
+  ys -= 2
+  page.drawText(data.sellerState || '—', { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted })
+  ys -= 11
   if (data.sellerPhone) {
     page.drawText(`Ph: ${data.sellerPhone}`, { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted })
     ys -= 10
   }
   if (data.sellerEmail) {
-    page.drawText(data.sellerEmail, { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted, maxWidth: sellerW - 10 })
+    page.drawText(`Email: ${data.sellerEmail}`, { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted, maxWidth: sellerW - 10 })
     ys -= 10
   }
   if (data.sellerWebsite) {
-    page.drawText(data.sellerWebsite, { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted, maxWidth: sellerW - 10 })
+    page.drawText(`Web: ${data.sellerWebsite}`, { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted, maxWidth: sellerW - 10 })
     ys -= 10
   }
   if (data.sellerGSTIN) {
@@ -275,15 +338,17 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   yb -= 12
   page.drawText(buyerName, { x: buyerX, y: yb, size: 11, font: fontB, color: ink, maxWidth: buyerW - 10 })
   yb -= 14
-  yb = drawParagraph(page, capLines(wrapText(data.buyerAddress || '—', fontR, 7.4, buyerW - 10), 3), buyerX, yb, fontR, 7.4, muted)
-  page.drawText(`State: ${data.buyerState || '—'}`, { x: buyerX, y: yb, size: 7.4, font: fontR, color: muted })
-  yb -= 10
+  const buyerAddressLines = formatAddressLines(data.buyerAddress || '—', fontR, 7.4, buyerW - 10, 3)
+  yb = drawParagraph(page, buyerAddressLines, buyerX, yb, fontR, 7.4, muted)
+  yb -= 2
+  page.drawText(data.buyerState || '—', { x: buyerX, y: yb, size: 7.4, font: fontR, color: muted })
+  yb -= 11
   if (data.buyerPhone) {
     page.drawText(`Ph: ${data.buyerPhone}`, { x: buyerX, y: yb, size: 7.4, font: fontR, color: muted })
     yb -= 10
   }
   if (data.buyerEmail) {
-    page.drawText(data.buyerEmail, { x: buyerX, y: yb, size: 7.4, font: fontR, color: muted, maxWidth: buyerW - 10 })
+    page.drawText(`Email: ${data.buyerEmail}`, { x: buyerX, y: yb, size: 7.4, font: fontR, color: muted, maxWidth: buyerW - 10 })
     yb -= 10
   }
   if (data.buyerGSTIN) {
@@ -487,24 +552,49 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
     }
   }
 
+  function drawPaymentBox(
+    x: number,
+    topY: number,
+    boxWidth: number,
+    boxHeight: number,
+    title: string,
+    rows: Array<{ label: string; value: string }>,
+  ) {
+    page.drawRectangle({ x, y: topY - boxHeight, width: boxWidth, height: boxHeight, borderColor: border, borderWidth: 1, color: panelBg })
+    page.drawText(title, { x: x + 12, y: topY - 17, size: 8, font: fontB, color: amber })
+    drawLabeledValueRows(
+      page,
+      rows,
+      x + 12,
+      topY - 32,
+      boxWidth - 24,
+      54,
+      fontB,
+      fontMono,
+      7.1,
+      ink,
+      muted,
+    )
+  }
+
   const amountLines = capLines(wrapText(numberToWords(data.grandTotal), fontR, 8, leftBoxW - 24), 4)
   const leftBoxHeight = Math.max(66, 38 + amountLines.length * 10)
 
-  const paymentLines = [
-    ...(data.bankName ? [`Bank: ${data.bankName}`] : []),
-    ...(data.accountNumber ? [`Account No: ${data.accountNumber}`] : []),
-    ...(data.ifscCode ? [`IFSC: ${data.ifscCode}`] : []),
-    ...(data.upiId ? [`UPI: ${data.upiId}`] : []),
+  const paymentRows = [
+    ...(data.bankName ? [{ label: 'Bank', value: data.bankName }] : []),
+    ...(data.accountNumber ? [{ label: 'A/C No', value: data.accountNumber }] : []),
+    ...(data.ifscCode ? [{ label: 'IFSC', value: data.ifscCode }] : []),
+    ...(data.upiId ? [{ label: 'UPI', value: data.upiId }] : []),
   ]
-  const summaryLines = paymentLines.length > 0
-    ? paymentLines
+  const summaryLines = paymentRows.length > 0
+    ? paymentRows.map(row => `${row.label}: ${row.value}`)
     : [
         `Items: ${data.items.length}`,
         `Buyer State: ${data.buyerState}`,
         `Supply State: ${data.placeOfSupply}`,
         data.reverseCharge ? 'Reverse Charge: Yes' : 'Reverse Charge: No',
       ]
-  const rightBoxTitle = paymentLines.length > 0 ? 'Payment Details' : 'Invoice Summary'
+  const rightBoxTitle = paymentRows.length > 0 ? 'Payment Details' : 'Invoice Summary'
   const rightBoxHeight = Math.max(66, 38 + summaryLines.length * 10)
   const infoBoxHeight = Math.max(leftBoxHeight, rightBoxHeight)
   const infoTop = boxBottom - 16
@@ -517,7 +607,11 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   const notesBoxHeight = noteSections.length === 0 ? 0 : noteSections.length === 1 ? 68 : 84
 
   drawInfoBox(leftBoxX, infoTop, leftBoxW, infoBoxHeight, 'Amount in Words', amountLines)
-  drawInfoBox(rightBoxX, infoTop, rightBoxW, infoBoxHeight, rightBoxTitle, summaryLines)
+  if (paymentRows.length > 0) {
+    drawPaymentBox(rightBoxX, infoTop, rightBoxW, infoBoxHeight, rightBoxTitle, paymentRows)
+  } else {
+    drawInfoBox(rightBoxX, infoTop, rightBoxW, infoBoxHeight, rightBoxTitle, summaryLines)
+  }
   if (noteSections.length > 0) {
     page.drawRectangle({
       x: margin,

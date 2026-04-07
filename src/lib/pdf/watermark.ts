@@ -27,56 +27,27 @@ function hexToRgb(hex: string): [number, number, number] {
   ]
 }
 
-function getPosition(
+/**
+ * Returns the desired CENTER of the (unrotated) element in page coordinates.
+ * Rotation is then applied around this center so the PDF matches the CSS
+ * preview (which uses transform-origin: 50% 50% by default).
+ */
+function getCenterPosition(
   position: WatermarkPosition,
   pageW:    number,
   pageH:    number,
   elemW:    number,
   elemH:    number,
-): { x: number; y: number } {
+): { cx: number; cy: number } {
   const margin = 30
   switch (position) {
-    case 'top-left':      return { x: margin,               y: pageH - elemH - margin }
-    case 'top-center':    return { x: (pageW - elemW) / 2,  y: pageH - elemH - margin }
-    case 'top-right':     return { x: pageW - elemW - margin, y: pageH - elemH - margin }
-    case 'bottom-left':   return { x: margin,               y: margin }
-    case 'bottom-center': return { x: (pageW - elemW) / 2,  y: margin }
-    case 'bottom-right':  return { x: pageW - elemW - margin, y: margin }
-    default:              return { x: (pageW - elemW) / 2,  y: (pageH - elemH) / 2 }
-  }
-}
-
-function getRotatedBounds(
-  elemW: number,
-  elemH: number,
-  rotation: number,
-): { width: number; height: number; minX: number; minY: number } {
-  const radians = (rotation * Math.PI) / 180
-  const cos = Math.cos(radians)
-  const sin = Math.sin(radians)
-
-  const corners = [
-    { x: 0, y: 0 },
-    { x: elemW, y: 0 },
-    { x: 0, y: elemH },
-    { x: elemW, y: elemH },
-  ].map(({ x, y }) => ({
-    x: (x * cos) - (y * sin),
-    y: (x * sin) + (y * cos),
-  }))
-
-  const xs = corners.map(corner => corner.x)
-  const ys = corners.map(corner => corner.y)
-  const minX = Math.min(...xs)
-  const maxX = Math.max(...xs)
-  const minY = Math.min(...ys)
-  const maxY = Math.max(...ys)
-
-  return {
-    width: maxX - minX,
-    height: maxY - minY,
-    minX,
-    minY,
+    case 'top-left':      return { cx: margin + elemW / 2,         cy: pageH - margin - elemH / 2 }
+    case 'top-center':    return { cx: pageW / 2,                  cy: pageH - margin - elemH / 2 }
+    case 'top-right':     return { cx: pageW - margin - elemW / 2, cy: pageH - margin - elemH / 2 }
+    case 'bottom-left':   return { cx: margin + elemW / 2,         cy: margin + elemH / 2 }
+    case 'bottom-center': return { cx: pageW / 2,                  cy: margin + elemH / 2 }
+    case 'bottom-right':  return { cx: pageW - margin - elemW / 2, cy: margin + elemH / 2 }
+    default:              return { cx: pageW / 2,                  cy: pageH / 2 }
   }
 }
 
@@ -106,20 +77,26 @@ export async function addWatermark(
     }
   }
 
+  const radians = (opts.rotation * Math.PI) / 180
+  const cos     = Math.cos(radians)
+  const sin     = Math.sin(radians)
+
   for (let i = 0; i < total; i++) {
     onProgress?.(i, total)
-    const page             = pages[i]
+    const page              = pages[i]
     const { width, height } = page.getSize()
 
     if (opts.type === 'text' && opts.text && font) {
-      const fontSize  = opts.fontSize ?? 48
-      const textWidth = font.widthOfTextAtSize(opts.text, fontSize)
+      const fontSize   = opts.fontSize ?? 48
+      const textWidth  = font.widthOfTextAtSize(opts.text, fontSize)
       const textHeight = font.heightAtSize(fontSize, { descender: false })
-      const rotated = getRotatedBounds(textWidth, textHeight, opts.rotation)
-      const [r, g, b] = hexToRgb(opts.color ?? '#000000')
-      const bbox = getPosition(opts.position, width, height, rotated.width, rotated.height)
-      const x = bbox.x - rotated.minX
-      const y = bbox.y - rotated.minY
+      const [r, g, b]  = hexToRgb(opts.color ?? '#000000')
+
+      // Place element CENTER at the target position, then back-solve the draw point
+      // so pdf-lib rotates around the bottom-left but the visual center lands correctly.
+      const { cx, cy } = getCenterPosition(opts.position, width, height, textWidth, textHeight)
+      const x = cx - (textWidth / 2 * cos - textHeight / 2 * sin)
+      const y = cy - (textWidth / 2 * sin + textHeight / 2 * cos)
 
       page.drawText(opts.text, {
         x, y,
@@ -132,13 +109,13 @@ export async function addWatermark(
     }
 
     if (opts.type === 'image' && embeddedImg) {
-      const scale  = opts.scale ?? 0.3
-      const imgW   = embeddedImg.width  * scale
-      const imgH   = embeddedImg.height * scale
-      const rotated = getRotatedBounds(imgW, imgH, opts.rotation)
-      const bbox = getPosition(opts.position, width, height, rotated.width, rotated.height)
-      const x = bbox.x - rotated.minX
-      const y = bbox.y - rotated.minY
+      const scale = opts.scale ?? 0.3
+      const imgW  = embeddedImg.width  * scale
+      const imgH  = embeddedImg.height * scale
+
+      const { cx, cy } = getCenterPosition(opts.position, width, height, imgW, imgH)
+      const x = cx - (imgW / 2 * cos - imgH / 2 * sin)
+      const y = cy - (imgW / 2 * sin + imgH / 2 * cos)
 
       page.drawImage(embeddedImg, {
         x, y,
