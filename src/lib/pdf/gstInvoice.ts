@@ -65,6 +65,10 @@ function formatAmount(value: number): string {
   return `Rs.${value.toFixed(2)}`
 }
 
+function formatNumber(value: number): string {
+  return value.toFixed(2)
+}
+
 function formatDiscountLabel(discountType: 'percent' | 'amount', discountValue: number): string {
   if (discountValue <= 0) return '—'
   return discountType === 'percent' ? `${discountValue}%` : formatAmount(discountValue)
@@ -277,7 +281,7 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   })
 
   let y = bandY - 22
-  const headerHeight = 172
+  const headerHeight = 176
   const headerBottom = y - headerHeight
   const sellerW = 168
   const buyerW = 165
@@ -296,64 +300,65 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
     const scale = Math.min(40 / logoImage.width, 28 / logoImage.height, 1)
     const logoW = logoImage.width * scale
     const logoH = logoImage.height * scale
-    page.drawImage(logoImage, { x: sellerX, y: ys - logoH, width: logoW, height: logoH })
-    ys -= logoH + 6
+    const logoTopY = ys - 2
+    page.drawImage(logoImage, { x: sellerX + 2, y: logoTopY - logoH, width: logoW, height: logoH })
+    ys = logoTopY - logoH - 10
   }
   page.drawText('FROM', { x: sellerX, y: ys, size: 6.5, font: fontB, color: amber })
   ys -= 12
-  page.drawText(sellerName, { x: sellerX, y: ys, size: 11, font: fontB, color: ink, maxWidth: sellerW - 10 })
-  ys -= 14
+  page.drawText(sellerName, { x: sellerX, y: ys, size: 11.6, font: fontB, color: ink, maxWidth: sellerW - 10 })
+  ys -= 15
   if (data.sellerLegalName && data.sellerLegalName !== sellerName) {
-    page.drawText(`Legal: ${data.sellerLegalName}`, { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted, maxWidth: sellerW - 10 })
-    ys -= 10
+    page.drawText(`Legal: ${data.sellerLegalName}`, { x: sellerX, y: ys, size: 7.8, font: fontR, color: muted, maxWidth: sellerW - 10 })
+    ys -= 11
   }
-  const sellerAddressLines = formatAddressLines(data.sellerAddress || '—', fontR, 7.4, sellerW - 10, 3)
-  ys = drawParagraph(page, sellerAddressLines, sellerX, ys, fontR, 7.4, muted)
+  const sellerAddressLines = formatAddressLines(data.sellerAddress || '—', fontR, 7.8, sellerW - 10, 3)
+  ys = drawParagraph(page, sellerAddressLines, sellerX, ys, fontR, 7.8, muted)
   ys -= 2
-  page.drawText(data.sellerState || '—', { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted })
-  ys -= 11
+  page.drawText(data.sellerState || '—', { x: sellerX, y: ys, size: 7.8, font: fontR, color: muted })
+  ys -= 12
   if (data.sellerPhone) {
-    page.drawText(`Ph: ${data.sellerPhone}`, { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted })
-    ys -= 10
+    page.drawText(`Ph: ${data.sellerPhone}`, { x: sellerX, y: ys, size: 7.6, font: fontR, color: muted })
+    ys -= 10.5
   }
   if (data.sellerEmail) {
-    page.drawText(`Email: ${data.sellerEmail}`, { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted, maxWidth: sellerW - 10 })
-    ys -= 10
+    page.drawText(`Email: ${data.sellerEmail}`, { x: sellerX, y: ys, size: 7.6, font: fontR, color: muted, maxWidth: sellerW - 10 })
+    ys -= 10.5
   }
   if (data.sellerWebsite) {
-    page.drawText(`Web: ${data.sellerWebsite}`, { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted, maxWidth: sellerW - 10 })
-    ys -= 10
+    page.drawText(`Web: ${data.sellerWebsite}`, { x: sellerX, y: ys, size: 7.6, font: fontR, color: muted, maxWidth: sellerW - 10 })
+    ys -= 10.5
   }
   if (data.sellerGSTIN) {
-    page.drawText(`GSTIN ${data.sellerGSTIN}`, { x: sellerX, y: ys, size: 7.6, font: fontB, color: ink })
-    ys -= 10
+    page.drawText(`GSTIN ${data.sellerGSTIN}`, { x: sellerX, y: ys, size: 7.8, font: fontB, color: ink })
+    ys -= 10.5
   }
   if (data.sellerPAN) {
-    page.drawText(`PAN ${data.sellerPAN}`, { x: sellerX, y: ys, size: 7.4, font: fontR, color: muted })
-    ys -= 10
+    page.drawText(`PAN ${data.sellerPAN}`, { x: sellerX, y: ys, size: 7.6, font: fontR, color: muted })
+    ys -= 10.5
   }
 
   let yb = y - 2
   page.drawText('BILL TO', { x: buyerX, y: yb, size: 6.5, font: fontB, color: amber })
   yb -= 12
-  page.drawText(buyerName, { x: buyerX, y: yb, size: 11, font: fontB, color: ink, maxWidth: buyerW - 10 })
-  yb -= 14
-  const buyerAddressLines = formatAddressLines(data.buyerAddress || '—', fontR, 7.4, buyerW - 10, 3)
-  yb = drawParagraph(page, buyerAddressLines, buyerX, yb, fontR, 7.4, muted)
+  page.drawText(buyerName, { x: buyerX, y: yb, size: 11.6, font: fontB, color: ink, maxWidth: buyerW - 10 })
+  yb -= 15
+  const buyerAddressLines = formatAddressLines(data.buyerAddress || '—', fontR, 7.8, buyerW - 10, 3)
+  yb = drawParagraph(page, buyerAddressLines, buyerX, yb, fontR, 7.8, muted)
   yb -= 2
-  page.drawText(data.buyerState || '—', { x: buyerX, y: yb, size: 7.4, font: fontR, color: muted })
-  yb -= 11
+  page.drawText(data.buyerState || '—', { x: buyerX, y: yb, size: 7.8, font: fontR, color: muted })
+  yb -= 12
   if (data.buyerPhone) {
-    page.drawText(`Ph: ${data.buyerPhone}`, { x: buyerX, y: yb, size: 7.4, font: fontR, color: muted })
-    yb -= 10
+    page.drawText(`Ph: ${data.buyerPhone}`, { x: buyerX, y: yb, size: 7.6, font: fontR, color: muted })
+    yb -= 10.5
   }
   if (data.buyerEmail) {
-    page.drawText(`Email: ${data.buyerEmail}`, { x: buyerX, y: yb, size: 7.4, font: fontR, color: muted, maxWidth: buyerW - 10 })
-    yb -= 10
+    page.drawText(`Email: ${data.buyerEmail}`, { x: buyerX, y: yb, size: 7.6, font: fontR, color: muted, maxWidth: buyerW - 10 })
+    yb -= 10.5
   }
   if (data.buyerGSTIN) {
-    page.drawText(`GSTIN ${data.buyerGSTIN}`, { x: buyerX, y: yb, size: 7.6, font: fontB, color: ink })
-    yb -= 10
+    page.drawText(`GSTIN ${data.buyerGSTIN}`, { x: buyerX, y: yb, size: 7.8, font: fontB, color: ink })
+    yb -= 10.5
   }
 
   let yi = y - 2
@@ -369,17 +374,17 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   page.drawText('INVOICE DETAILS', { x: metaX, y: yi, size: 6.5, font: fontB, color: amber })
   yi -= 14
   for (const [label, value] of metaRows) {
-    page.drawText(label, { x: metaX, y: yi, size: 6.4, font: fontB, color: muted })
-    yi -= 9
+    page.drawText(label, { x: metaX, y: yi, size: 6.9, font: fontB, color: muted })
+    yi -= 9.5
     page.drawText(value, {
       x: metaX,
       y: yi,
-      size: label === 'SUPPLY TYPE' ? 7.6 : 7.8,
+      size: label === 'SUPPLY TYPE' ? 8.1 : 8.5,
       font: label === 'SUPPLY TYPE' ? fontB : fontR,
       color: label === 'SUPPLY TYPE' ? amber : ink,
       maxWidth: metaW - 10,
     })
-    yi -= 12
+    yi -= 13.2
   }
 
   y = headerBottom - 16
@@ -403,12 +408,12 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
     return next
   })
 
-  page.drawRectangle({ x: margin, y: y - 18, width: contentWidth, height: 18, color: ink })
-  positionedCols.forEach(col => drawCellText(page, col.label, col.x, col.w, y - 12, fontB, 6.1, white, col.align))
-  y -= 20
+  page.drawRectangle({ x: margin, y: y - 19, width: contentWidth, height: 19, color: ink })
+  positionedCols.forEach(col => drawCellText(page, col.label, col.x, col.w, y - 12.2, fontB, 6.6, white, col.align))
+  y -= 21
 
   data.items.forEach((item, idx) => {
-    const descriptionLines = capLines(wrapText(item.description || '—', fontR, 7.2, positionedCols[1].w - 6), 3)
+    const descriptionLines = capLines(wrapText(item.description || '—', fontR, 7.5, positionedCols[1].w - 6), 3)
     const taxCaption = item.gstRate === 0
       ? 'GST exempt'
       : interState
@@ -424,25 +429,25 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
       item.hsn || '—',
       item.unit,
       String(item.qty),
-      formatAmount(item.rate),
+      formatNumber(item.rate),
       formatDiscountLabel(item.discountType, item.discountValue),
-      formatAmount(item.taxable),
-      formatAmount(item.totalTax),
-      formatAmount(item.total),
+      formatNumber(item.taxable),
+      formatNumber(item.totalTax),
+      formatNumber(item.total),
     ]
     const centeredY = y - 14 - Math.max(0, (rowH - 28) / 2)
     positionedCols.forEach((col, ci) => {
       if (ci === 1) {
         let descY = y - 12
         descriptionLines.forEach(line => {
-          drawCellText(page, line, col.x, col.w, descY, fontR, 7.2, ink, col.align)
+          drawCellText(page, line, col.x, col.w, descY, fontR, 7.5, ink, col.align)
           descY -= 8
         })
-        drawCellText(page, taxCaption, col.x, col.w, descY - 1, fontR, 6.2, muted, col.align)
+        drawCellText(page, taxCaption, col.x, col.w, descY - 1, fontR, 6.5, muted, col.align)
         return
       }
       const cellFont = ci >= 3 ? fontMono : fontR
-      drawCellText(page, vals[ci], col.x, col.w, centeredY, cellFont, 7.2, ink, col.align)
+      drawCellText(page, vals[ci], col.x, col.w, centeredY, cellFont, 7.4, ink, col.align)
     })
     y -= rowH
   })
@@ -458,7 +463,7 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   const totalsBoxW = width - margin - totalsBoxX
   const hsnBoxHeight = Math.max(80, 56 + Math.max(hsnRows.length - 1, 0) * 13)
   page.drawRectangle({ x: hsnBoxX, y: hsnTop - hsnBoxHeight, width: hsnBoxW, height: hsnBoxHeight, borderColor: border, borderWidth: 1, color: panelBg })
-  page.drawText('HSN / SAC SUMMARY', { x: hsnBoxX + 12, y: hsnTop - 17, size: 8, font: fontB, color: amber })
+  page.drawText('HSN / SAC SUMMARY', { x: hsnBoxX + 12, y: hsnTop - 17, size: 8.4, font: fontB, color: amber })
   const hsnCols = interState
     ? [
         { label: 'HSN/SAC', x: hsnBoxX + 12 },
@@ -473,18 +478,18 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
         { label: 'SGST', x: hsnBoxX + 214 },
         { label: 'Tax', x: hsnBoxX + 268 },
       ]
-  hsnCols.forEach(col => page.drawText(col.label, { x: col.x, y: hsnTop - 31, size: 6.5, font: fontB, color: muted }))
+  hsnCols.forEach(col => page.drawText(col.label, { x: col.x, y: hsnTop - 31, size: 6.8, font: fontB, color: muted }))
   let hsnY = hsnTop - 45
   for (const row of hsnRows) {
-    page.drawText(row.hsn, { x: hsnCols[0].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
-    page.drawText(formatAmount(row.taxable), { x: hsnCols[1].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
+    page.drawText(row.hsn, { x: hsnCols[0].x, y: hsnY, size: 7.4, font: fontMono, color: ink })
+    page.drawText(formatAmount(row.taxable), { x: hsnCols[1].x, y: hsnY, size: 7.4, font: fontMono, color: ink })
     if (interState) {
-      page.drawText(formatAmount(row.igst), { x: hsnCols[2].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
-      page.drawText(formatAmount(row.totalTax), { x: hsnCols[3].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
+      page.drawText(formatAmount(row.igst), { x: hsnCols[2].x, y: hsnY, size: 7.4, font: fontMono, color: ink })
+      page.drawText(formatAmount(row.totalTax), { x: hsnCols[3].x, y: hsnY, size: 7.4, font: fontMono, color: ink })
     } else {
-      page.drawText(formatAmount(row.cgst), { x: hsnCols[2].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
-      page.drawText(formatAmount(row.sgst), { x: hsnCols[3].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
-      page.drawText(formatAmount(row.totalTax), { x: hsnCols[4].x, y: hsnY, size: 7.2, font: fontMono, color: ink })
+      page.drawText(formatAmount(row.cgst), { x: hsnCols[2].x, y: hsnY, size: 7.4, font: fontMono, color: ink })
+      page.drawText(formatAmount(row.sgst), { x: hsnCols[3].x, y: hsnY, size: 7.4, font: fontMono, color: ink })
+      page.drawText(formatAmount(row.totalTax), { x: hsnCols[4].x, y: hsnY, size: 7.4, font: fontMono, color: ink })
     }
     hsnY -= 13
   }
@@ -507,12 +512,12 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   const totalsBoxTop = hsnTop
   const totalsBoxHeight = Math.max(98, 68 + summaryRows.length * 14)
   page.drawRectangle({ x: totalsBoxX, y: totalsBoxTop - totalsBoxHeight, width: totalsBoxW, height: totalsBoxHeight, borderColor: border, borderWidth: 1, color: panelBg })
-  page.drawText('SUMMARY', { x: totalsBoxX + 12, y: totalsBoxTop - 17, size: 8, font: fontB, color: amber })
+  page.drawText('SUMMARY', { x: totalsBoxX + 12, y: totalsBoxTop - 17, size: 8.4, font: fontB, color: amber })
   let totalsY = totalsBoxTop - 35
   for (const row of summaryRows) {
-    page.drawText(row.label, { x: totalsBoxX + 12, y: totalsY, size: 8, font: fontR, color: muted, maxWidth: totalsBoxW - 76 })
+    page.drawText(row.label, { x: totalsBoxX + 12, y: totalsY, size: 8.2, font: fontR, color: muted, maxWidth: totalsBoxW - 76 })
     const value = formatAmount(row.value)
-    page.drawText(value, { x: totalsBoxX + totalsBoxW - 12 - fontMono.widthOfTextAtSize(value, 8), y: totalsY, size: 8, font: fontMono, color: muted })
+    page.drawText(value, { x: totalsBoxX + totalsBoxW - 12 - fontMono.widthOfTextAtSize(value, 8.2), y: totalsY, size: 8.2, font: fontMono, color: muted })
     totalsY -= 14
   }
   if (totalRow) {
@@ -524,12 +529,12 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
     })
     totalsY -= 8
     page.drawRectangle({ x: totalsBoxX + 8, y: totalsY - 6, width: totalsBoxW - 16, height: 22, color: ink })
-    page.drawText(totalRow.label, { x: totalsBoxX + 14, y: totalsY + 1, size: 10, font: fontB, color: white })
+    page.drawText(totalRow.label, { x: totalsBoxX + 14, y: totalsY + 1, size: 10.4, font: fontB, color: white })
     const totalValue = formatAmount(totalRow.value)
     page.drawText(totalValue, {
-      x: totalsBoxX + totalsBoxW - 14 - fontMonoB.widthOfTextAtSize(totalValue, 10),
+      x: totalsBoxX + totalsBoxW - 14 - fontMonoB.widthOfTextAtSize(totalValue, 10.4),
       y: totalsY + 1,
-      size: 10,
+      size: 10.4,
       font: fontMonoB,
       color: amber,
     })
@@ -544,11 +549,11 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
 
   function drawInfoBox(x: number, topY: number, boxWidth: number, boxHeight: number, title: string, lines: string[]) {
     page.drawRectangle({ x, y: topY - boxHeight, width: boxWidth, height: boxHeight, borderColor: border, borderWidth: 1, color: panelBg })
-    page.drawText(title, { x: x + 12, y: topY - 17, size: 8, font: fontB, color: amber })
+    page.drawText(title, { x: x + 12, y: topY - 17, size: 8.4, font: fontB, color: amber })
     let lineY = topY - 32
     for (const line of lines) {
-      page.drawText(line, { x: x + 12, y: lineY, size: 8, font: fontR, color: muted, maxWidth: boxWidth - 24 })
-      lineY -= 11
+      page.drawText(line, { x: x + 12, y: lineY, size: 8.4, font: fontR, color: muted, maxWidth: boxWidth - 24 })
+      lineY -= 11.8
     }
   }
 
@@ -561,17 +566,17 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
     rows: Array<{ label: string; value: string }>,
   ) {
     page.drawRectangle({ x, y: topY - boxHeight, width: boxWidth, height: boxHeight, borderColor: border, borderWidth: 1, color: panelBg })
-    page.drawText(title, { x: x + 12, y: topY - 17, size: 8, font: fontB, color: amber })
+    page.drawText(title, { x: x + 12, y: topY - 17, size: 8.4, font: fontB, color: amber })
     drawLabeledValueRows(
       page,
       rows,
       x + 12,
       topY - 32,
       boxWidth - 24,
-      54,
+      58,
       fontB,
       fontMono,
-      7.1,
+      7.5,
       ink,
       muted,
     )
@@ -633,11 +638,11 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
     noteSections.forEach((section, index) => {
       const sectionX = margin + 12 + (noteSections.length === 2 ? index * contentWidth / 2 : 0)
       const sectionW = noteSections.length === 2 ? contentWidth / 2 - 24 : contentWidth - 24
-      page.drawText(section.title, { x: sectionX, y: notesBoxTop - 16, size: 7, font: fontB, color: amber })
+      page.drawText(section.title, { x: sectionX, y: notesBoxTop - 16, size: 7.6, font: fontB, color: amber })
       let sectionY = notesBoxTop - 30
       section.lines.forEach(line => {
-        page.drawText(line, { x: sectionX, y: sectionY, size: 7.4, font: fontR, color: muted, maxWidth: sectionW })
-        sectionY -= 10
+        page.drawText(line, { x: sectionX, y: sectionY, size: 7.9, font: fontR, color: muted, maxWidth: sectionW })
+        sectionY -= 10.8
       })
     })
   }
@@ -673,31 +678,23 @@ export async function generateGSTInvoicePDF(data: GSTInvoiceData): Promise<Uint8
   page.drawText('DECLARATION', { x: margin + 12, y: closingBottom + closingHeight - 18, size: 7.4, font: fontB, color: amber })
   let declarationY = closingBottom + closingHeight - 32
   declarationLines.forEach(line => {
-    page.drawText(line, { x: margin + 12, y: declarationY, size: 7.2, font: fontR, color: muted, maxWidth: closingLeftW - 24 })
-    declarationY -= 10
+    page.drawText(line, { x: margin + 12, y: declarationY, size: 7.7, font: fontR, color: muted, maxWidth: closingLeftW - 24 })
+    declarationY -= 10.8
   })
 
   const signatureX = margin + closingLeftW + 16
   const signatureTop = closingBottom + closingHeight - 20
-  page.drawText(`For ${sellerName}`, { x: signatureX, y: signatureTop, size: 8, font: fontB, color: ink, maxWidth: 132 })
+  page.drawText(`For ${sellerName}`, { x: signatureX, y: signatureTop, size: 8.4, font: fontB, color: ink, maxWidth: 132 })
   page.drawLine({
     start: { x: signatureX, y: closingBottom + 34 },
     end: { x: width - margin - 12, y: closingBottom + 34 },
     thickness: 0.6,
     color: border,
   })
-  page.drawText('Authorized Signatory', { x: signatureX, y: closingBottom + 20, size: 8, font: fontB, color: ink })
+  page.drawText('Authorized Signatory', { x: signatureX, y: closingBottom + 20, size: 8.4, font: fontB, color: ink })
 
   const footerNote = 'Computer-generated invoice. No signature required.'
-  page.drawText(footerNote, { x: margin + 12, y: closingBottom + 12, size: 6.4, font: fontR, color: muted })
-  const footerBrand = 'Generated with Doclair - doclair.in'
-  page.drawText(footerBrand, {
-    x: width - margin - 12 - fontR.widthOfTextAtSize(footerBrand, 6.4),
-    y: closingBottom + 12,
-    size: 6.4,
-    font: fontR,
-    color: muted,
-  })
+  page.drawText(footerNote, { x: margin + 12, y: closingBottom + 12, size: 6.6, font: fontR, color: muted })
 
   return doc.save()
 }
