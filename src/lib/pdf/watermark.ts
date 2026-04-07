@@ -77,7 +77,9 @@ export async function addWatermark(
     }
   }
 
-  const radians = (opts.rotation * Math.PI) / 180
+  // pdf-lib uses CCW degrees; CSS uses CW degrees. Negate so the PDF
+  // output matches the live CSS preview for every rotation value.
+  const radians = (-opts.rotation * Math.PI) / 180
   const cos     = Math.cos(radians)
   const sin     = Math.sin(radians)
 
@@ -104,7 +106,7 @@ export async function addWatermark(
         font,
         color:   rgb(r, g, b),
         opacity: opts.opacity,
-        rotate:  degrees(opts.rotation),
+        rotate:  degrees(-opts.rotation),
       })
     }
 
@@ -122,7 +124,7 @@ export async function addWatermark(
         width:   imgW,
         height:  imgH,
         opacity: opts.opacity,
-        rotate:  degrees(opts.rotation),
+        rotate:  degrees(-opts.rotation),
       })
     }
 
