@@ -310,7 +310,7 @@ export default function HomePageClient() {
                 textAlign: 'center', transition: 'transform 0.15s, opacity 0.15s', textDecoration: 'none',
                 whiteSpace: 'nowrap',
                 border: pill.featured ? '1px solid var(--amber)' : '1px solid rgba(255,255,255,0.1)',
-                color: pill.featured ? '#1A1612' : 'rgba(240,235,224,0.75)',
+                color: pill.featured ? 'var(--ink)' : 'var(--cream)',
                 background: pill.featured ? 'var(--amber)' : 'rgba(255,255,255,0.06)',
               }}
                 onMouseEnter={e => {
