@@ -523,6 +523,18 @@ a, button, input, select, textarea,
 [data-theme="dark"] .hero-right {
   background: #0C0A08 !important;
 }
+/* Live badge pill ("100% Browser-Based") — no className on element,
+   targeted via structural selector */
+[data-theme="dark"] .hero-left > div:first-child,
+[data-theme="dark"] .live-badge {
+  background: rgba(237,232,223,0.06) !important;
+  border-color: rgba(237,232,223,0.15) !important;
+}
+[data-theme="dark"] .hero-left > div:first-child span,
+[data-theme="dark"] .live-badge span,
+[data-theme="dark"] [class*="live-badge"] span {
+  color: rgba(237,232,223,0.75) !important;
+}
 [data-theme="dark"] .hero-right .tool-pill {
   color: rgba(237,232,223,0.75) !important;
   border-color: rgba(237,232,223,0.10) !important;
