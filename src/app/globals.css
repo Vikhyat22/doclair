@@ -521,7 +521,7 @@ a, button, input, select, textarea,
 
 /* ── Hero ── */
 [data-theme="dark"] .hero-right {
-  background: #0C0A08;
+  background: #0C0A08 !important;
 }
 
 /* ── Code blocks ── */

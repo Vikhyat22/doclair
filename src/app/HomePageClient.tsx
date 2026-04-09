@@ -294,13 +294,13 @@ export default function HomePageClient() {
               { icon: '🔀', label: 'Merge PDF', slug: 'merge-pdf', featured: true },
               { icon: '✂️', label: 'Split PDF', slug: 'split-pdf', featured: false },
               { icon: '📦', label: 'Compress', slug: 'compress-pdf', featured: false },
-              { icon: '💬', label: 'Chat PDF', slug: 'chat-with-pdf', featured: true },
+              { icon: '💬', label: 'Chat PDF', slug: 'chat-with-pdf', featured: false },
               { icon: '🖼️', label: 'PDF→JPG', slug: 'pdf-to-jpg', featured: false },
               { icon: '📄', label: 'Word→PDF', slug: 'word-to-pdf', featured: false },
-              { icon: '🧾', label: 'GST Invoice', slug: 'gst-invoice', featured: true },
+              { icon: '🧾', label: 'GST Invoice', slug: 'gst-invoice', featured: false },
               { icon: '🔐', label: 'Encrypt', slug: 'encrypt-pdf', featured: false },
               { icon: '👁️', label: 'OCR PDF', slug: 'ocr-pdf', featured: false },
-              { icon: '🎨', label: 'Remove BG', slug: 'remove-background', featured: true },
+              { icon: '🎨', label: 'Remove BG', slug: 'remove-background', featured: false },
               { icon: '📊', label: 'Excel→PDF', slug: 'excel-to-pdf', featured: false },
               { icon: '🔪', label: 'Cut PDF', slug: 'cut-pdf', featured: false },
             ].map(pill => (
@@ -310,7 +310,7 @@ export default function HomePageClient() {
                 textAlign: 'center', transition: 'transform 0.15s, opacity 0.15s', textDecoration: 'none',
                 whiteSpace: 'nowrap',
                 border: pill.featured ? '1px solid var(--amber)' : '1px solid rgba(255,255,255,0.1)',
-                color: pill.featured ? 'var(--ink)' : 'var(--cream)',
+                color: pill.featured ? '#1A1612' : 'rgba(240,235,224,0.75)',
                 background: pill.featured ? 'var(--amber)' : 'rgba(255,255,255,0.06)',
               }}
                 onMouseEnter={e => {
