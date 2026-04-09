@@ -5,7 +5,8 @@ import { motion, useReducedMotion, type TargetAndTransition } from 'framer-motio
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
-import { TOOLS, CATEGORY_ICON_BG } from '@/constants/tools'
+import { TOOLS, CATEGORY_ICON_BG, CATEGORY_ICON_BG_DARK } from '@/constants/tools'
+import { useTheme } from '@/components/theme/ThemeProvider'
 import ToolSearchFilter, { ToolEmptyState } from '@/components/ui/ToolSearchFilter'
 import { HOME_FAQS } from '@/constants/faqs'
 
@@ -97,6 +98,8 @@ export default function HomePageClient() {
   const [filteredTools, setFilteredTools] = useState(TOOLS)
   const [activeSearch, setActiveSearch] = useState('')
   const [resetSignal, setResetSignal] = useState(0)
+  const { resolvedTheme } = useTheme()
+  const iconBg = resolvedTheme === 'dark' ? CATEGORY_ICON_BG_DARK : CATEGORY_ICON_BG
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const toolsSectionRef = useRef<HTMLDivElement>(null)
   const shouldReduceMotion = useReducedMotion()
@@ -483,7 +486,7 @@ export default function HomePageClient() {
                 </div>
                 <div className="tool-icon" style={{
                   width: '44px', height: '44px', borderRadius: '10px',
-                  background: CATEGORY_ICON_BG[tool.category] || '#F3F4F6',
+                  background: iconBg[tool.category] || (resolvedTheme === 'dark' ? '#252118' : '#F3F4F6'),
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '22px', marginBottom: '14px', flexShrink: 0,
                 }}>{tool.icon}</div>

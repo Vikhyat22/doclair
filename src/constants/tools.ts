@@ -9,6 +9,15 @@ export const CATEGORY_ICON_BG: Record<string, string> = {
   'Utilities': '#F3F4F6',
 }
 
+export const CATEGORY_ICON_BG_DARK: Record<string, string> = {
+  'Essentials': '#2A1D08',
+  'Edit & Organize': '#0F1F35',
+  'Security': '#2A0F0F',
+  'Convert': '#0F2A1A',
+  'AI Tools': '#1A1235',
+  'Utilities': '#252118',
+}
+
 export const CATEGORIES = [
   'All Tools',
   'Essentials',

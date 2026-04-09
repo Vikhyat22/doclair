@@ -5,7 +5,8 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
-import { TOOLS, CATEGORY_ICON_BG } from '@/constants/tools'
+import { TOOLS, CATEGORY_ICON_BG, CATEGORY_ICON_BG_DARK } from '@/constants/tools'
+import { useTheme } from '@/components/theme/ThemeProvider'
 import ToolSearchFilter, { ToolEmptyState } from '@/components/ui/ToolSearchFilter'
 
 function ToolsPageInner() {
@@ -15,6 +16,8 @@ function ToolsPageInner() {
   const [filteredTools, setFilteredTools] = useState(TOOLS)
   const [activeSearch, setActiveSearch] = useState('')
   const [resetSignal, setResetSignal] = useState(0)
+  const { resolvedTheme } = useTheme()
+  const iconBg = resolvedTheme === 'dark' ? CATEGORY_ICON_BG_DARK : CATEGORY_ICON_BG
 
   const handleFiltered = useCallback((tools: typeof TOOLS) => {
     setFilteredTools(tools)
@@ -72,7 +75,7 @@ function ToolsPageInner() {
                   {tool.in && <span style={{ padding: '3px 7px', borderRadius: '100px', background: '#FFF0DC', color: '#92400E', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '9px', fontWeight: 500 }}>IN 🇮🇳</span>}
                   {tool.isNew && <span style={{ padding: '3px 7px', borderRadius: '100px', background: '#DCFCE7', color: '#166534', fontFamily: 'var(--font-dm-mono), DM Mono, monospace', fontSize: '9px', fontWeight: 500, textTransform: 'uppercase' }}>New</span>}
                 </div>
-                <div className="tool-icon" style={{ width: '44px', height: '44px', borderRadius: '10px', background: CATEGORY_ICON_BG[tool.category] || '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', marginBottom: '14px', flexShrink: 0 }}>{tool.icon}</div>
+                <div className="tool-icon" style={{ width: '44px', height: '44px', borderRadius: '10px', background: iconBg[tool.category] || (resolvedTheme === 'dark' ? '#252118' : '#F3F4F6'), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', marginBottom: '14px', flexShrink: 0 }}>{tool.icon}</div>
                 <div style={{ fontFamily: 'var(--font-syne), Syne, sans-serif', fontWeight: 700, fontSize: '15px', color: 'var(--ink)', marginBottom: '5px', lineHeight: 1.2 }}>{tool.name}</div>
                 <div style={{ fontSize: '12px', color: 'var(--ink)', opacity: 0.55, lineHeight: 1.5, flex: 1 }}>{tool.desc}</div>
                 <div className="tool-arrow">→</div>

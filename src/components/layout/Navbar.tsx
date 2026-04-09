@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -68,6 +69,7 @@ export default function Navbar() {
                 onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'var(--muted)'}
               >{link.label}</Link>
             ))}
+            <ThemeToggle />
             <Link href="/tools" style={{
               background: 'var(--ink)',
               color: 'var(--cream)',

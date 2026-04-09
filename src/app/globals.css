@@ -17,6 +17,30 @@
   /* from HTML files */
   --amber-pale-html: #FFF0DC;
   --amber-light-html: #FDEBC8;
+  --card-bg: #FFFFFF;
+  --card: #FFFFFF;
+  --ink8: rgba(26,22,18,0.05);
+  --ink15: rgba(26,22,18,0.09);
+  --ink20: rgba(26,22,18,0.12);
+  --ink60: rgba(26,22,18,0.55);
+  --gray: #7A6E62;
+}
+
+[data-theme="dark"] {
+  --cream: #151210;
+  --ink: #EDE8DF;
+  --white: #EDE8DF;
+  --border: #2A2520;
+  --card-bg: #1C1915;
+  --card: #1C1915;
+  --ink8: rgba(237,232,223,0.05);
+  --ink15: rgba(237,232,223,0.09);
+  --ink20: rgba(237,232,223,0.12);
+  --ink60: rgba(237,232,223,0.55);
+  --amber-pale: #1E1A0C;
+  --amber-light: #1A1709;
+  --muted: #9C9188;
+  --gray: #9C9188;
 }
 
 @theme inline {
@@ -55,6 +79,7 @@ body {
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 /* ── Scrollbar styling (desktop only — hover:hover targets non-touch) ── */
@@ -469,4 +494,199 @@ select:focus-visible,
 textarea:focus-visible {
   outline: 2px solid var(--amber);
   outline-offset: 2px;
+}
+
+/* ── DARK MODE TRANSITIONS ── */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0.25s;
+  transition-timing-function: ease;
+}
+
+/* Exclude animated/interactive elements from slow transitions */
+a, button, input, select, textarea,
+[class*="animate"], [class*="spin"],
+[class*="float"], [class*="pulse"],
+.progress-bar, .progress-spinner {
+  transition-property: background-color, border-color, color,
+    opacity, transform, box-shadow;
+}
+
+/* ════════════════════════════════════════════
+   DARK MODE OVERRIDES
+   Applied in addition to CSS variable remapping
+   ════════════════════════════════════════════ */
+
+/* ── Hero ── */
+[data-theme="dark"] .hero-right {
+  background: #0C0A08;
+}
+
+/* ── Code blocks ── */
+[data-theme="dark"] .code-block {
+  background: #080604;
+  border-color: rgba(237,232,223,0.05);
+}
+
+/* ── Navigation ── */
+[data-theme="dark"] nav {
+  background: #151210;
+}
+
+/* ── Primary action buttons ── */
+[data-theme="dark"] .btn-primary,
+[data-theme="dark"] .btn-merge,
+[data-theme="dark"] .dz-btn,
+[data-theme="dark"] .nav-cta,
+[data-theme="dark"] .merge-btn,
+[data-theme="dark"] [class*="btn-action"],
+[data-theme="dark"] [class*="process-btn"] {
+  background: var(--amber) !important;
+  color: #151210 !important;
+}
+
+/* ── Download / success card ── */
+[data-theme="dark"] .download-card {
+  background: #0D2218;
+  border-color: #166534;
+}
+[data-theme="dark"] .dl-title,
+[data-theme="dark"] .dl-sub {
+  color: #4ADE80;
+}
+[data-theme="dark"] .dl-btn {
+  background: #166534;
+}
+[data-theme="dark"] .dl-btn:hover {
+  background: #15803D;
+}
+[data-theme="dark"] .dl-reset {
+  color: var(--amber);
+}
+
+/* ── Progress card ── */
+[data-theme="dark"] .progress-card {
+  background: #0C0A08;
+  border: 1px solid var(--border);
+}
+
+/* ── Tool header tag badges ── */
+[data-theme="dark"] .tag-green {
+  background: #0D2218;
+  color: #4ADE80;
+}
+[data-theme="dark"] .tag-amber {
+  background: #2A1D08;
+  color: #FBB040;
+}
+[data-theme="dark"] .tag-purple {
+  background: #1A1235;
+  color: #A78BFA;
+}
+
+/* ── Tool card grid badges ── */
+[data-theme="dark"] .badge-ai {
+  background: #1A1235;
+  color: #A78BFA;
+}
+[data-theme="dark"] .badge-in {
+  background: #2A1D08;
+  color: #FBB040;
+}
+[data-theme="dark"] .badge-new {
+  background: #0D2218;
+  color: #4ADE80;
+}
+
+/* ── File list ── */
+[data-theme="dark"] .file-list {
+  background: var(--card-bg);
+  border-color: var(--border);
+}
+[data-theme="dark"] .file-row {
+  border-bottom-color: var(--border);
+}
+[data-theme="dark"] .file-row:hover {
+  background: var(--ink8);
+}
+[data-theme="dark"] .file-icon {
+  background: #2A0F0F;
+}
+[data-theme="dark"] .file-remove:hover {
+  background: #2A0F0F;
+  color: #F87171;
+}
+[data-theme="dark"] .btn-clear:hover {
+  background: #2A0F0F;
+  border-color: #7F1D1D;
+  color: #F87171;
+}
+[data-theme="dark"] .add-more {
+  border-color: var(--border);
+  color: var(--ink);
+}
+[data-theme="dark"] .add-more:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+
+/* ── FAQ section ── */
+[data-theme="dark"] .faq-item {
+  border-bottom-color: var(--border);
+}
+
+/* ── Sidebar ── */
+[data-theme="dark"] .sidebar > div {
+  background: var(--card-bg);
+  border-color: var(--border);
+}
+[data-theme="dark"] [class*="sidebar-privacy"],
+[data-theme="dark"] [class*="sidebar-dark"],
+[data-theme="dark"] [class*="zero-server"] {
+  background: #0C0A08;
+  border: 1px solid var(--border);
+}
+
+/* ── Trust bar ── */
+[data-theme="dark"] .trust-bar {
+  background: rgba(237,232,223,0.03);
+}
+
+/* ── Breadcrumb ── */
+[data-theme="dark"] .breadcrumb {
+  background: #151210;
+  border-bottom-color: var(--border);
+}
+
+/* ── Category filter buttons ── */
+[data-theme="dark"] .cat-btn.active,
+[data-theme="dark"] .cat-tab.active {
+  background: var(--amber);
+  color: #151210;
+  border-color: var(--amber);
+}
+
+/* ── Footer ── */
+[data-theme="dark"] footer {
+  background: #0C0A08;
+}
+
+/* ── Scrollbar ── */
+[data-theme="dark"] {
+  scrollbar-color: #3A3530 #151210;
+}
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: #151210;
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #3A3530;
+}
+
+/* ── Privacy / live dot — stays green always ── */
+.live-dot,
+.privacy-dot,
+[class*="online-dot"] {
+  background: #22c55e !important;
 }

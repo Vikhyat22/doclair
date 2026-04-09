@@ -6,6 +6,8 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 import ClarityScript from '@/components/ClarityScript'
 import ServiceWorkerRegistration from '@/components/ServiceWorkerRegistration'
+import { ThemeProvider } from '@/components/theme/ThemeProvider'
+import { ThemeScript } from '@/components/theme/ThemeScript'
 
 const syne = Syne({
   subsets: ['latin'],
@@ -59,6 +61,7 @@ export default function RootLayout({
       className={`${syne.variable} ${dmSans.variable} ${dmMono.variable}`}
     >
       <head>
+        <ThemeScript />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#1A1612" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -95,9 +98,11 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <a href="#main-content" className="skip-link">Skip to content</a>
-        <div id="main-content">{children}</div>
-        <ServiceWorkerRegistration />
+        <ThemeProvider>
+          <a href="#main-content" className="skip-link">Skip to content</a>
+          <div id="main-content">{children}</div>
+          <ServiceWorkerRegistration />
+        </ThemeProvider>
         {process.env.NEXT_PUBLIC_GA_ID && (
           <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
         )}
