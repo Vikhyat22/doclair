@@ -523,6 +523,16 @@ a, button, input, select, textarea,
 [data-theme="dark"] .hero-right {
   background: #0C0A08 !important;
 }
+[data-theme="dark"] .hero-right .tool-pill {
+  color: rgba(237,232,223,0.75) !important;
+  border-color: rgba(237,232,223,0.10) !important;
+  background: rgba(237,232,223,0.06) !important;
+}
+[data-theme="dark"] .hero-right .tool-pill.featured {
+  background: var(--amber) !important;
+  border-color: var(--amber) !important;
+  color: #151210 !important;
+}
 
 /* ── Code blocks ── */
 [data-theme="dark"] .code-block {

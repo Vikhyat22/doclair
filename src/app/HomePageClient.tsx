@@ -237,7 +237,7 @@ export default function HomePageClient() {
             animation: 'fadeUp 0.6s ease both',
             animationDelay: '0.22s',
           }}>
-            <Link href="#tools" style={{
+            <Link href="#tools" className="btn-primary" style={{
               background: 'var(--ink)', color: 'white', padding: '14px 28px', borderRadius: '100px',
               fontSize: '15px', fontWeight: 500, textDecoration: 'none', display: 'inline-flex',
               alignItems: 'center', gap: '8px', transition: 'background 0.2s, transform 0.15s',
@@ -304,7 +304,7 @@ export default function HomePageClient() {
               { icon: '📊', label: 'Excel→PDF', slug: 'excel-to-pdf', featured: false },
               { icon: '🔪', label: 'Cut PDF', slug: 'cut-pdf', featured: false },
             ].map(pill => (
-              <Link key={pill.slug} href={`/${pill.slug}`} style={{
+              <Link key={pill.slug} href={`/${pill.slug}`} className={pill.featured ? 'tool-pill featured' : 'tool-pill'} style={{
                 padding: '9px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 500,
                 fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif', cursor: 'pointer',
                 textAlign: 'center', transition: 'transform 0.15s, opacity 0.15s', textDecoration: 'none',
