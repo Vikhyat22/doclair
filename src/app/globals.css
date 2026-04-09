@@ -541,8 +541,22 @@ a, button, input, select, textarea,
 }
 
 /* ── Navigation ── */
-[data-theme="dark"] nav {
-  background: #151210;
+[data-theme="dark"] nav,
+[data-theme="dark"] header,
+[data-theme="dark"] [class*="navbar"],
+[data-theme="dark"] [class*="nav-inner"] {
+  background: #151210 !important;
+  border-bottom-color: #2A2520;
+}
+
+[data-theme="dark"] .nav-links a,
+[data-theme="dark"] [class*="nav-link"] {
+  color: rgba(237,232,223,0.75);
+}
+
+[data-theme="dark"] .logo-text,
+[data-theme="dark"] [class*="logo"] span {
+  color: #EDE8DF;
 }
 
 /* ── Primary action buttons ── */
