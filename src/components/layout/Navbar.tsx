@@ -13,7 +13,7 @@ export default function Navbar() {
         position: 'sticky',
         top: 0,
         zIndex: 100,
-        background: 'rgba(245, 240, 232, 0.92)',
+        background: 'var(--cream)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         borderBottom: '1px solid var(--border)',
@@ -70,7 +70,7 @@ export default function Navbar() {
               >{link.label}</Link>
             ))}
             <ThemeToggle />
-            <Link href="/tools" style={{
+            <Link href="/tools" className="nav-cta" style={{
               background: 'var(--ink)',
               color: 'var(--cream)',
               padding: '10px 22px',
@@ -150,7 +150,7 @@ export default function Navbar() {
               }}>{link.label}</Link>
             ))}
           </nav>
-          <Link href="/tools" onClick={() => setMenuOpen(false)} style={{
+          <Link href="/tools" onClick={() => setMenuOpen(false)} className="nav-cta" style={{
             marginTop: '40px',
             background: 'var(--ink)',
             color: 'var(--cream)',

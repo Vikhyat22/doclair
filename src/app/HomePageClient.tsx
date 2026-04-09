@@ -154,7 +154,7 @@ export default function HomePageClient() {
           maxWidth: '680px',
         }} className="hero-left">
           {/* Live badge */}
-          <div style={{
+          <div className="live-badge" style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '8px',
@@ -245,7 +245,7 @@ export default function HomePageClient() {
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.transform = 'scale(1.03)'}
               onMouseLeave={e => (e.currentTarget as HTMLElement).style.transform = 'scale(1)'}
             >Explore All Tools <span>→</span></Link>
-            <Link href="#privacy" style={{
+            <Link href="#privacy" className="hero-outline-btn" style={{
               background: 'transparent', color: 'var(--ink)', padding: '14px 28px', borderRadius: '100px',
               fontSize: '15px', fontWeight: 500, border: '2px solid rgba(26,22,18,0.25)',
               textDecoration: 'none', transition: 'all 0.2s',
@@ -439,7 +439,7 @@ export default function HomePageClient() {
             border: '1px solid var(--border)',
             borderRadius: '16px',
             overflow: 'hidden',
-            background: 'white',
+            background: 'var(--card-bg)',
           }} className="tools-grid">
             {filteredTools.length === 0 && (
               <ToolEmptyState

@@ -52,7 +52,7 @@ function ToolsPageInner() {
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
             border: '1px solid var(--border)', borderRadius: '16px',
-            overflow: 'hidden', background: 'white',
+            overflow: 'hidden', background: 'var(--card-bg)',
           }} className="tools-grid">
             {filteredTools.length === 0 && (
               <ToolEmptyState

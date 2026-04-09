@@ -720,6 +720,46 @@ a, button, input, select, textarea,
   background: #3A3530;
 }
 
+/* ── Outline / ghost CTA button ── */
+.hero-outline-btn {
+  background: transparent;
+  color: var(--ink);
+  border: 2px solid rgba(26,22,18,0.25);
+}
+[data-theme="dark"] .hero-outline-btn {
+  color: rgba(237,232,223,0.85) !important;
+  border-color: rgba(237,232,223,0.25) !important;
+  background: transparent !important;
+}
+[data-theme="dark"] .hero-outline-btn:hover {
+  background: rgba(237,232,223,0.06) !important;
+  border-color: rgba(237,232,223,0.5) !important;
+}
+
+/* ── Tool card grid ── */
+[data-theme="dark"] .tool-card {
+  background: var(--card-bg) !important;
+}
+[data-theme="dark"] .tool-card:hover {
+  background: var(--ink8) !important;
+}
+[data-theme="dark"] .tools-grid {
+  background: var(--card-bg) !important;
+  border-color: var(--border) !important;
+}
+
+/* ── Trust bar (homepage) ── */
+[data-theme="dark"] .trust-bar-shell {
+  background: rgba(237,232,223,0.03) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="dark"] .trust-item-label {
+  color: rgba(237,232,223,0.75) !important;
+}
+[data-theme="dark"] .trust-item-icon-wrap {
+  color: rgba(237,232,223,0.5) !important;
+}
+
 /* ── Privacy / live dot — stays green always ── */
 .live-dot,
 .privacy-dot,
